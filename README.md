@@ -37,41 +37,38 @@ Fill in the sections below yourself, then:
 
 ### Session description
 
-Add your session description here. Keep it concise — 2-3 sentences about what attendees will learn and why it matters.
+You need agents to meet cost & quality targets, but model choices & costs keep shifting. Watch GitHub Copilot run a hill-climbing loop on a travel concierge built on Microsoft Foundry. Build a repeatable model optimization playbook for your AI agents.
 
 ### 🚀 Getting started
 
 #### In a guided session
 
-If you're following along during a live session:
-
-1. Step 1
-2. Step 2
-3. Open [`instructions/`](instructions/README.md) when this session includes
-   attendee step-by-step guidance
+Use this README as the attendee starting point during the live breakout. Follow
+the presenter guidance, and open [`instructions/`](instructions/README.md) if
+step-by-step materials are published for the session.
 
 #### On your own
 
-If you're learning at your own pace:
-
-1. Clone this repository
-2. Set up your environment
-3. Follow the session guidance in [`instructions/`](instructions/README.md), or
-   use the linked docs-site entry point when this repository uses that pattern
+Post-event self-run guidance has not yet been confirmed for this breakout. When
+that decision is made, any attendee steps will be published in
+[`instructions/`](instructions/README.md).
 
 ### 🎯 Learning outcomes
 
 By the end of this session, you will be able to:
 
-- Outcome 1
-- Outcome 2
-- Outcome 3
+- Use Microsoft Foundry observability to optimize hosted agents.
+- Use GitHub Copilot to streamline AgentOps with repeatable workflows.
+- Build a hill-climbing optimizer and create custom optimization playbooks.
 
 ### 💻 Technologies used
 
-- Technology 1
-- Technology 2
-- Technology 3
+- Microsoft Foundry
+- Agent Optimizer
+- Rubric Evaluator
+- Foundry Models
+- GitHub Copilot
+- Foundry Observability
 
 ### 📚 Continue your learning
 
@@ -102,17 +99,13 @@ For more information, visit the [Learn MCP Server repo](https://aka.ms/learnmcp)
 
 ### 👥 Content owners
 
-<!-- TODO: Add yourself as a content owner
-1. Change the src in the image tag to {your github url}.png
-2. Change INSERT NAME HERE to your name
-3. Change the github url in the final href to your url. -->
-
 <table>
 <tr>
-    <td align="center"><a href="http://github.com/yourGitHubHandle">
-        <img src="https://github.com/yourGitHubHandle.png" width="100px;" alt="INSERT NAME HERE"/><br />
-        <sub><b>INSERT NAME HERE</b></sub></a><br />
-            <a href="https://github.com/yourGitHubHandle" title="talk">📢</a>
+    <td align="center"><a href="https://github.com/nitya">
+        <img src="https://github.com/nitya.png" width="100px;" alt="Nitya Narasimhan"/><br />
+        <sub><b>Nitya Narasimhan</b></sub></a><br />
+            <a href="https://github.com/nitya" title="talk">📢</a>
+            <a href="https://linkedin.com/in/nityan" title="LinkedIn">LinkedIn</a>
     </td>
 </tr></table>
 

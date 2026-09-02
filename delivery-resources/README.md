@@ -1,4 +1,4 @@
-# Delivery resources
+# BRK330 delivery resources
 
 <!-- AI TOUR TEMPLATE PLACEHOLDER: replace the required deck link before publication. Optional recording links can remain unavailable. -->
 
@@ -8,10 +8,10 @@ Presenter, re-delivery, and train-the-trainer materials for this session.
 
 | Item | Link | Notes |
 |---|---|---|
-| Delivery deck |  | Required URL |
+| Delivery deck |  | Pending central public URL |
 | Session recording |  | Optional URL when available |
 | Attendee landing page | [Session README](../README.md) | Public starting point |
-| Workshop/lab instructions | [Instructions](../instructions/README.md) | Remove this row when not applicable |
+| Attendee instructions | [Instructions](../instructions/README.md) | Post-event self-run decision deferred; revisit before publication |
 
 ## Delivery checklist
 
@@ -30,17 +30,38 @@ Presenter, re-delivery, and train-the-trainer materials for this session.
 
 ## Run of show
 
-Add timing, transitions, and delivery notes.
+| Segment | Purpose |
+|---|---|
+| Cost and quality challenge | Establish why agents need to meet cost and quality targets while model choices and costs keep shifting. |
+| Travel concierge | Introduce the travel concierge built on Microsoft Foundry. |
+| Hill-climbing loop | Show GitHub Copilot run the model optimization loop. |
+| Optimization playbook | Build a repeatable model optimization playbook for AI agents. |
+
+## Presenter notes
+
+- Use the root README as the attendee entry point.
+- Keep the session centered on the cost and quality challenge, the travel
+  concierge, the hill-climbing loop, and the repeatable optimization playbook.
+- Do not present post-event self-run steps as available until the content owner
+  confirms that BRK330 will include them.
+- Add the public central delivery deck URL when it becomes available.
 
 ## Demo reproducibility
 
-If the session includes live demos, link to or include the steps, code, setup,
-and notes required to reproduce them.
+**Implementation status:** Deferred.
+
+The live demo centers on a travel concierge built on Microsoft Foundry. GitHub
+Copilot runs a hill-climbing loop to pursue cost and quality targets while model
+choices and costs keep shifting.
+
+The reproducibility package still needs the exact setup, starting state, cost
+and quality evaluation method, reset steps, and fallback path before delivery.
 
 ## Setup notes
 
-Use this section for short setup reminders. Link to detailed setup notes if needed.
+Demo setup details will be added with the implementation and reproducibility
+assets in the next phase.
 
 ## Support
 
-Content owner or contact:
+Content owner or contact: Nitya Narasimhan ([@nitya](https://github.com/nitya)) · [LinkedIn](https://linkedin.com/in/nityan)
