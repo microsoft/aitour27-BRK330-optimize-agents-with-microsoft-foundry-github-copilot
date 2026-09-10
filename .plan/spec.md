@@ -71,6 +71,32 @@ but they must never replace a real provisioning, deployment, evaluation,
 training, tracing, Insights, or Agent Optimizer operation. Each resumed clip
 must show the verified result of the operation started in the preceding clip.
 
+### Repository placement contract
+
+- `src/agent/`: Python hosted-agent source, tools, task decomposition, telemetry,
+  evaluation integration, and agent-local `.foundry/` state.
+- `src/web/`: FastAPI source, templates, CSS, JavaScript, and web tests.
+- `src/evaluation/`: evaluation and comparison scripts.
+- `src/training/`: trace curation and supported training scripts.
+- `data/`: all synthetic policies, catalogs, employee profiles, receipts,
+  itineraries, evaluation data, rubrics, and training data.
+- `infra/`: Bicep or other approved Azure provisioning modules, parameters,
+  scripts, and RBAC definitions.
+- `docs/`: supporting architecture, data, evaluation, cost, security, and
+  reproducibility documentation.
+- `instructions/`: attendee steps only; leave unchanged until self-paced
+  guidance is explicitly approved.
+- `delivery-resources/README.md`: the only presenter-material file under
+  `delivery-resources/`; update it in place and do not create a demos subfolder
+  or separate presenter guide there.
+- `.plan/`: specifications, recording prompts, runbooks, slide references, and
+  planning-only instructor guidance.
+- `azure.yaml`: allowed at the repository root only when required by the Foundry
+  hosted-agent/azd workflow.
+
+Do not create new top-level implementation folders. Preserve and extend existing
+authored README content instead of replacing it.
+
 ### Required architecture
 
 - Azure resource group named `rg-brk330-concierge`.

@@ -4,6 +4,7 @@
 
 | Destination | Required assets |
 |---|---|
+| `.plan/` | Specifications, ordered recording prompts, demo runbooks, slide references, speaker notes, and planning-only instructor guidance |
 | `src/agent/` | Python hosted-agent entry point, task decomposition, tool definitions, telemetry, configuration loader |
 | `src/web/` | FastAPI app, templates, CSS, JavaScript, API client, static icons |
 | `src/evaluation/` | Dataset conversion, batch evaluation, result normalization, comparison reporting |
@@ -16,9 +17,13 @@
 | `data/training/` | Curated trace-derived teacher/student examples and provenance manifest |
 | `infra/` | Foundry project, hosted-agent prerequisites, App Insights, model deployments, web hosting, RBAC |
 | `docs/` | Architecture, data model, evaluation approach, cost methodology, security/privacy |
-| `delivery-resources/demos/` | Recording scripts, checkpoints, fallback media, result snapshots |
 | `delivery-resources/README.md` | Run of show, deck URL, recording links, presenter guidance |
 | `instructions/` | Deferred until self-paced attendee guidance is approved |
+| `azure.yaml` | Root azd service manifest only when required by the hosted-agent workflow |
+
+Do not create other top-level implementation directories. In particular, do not
+create `delivery-resources/demos/` or a separate presenter guide under
+`delivery-resources/`.
 
 ## Synthetic fixture inventory
 

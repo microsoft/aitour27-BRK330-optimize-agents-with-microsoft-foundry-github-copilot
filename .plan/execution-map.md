@@ -23,6 +23,10 @@ step:
 13. Prepare repeatable recording starting points and reset instructions.
 14. Update the repository documentation and presenter materials.
 
+All implementation files must follow the repository placement contract in
+`spec.md`. Presenter runbooks remain in `.plan/`; the final
+`delivery-resources/` directory remains a single `README.md`.
+
 Implementation does **not** fabricate completed screens or substitute mocks for
 Azure operations.
 

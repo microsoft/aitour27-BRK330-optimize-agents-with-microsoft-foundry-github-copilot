@@ -38,7 +38,9 @@ must-have capability for Act 2 is available and Act 3/4 limitations are explicit
 > `.plan/inventory.md`, `.plan/test-prompts.md`, and `.plan/demo-1.md`.
 > Inspect the repository and Azure environment without editing anything. Confirm
 > the exact implementation checkpoints you will complete for Demo 1, identify
-> the fixed hero prompt and 20-prompt evaluation subset, and stop for my review.
+> the fixed hero prompt and 20-prompt evaluation subset, restate the repository
+> placement contract for `src/`, `data/`, `infra/`, `docs/`, `instructions/`,
+> and `delivery-resources/`, and stop for my review.
 
 **Record:** the request, file reading, and concise plan.
 
@@ -50,7 +52,10 @@ must-have capability for Act 2 is available and Act 3/4 limitations are explicit
 > experience. Use Foundry Canvas visibly while creating the hosted agent. Use one
 > verified frontier-model deployment for every task. Enforce
 > Caldova policy as a hard booking gate. Run the repository's targeted local
-> validation, summarize the changed files, and stop before Azure deployment.
+> validation, verify every new file follows the repository placement contract,
+> summarize the changed files by destination folder, and stop before Azure
+> deployment. Do not create new top-level implementation folders or a
+> `delivery-resources/demos/` folder.
 
 **Record:** Foundry Canvas opening in creation-progress mode, representative file
 creation, and the final change summary. Remove repetitive generation from the

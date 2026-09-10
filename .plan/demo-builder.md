@@ -38,6 +38,9 @@ option:
    the Foundry project managed identity.
 5. Record actual model IDs, versions, prices, region, and preview status in a
    generated environment manifest.
+6. Read the repository placement contract in `spec.md` and confirm that no
+   proposed implementation file falls outside `src/`, `data/`, `infra/`,
+   `docs/`, or the explicitly allowed root `azure.yaml`.
 
 Stop if any required capability is unavailable. Propose the smallest truthful
 scope adjustment instead of substituting an unverified model or fake result.
@@ -127,6 +130,12 @@ recording.
 
 ## Non-negotiable verification
 
+- [ ] Agent and web source live under `src/`.
+- [ ] Synthetic and evaluation assets live under `data/`.
+- [ ] Azure provisioning and RBAC live under `infra/`.
+- [ ] Supporting technical documentation lives under `docs/`.
+- [ ] `delivery-resources/` still contains only its single `README.md`.
+- [ ] `instructions/` remains unchanged unless self-paced guidance is approved.
 - [ ] The product is always named Contoso Travel Concierge.
 - [ ] Caldova owns the travel policy.
 - [ ] Krystal is the hero user.
