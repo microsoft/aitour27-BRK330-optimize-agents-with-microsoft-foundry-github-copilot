@@ -49,6 +49,7 @@ create `delivery-resources/demos/` or a separate presenter guide under
 ## Azure resources
 
 - Resource group named `rg-brk330-concierge`.
+- Foundry hosted-agent and azd service named `contoso-travel`.
 - Microsoft Foundry resource and project.
 - Application Insights and associated Log Analytics workspace if required.
 - Hosted-agent deployment.

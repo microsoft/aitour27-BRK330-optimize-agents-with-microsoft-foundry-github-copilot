@@ -27,6 +27,18 @@ process travel receipts, and comply with Caldova travel policy. Contoso engineer
 build and optimize the service; Caldova owns the policy, pays for the service,
 and uses it.
 
+### Naming contract
+
+- Customer organization: **Caldova**
+- Contractor: **Contoso Travel**
+- Product display name: **Contoso Travel Concierge**
+- Foundry hosted-agent and `azure.yaml` service name: `contoso-travel`
+- Repository code folder remains `src/agent/`; do not rename the company or
+  product to the technical slug in audience-facing copy.
+
+Globally unique Azure resource names may add a generated suffix, but the logical
+service and hosted-agent name must remain `contoso-travel`.
+
 ### Personas
 
 - **Krystal McKinney, R&D Lead:** needs travel planning and expenses to work with

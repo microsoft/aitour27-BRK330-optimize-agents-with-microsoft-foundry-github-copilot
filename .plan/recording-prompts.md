@@ -25,6 +25,7 @@ the implementation branch. Open a new GitHub Copilot App session on that branch.
 > current RBAC role names. Do not create resources or edit files. Write a
 > concise feasibility report with verified model IDs, versions, prices, preview
 > status, and blockers. Use `rg-brk330-concierge` as the required resource-group
+> name and `contoso-travel` as the required Foundry hosted-agent and azd service
 > name for every later provisioning step. Stop for my review.
 
 **Record:** optional preparation clip. **Do not continue** until every
@@ -55,7 +56,9 @@ must-have capability for Act 2 is available and Act 3/4 limitations are explicit
 > validation, verify every new file follows the repository placement contract,
 > summarize the changed files by destination folder, and stop before Azure
 > deployment. Do not create new top-level implementation folders or a
-> `delivery-resources/demos/` folder.
+> `delivery-resources/demos/` folder. Use `contoso-travel` as the technical
+> hosted-agent and azd service name while retaining Contoso Travel Concierge in
+> all audience-facing UI.
 
 **Record:** Foundry Canvas opening in creation-progress mode, representative file
 creation, and the final change summary. Remove repetitive generation from the

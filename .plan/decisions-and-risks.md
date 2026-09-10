@@ -2,6 +2,7 @@
 
 | Topic | Decision or mitigation |
 |---|---|
+| Naming | Caldova is the customer company; Contoso Travel is the contractor; the display product is Contoso Travel Concierge; the hosted-agent/service slug is `contoso-travel`. |
 | Resource group | Use the fixed Azure resource-group name `rg-brk330-concierge`. |
 | Runtime | Python hosted agent with FastAPI and lightweight HTML/CSS/JavaScript. |
 | Hosting | Live Azure only; no simulated local demo path. |

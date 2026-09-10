@@ -130,6 +130,10 @@ recording.
 
 ## Non-negotiable verification
 
+- [ ] Caldova is the customer company.
+- [ ] Contoso Travel is the contractor and Contoso Travel Concierge is the
+  audience-facing product name.
+- [ ] The Foundry hosted-agent and azd service name is `contoso-travel`.
 - [ ] Agent and web source live under `src/`.
 - [ ] Synthetic and evaluation assets live under `data/`.
 - [ ] Azure provisioning and RBAC live under `infra/`.
