@@ -24,7 +24,8 @@ the implementation branch. Open a new GitHub Copilot App session on that branch.
 > smaller models, Agent Optimizer access, Application Insights requirements, and
 > current RBAC role names. Do not create resources or edit files. Write a
 > concise feasibility report with verified model IDs, versions, prices, preview
-> status, and blockers. Stop for my review.
+> status, and blockers. Use `rg-brk330-concierge` as the required resource-group
+> name for every later provisioning step. Stop for my review.
 
 **Record:** optional preparation clip. **Do not continue** until every
 must-have capability for Act 2 is available and Act 3/4 limitations are explicit.
@@ -58,7 +59,8 @@ repetitive generation from the edited video.
 > Use the Microsoft Foundry skill and the repository infrastructure to provision
 > or update the live Azure demo environment and deploy the baseline hosted agent
 > and FastAPI site. Ensure Application Insights is connected and required role
-> assignments are applied. Execute the full operation, verify the deployment,
+> assignments are applied. Create or reuse only the resource group
+> `rg-brk330-concierge`. Execute the full operation, verify the deployment,
 > report the operation IDs and URLs, and do not claim success until the live
 > health and agent smoke tests pass.
 

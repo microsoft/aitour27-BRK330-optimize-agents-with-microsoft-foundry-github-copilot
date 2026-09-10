@@ -2,6 +2,7 @@
 
 | Topic | Decision or mitigation |
 |---|---|
+| Resource group | Use the fixed Azure resource-group name `rg-brk330-concierge`. |
 | Runtime | Python hosted agent with FastAPI and lightweight HTML/CSS/JavaScript. |
 | Hosting | Live Azure only; no simulated local demo path. |
 | Recording stability | Record the action that starts each long cloud operation, remove the waiting period during editing, and resume from a prepared, verified checkpoint. Keep fallback clips/screenshots for preview UI changes. |

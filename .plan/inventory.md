@@ -43,7 +43,7 @@
 
 ## Azure resources
 
-- Resource group dedicated to the demo.
+- Resource group named `rg-brk330-concierge`.
 - Microsoft Foundry resource and project.
 - Application Insights and associated Log Analytics workspace if required.
 - Hosted-agent deployment.
@@ -65,4 +65,3 @@
 - Student-model training status and comparison.
 - Insights issue and related traces.
 - Agent Optimizer candidate list, evidence, and human-review step.
-

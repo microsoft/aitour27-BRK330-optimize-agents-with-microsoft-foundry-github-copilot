@@ -73,6 +73,7 @@ must show the verified result of the operation started in the preceding clip.
 
 ### Required architecture
 
+- Azure resource group named `rg-brk330-concierge`.
 - A Python Microsoft Foundry hosted agent.
 - A lightweight FastAPI application serving HTML, CSS, and JavaScript.
 - Live Azure deployment only.

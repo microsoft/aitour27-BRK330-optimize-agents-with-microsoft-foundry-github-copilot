@@ -26,6 +26,7 @@ option:
 ## Mandatory first checks
 
 1. Confirm the active Azure identity, subscription, and deployment region.
+   Use `rg-brk330-concierge` as the resource group.
 2. Confirm quota and availability for:
    - A frontier baseline model
    - A supported judge model
