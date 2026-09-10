@@ -185,28 +185,32 @@ App session on the same branch if a clean conversation is desirable.
 
 ### Prompt 13 — Verify Agent Optimizer readiness
 
-> Read `.plan/spec.md`, `.plan/demo-3.md`, and the measured result manifest.
-> Verify that the Python hosted agent is optimization-ready, the baseline is
-> immutable, the fixed 20-prompt dataset and Caldova rubric are available, and
-> the trace-derived evidence is current. Do not launch optimization. Give me the
-> exact Foundry portal navigation and configuration values to use while recording.
+> Read `.plan/spec.md`, `.plan/demo-3.md`, and the measured result manifest
+> at `data/evaluation/results/comparison-tracker.md`. Verify that the Python
+> hosted agent is optimization-ready, the baseline is immutable, the fixed
+> 20-prompt dataset (`src/agent/tests/queries.jsonl`) and Caldova rubric
+> (`caldova-agent-rubric-eval`) are registered, and the trace-derived
+> evidence is current. Compose the exact `azd ai agent optimize` command
+> the presenter will paste in Prompt 14. Do not launch optimization. Give
+> me the Foundry portal Optimize URL (`.../build/agents/contoso-travel/optimize`)
+> to switch to for the recording.
 
-**Record:** readiness summary, then switch to the portal.
+**Record:** readiness summary + composed CLI command, then switch to the portal.
 
-### Portal step 1 — Start optimization
+### Prompt 14 — Launch and verify the Optimizer run
 
-In Foundry, select the verified agent, evidence set, evaluator, and goals. Start
-the run and record the confirmation. Stop recording during processing.
+> Run the composed `azd ai agent optimize` command from Prompt 13 to
+> submit the Optimizer run. Then watch progress with
+> `azd ai agent optimize status <id> --watch`. Do not create another run.
+> When it completes, provide the portal URL under
+> `/build/agents/contoso-travel/optimize`, the candidate IDs, the metric
+> summary per candidate, and any warnings. Do not apply or deploy a
+> candidate.
 
-### Prompt 14 — Verify the existing optimizer run
+**Record:** the composed command running, then a jump to the completed
+Optimize page in the portal.
 
-> Check the Agent Optimizer operation I just started; do not create another run.
-> Verify completion and provide the portal URL, candidate IDs, metric summary,
-> and any warnings. Do not apply or deploy a candidate.
-
-**Record:** Copilot's verification, then return to the completed portal run.
-
-### Portal step 2 — Review and promote
+### Portal step — Review and promote
 
 Record:
 
@@ -218,10 +222,12 @@ Record:
 
 ### Prompt 15 — Verify the promoted result
 
-> Verify the selected Agent Optimizer candidate and version lineage after my
-> portal action. Run the fixed smoke cases against the promoted version and
-> confirm that policy blocking, quality threshold, and deployment health still
-> pass. Persist the final result manifest.
+> Verify the selected Agent Optimizer candidate and version lineage after
+> my portal action or `azd ai agent optimize deploy --candidate <id>`.
+> Run the fixed smoke cases against the promoted version and confirm that
+> policy blocking, quality threshold, and deployment health still pass.
+> Persist the final result manifest under
+> `data/evaluation/results/optimizer-<stamp>.summary.json`.
 
 **Record:** final verification and close on the measured outcome.
 

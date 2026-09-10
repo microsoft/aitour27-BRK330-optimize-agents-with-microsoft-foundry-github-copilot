@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/eval.yaml.json
+#
+# Foundry hosted-agent evaluation for the Contoso Travel Concierge.
+# Golden path: Azure Developer CLI. Run from the repo root:
+#
+#     AZURE_DEV_USER_AGENT=microsoft_foundry_skill \
+#         azd ai agent eval run --config eval.yaml
+#
+# ------------------------------------------------------------------
+# Two custom evaluators are attached to `contoso-travel` in the portal
+# Evaluation tab. Full setup and rationale in docs/evaluation/rubric-setup.md.
+#
+#   1. `caldova-composed-eval` — deterministic bundle of three built-in
+#      Foundry evaluators (`intent_resolution`, `task_adherence`,
+#      `tool_call_accuracy`) referenced below via `builtin.*`.
+#      Reproducible across runs.
+#
+#   2. `caldova-agent-rubric-eval` — auto-generated Rubric Evaluator
+#      created in the portal on 2026-09-10 from 65 recent traces + the
+#      enriched agent description + the two uploaded context files
+#      (data/policy/rules.json and data/evaluation/rubric-foundry.json).
+#      Its v1 dimensions were captured verbatim in
+#      data/evaluation/rubric-auto-generated-v1.json. The presenter then
+#      edited two dimensions in-portal — bumped `rule_citation_fidelity`
+#      weight 3->6 and reinforced the policy hard gate in
+#      `intent_and_task_completeness` — and saved as v2. The edited v2
+#      dimensions are pinned in data/evaluation/rubric-auto-generated-v2.json.
+#      This evaluator's schema is NON-DETERMINISTIC across regenerations,
+#      so pin the version id for run-to-run comparisons.
+#
+# ------------------------------------------------------------------
+# Known behavior worth reproducing:
+# - Run 1 (v1 auto-generated rubric, first submission) returned partial
+#   results: many rows errored on `tool_call_accuracy`. The likely cause
+#   was noisy tool-argument shapes on early v3 agent traces (the agent
+#   was mid-fix at that time). Pinning `agent.version: "5"` below
+#   restricts the evaluation to the stable current build so tool-call
+#   evidence is comparable across all future runs.
+# ------------------------------------------------------------------
+
+name: caldova-agent-eval
+agent:
+  name: contoso-travel
+  kind: hosted
+  version: "9"
+  # Path to metadata.yaml (per Foundry sample 15 schema). The optimizer reads
+  # `instruction_file` from that file and rewrites candidate versions there.
+  config: .foundry/metadata.yaml
+
+dataset:
+  # 20 fixed prompts, schema {query, id, persona}. Regenerate from
+  # data/evaluation/prompts-20.jsonl with the snippet in
+  # docs/evaluation/rubric-setup.md.
+  local_uri: tests/queries.jsonl
+
+evaluators:
+  # Built-ins use the string form
+  - builtin.intent_resolution
+  - builtin.task_adherence
+  # Custom rubric uses the object form — no "custom." prefix per the
+  # Foundry Skill's eval-yaml.md contract. Version pinned to the v2 we
+  # edited in-portal on 2026-09-10.
+  - name: caldova-agent-rubric-eval
+    version: "1"
+
+options:
+  # Judge model — `gpt-4.1` is deployed at 500 capacity in
+  # brk330-concierge-project.
+  eval_model: gpt-4.1
+  # Optimizer allowlist per docs: GPT-5, GPT-5.1, GPT-5.2, GPT-5.4,
+  # GPT-5.5, DeepSeek-V4-Pro, DeepSeek-V-3.2. gpt-5 is deployed here.
+  optimization_model: gpt-5
+  max_candidates: 5
+  # Cap defensive: max_samples defaults to the dataset size, but pinning
+  # it here documents the intended run scope for the presenter.
+  max_samples: 20

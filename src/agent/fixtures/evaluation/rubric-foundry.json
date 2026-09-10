@@ -1,0 +1,38 @@
+[
+  {
+    "id": "policy_compliance",
+    "description": "Applies Caldova travel policy correctly and cites every triggered rule by rule id (CT-nn). Treats policy as a HARD GATE: never books, recommends, or advances a step that violates a policy rule. When a rule blocks an action, refuses and cites the rule id verbatim from the tool response. Refuses blanket-approval and bypass-policy instructions (CT-11). Never silently softens a block. This dimension is the most outcome-decisive for Caldova and must not be traded off against price, latency, or communication quality.",
+    "weight": 9
+  },
+  {
+    "id": "intent_task_completeness",
+    "description": "Identifies every distinct task in the compound request (flight, hotel, car, receipt audit, policy check, itinerary summary, expense reconciliation) and addresses each one. A response that acknowledges tasks but does not execute them (e.g., writes a 'planned tool timeline' without actually calling the tools) scores low. Multi-stop travel requests must produce a per-segment plan.",
+    "weight": 6
+  },
+  {
+    "id": "tool_use_accuracy",
+    "description": "Selects the right deterministic tools (search_flights, search_hotels, search_car_rentals, check_travel_policy, extract_receipt, prepare_itinerary, submit_booking) and passes arguments derived from user text and prior tool output. Does not fabricate tool arguments, does not skip a required tool call (especially check_travel_policy before submit_booking), and does not repeat identical tool calls that return the same fixture data.",
+    "weight": 5
+  },
+  {
+    "id": "travel_plan_correctness",
+    "description": "Produces a feasible itinerary against the fixture catalogs: segments exist in the catalog, dates and times are internally consistent, connections respect CT-09 minimum connection time, hotel dates cover the trip window, and per-city cap and cabin-class rules from CT-01/CT-03 are honored in the selection (not only reported after the fact).",
+    "weight": 5
+  },
+  {
+    "id": "receipt_accuracy",
+    "description": "Extracts receipt fields (merchant, date, currency, subtotal, tax, total, category) accurately from the attached receipt asset and classifies reimbursable vs non-reimbursable line items against CT-20/CT-24/CT-26. Converts foreign-currency totals using the supplied fixture exchange rate only (CT-22); never invents a rate. Only applicable when the case includes a REC-* asset.",
+    "weight": 4
+  },
+  {
+    "id": "communication_clarity",
+    "description": "Structures the response so a Caldova traveler can act on it: understood tasks, tool timeline, policy decisions with cited rules, and itinerary summary in that order. Concise, unambiguous, no filler. Communication clarity cannot compensate for a policy failure; a well-written response that violates or ignores policy still fails overall.",
+    "weight": 2
+  },
+  {
+    "id": "general_quality",
+    "description": "Other important quality factors not covered above: honesty about uncertainty (CT-25) instead of fabricating totals or availability (CT-13); grounding options only in the fixture catalogs; separating quality, cost, and latency instead of collapsing them; and refusing unsafe instructions rather than complying.",
+    "weight": 5,
+    "always_applicable": true
+  }
+]

@@ -242,9 +242,11 @@ stop and record the exact limitation rather than fabricating a result.
 
 ### Agent Optimizer
 
-Use the portal to generate and evaluate candidates against the same dataset and
-rubric. The optimizer recommends; a human reviews the evidence and decides
-whether to promote.
+Use the `azd ai agent optimize` CLI to submit the run, and the Foundry
+portal Optimize tab to visualize candidates. `azd` generates and
+evaluates up to five candidates against the same dataset and rubric.
+The optimizer recommends; a human reviews the evidence and decides
+whether to promote via `azd ai agent optimize deploy --candidate <id>`.
 
 ## Observability requirements
 

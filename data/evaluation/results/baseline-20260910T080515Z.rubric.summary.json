@@ -1,0 +1,22 @@
+{
+  "variant": "baseline",
+  "rubric": "RUB-001",
+  "judge_endpoint": "https://cog-hqxztqzboq4bq.services.ai.azure.com",
+  "judge_deployment": "gpt-4.1",
+  "input_rows": "data/evaluation/results/baseline-20260910T073852Z.rows.jsonl",
+  "aggregate": {
+    "row_count": 20,
+    "row_count_ok": 20,
+    "row_count_errors": 0,
+    "pass_rate": 0.1,
+    "avg_intent": 3.6,
+    "avg_policy": 2.55,
+    "avg_tool_use": 3.6,
+    "avg_travel_plan": 3.0,
+    "avg_receipt": 3.5,
+    "avg_communication": 4.1,
+    "avg_quality_overall": 3.38,
+    "elapsed_sec": 27
+  },
+  "ended_at": "2026-09-10T08:05:15+00:00"
+}

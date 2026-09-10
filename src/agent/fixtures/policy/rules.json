@@ -1,0 +1,158 @@
+{
+  "version": "2026.03",
+  "customer": "Caldova",
+  "currency": "USD",
+  "hard_gate": true,
+  "rules": [
+    {
+      "id": "CT-01",
+      "category": "flight",
+      "title": "Cabin class by flight duration",
+      "logic": "economy<6h; premium_economy 6-9h; business>=9h OR accessibility_exception",
+      "block_if_missing_evidence": true
+    },
+    {
+      "id": "CT-02",
+      "category": "booking",
+      "title": "Advance booking window",
+      "min_days_before_departure": 7,
+      "exceptions": ["disruption"]
+    },
+    {
+      "id": "CT-03",
+      "category": "hotel",
+      "title": "Hotel nightly cap by city tier",
+      "caps_usd": { "tier1": 320, "tier2": 240, "tier3": 180 },
+      "tier1_iata_area": ["NYC", "JFK", "LGA", "EWR", "LON", "LHR", "LGW", "PAR", "CDG", "ORY", "TYO", "HND", "NRT", "SFO"],
+      "tier2_iata_area": ["BER", "MAD", "ROM", "FCO", "AMS", "YUL", "YTO", "YYZ", "SEA", "LAX", "BOS", "CHI", "ORD", "LYN", "LYS", "ZRH"],
+      "includes_taxes_and_fees": true
+    },
+    {
+      "id": "CT-04",
+      "category": "car",
+      "title": "Car rental class",
+      "default": ["economy", "compact"],
+      "midsize_if": "travelers>=3",
+      "requires_exception": ["suv", "luxury"],
+      "accepted_exceptions": ["winter_safety", "mountain_route", "accessibility"]
+    },
+    {
+      "id": "CT-05",
+      "category": "preference",
+      "title": "Preferred vendors",
+      "price_tolerance_pct": 8
+    },
+    {
+      "id": "CT-06",
+      "category": "flexibility",
+      "title": "Refundable when uncertain",
+      "declared_uncertainty_prefers": "refundable"
+    },
+    {
+      "id": "CT-07",
+      "category": "accessibility",
+      "title": "Accessibility overrides cost",
+      "cannot_be_traded": true
+    },
+    {
+      "id": "CT-08",
+      "category": "time",
+      "title": "Time constraints honored",
+      "override_price_within_cap": true
+    },
+    {
+      "id": "CT-09",
+      "category": "flight",
+      "title": "Minimum connection time",
+      "international_minutes": 60,
+      "domestic_minutes": 45,
+      "hard_reject_below": true
+    },
+    {
+      "id": "CT-10",
+      "category": "approval",
+      "title": "Actions requiring Compliance approval",
+      "requires_approval": [
+        "business_class_under_9h_no_accessibility",
+        "hotel_above_tier_cap",
+        "car_luxury_or_suv_no_exception",
+        "companion_expense",
+        "personal_day_included"
+      ]
+    },
+    {
+      "id": "CT-11",
+      "category": "governance",
+      "title": "No blanket approvals",
+      "refuses": ["auto_approve_under_threshold", "bypass_hard_gate", "deploy_cheapest_regardless_of_quality"]
+    },
+    {
+      "id": "CT-12",
+      "category": "sustainability",
+      "title": "Sustainability tiebreak",
+      "price_tolerance_pct": 8,
+      "prefer": "lower_emissions_fixture"
+    },
+    {
+      "id": "CT-13",
+      "category": "grounding",
+      "title": "No invented inventory",
+      "must_exist_in_fixtures": true
+    },
+    {
+      "id": "CT-20",
+      "category": "expense",
+      "title": "Reimbursable receipt types",
+      "reimbursable": ["airport_parking", "business_district_parking", "meals_within_per_diem", "ground_transit", "hotel_room", "hotel_tax", "mandatory_fees"],
+      "not_reimbursable": ["minibar", "in_room_movies", "spa", "companion", "alcohol"]
+    },
+    {
+      "id": "CT-21",
+      "category": "expense",
+      "title": "Receipt evidence threshold",
+      "itemized_receipt_required_above_usd": 25,
+      "card_statement_alone_sufficient": false
+    },
+    {
+      "id": "CT-22",
+      "category": "expense",
+      "title": "Currency conversion",
+      "use_fixture_rate": true,
+      "invent_rate": false
+    },
+    {
+      "id": "CT-23",
+      "category": "expense",
+      "title": "Meal per-diem",
+      "per_diem_usd": 90,
+      "alcohol_reimbursable": false
+    },
+    {
+      "id": "CT-24",
+      "category": "expense",
+      "title": "Receipt date reconciliation",
+      "trip_window_shoulder_days": 1,
+      "outside_window_requires_approval": true
+    },
+    {
+      "id": "CT-25",
+      "category": "expense",
+      "title": "Uncertainty handling",
+      "must_state_known_vs_unknown": true,
+      "fabrication_prohibited": true
+    },
+    {
+      "id": "CT-26",
+      "category": "expense",
+      "title": "Companion and personal separation",
+      "must_separate": ["companion_airfare", "second_hotel_room", "personal_day_nights"]
+    },
+    {
+      "id": "CT-27",
+      "category": "expense",
+      "title": "Per-trip incidental cap",
+      "cap_usd": 150,
+      "requires_exception_above": true
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "note": "Presenter-edited version of the auto-generated caldova-agent-rubric-eval. The v1 schema (data/evaluation/rubric-auto-generated-v1.json) was reviewed against the Caldova spec; two dimensions were adjusted in the Foundry portal without regeneration.",
+    "generated_at": "2026-09-10T04:44Z",
+    "edited_by": "manual portal edit (post auto-generate)",
+    "based_on": "data/evaluation/rubric-auto-generated-v1.json",
+    "changes_from_v1": [
+      "Bumped `rule_citation_fidelity` weight 3 -> 6 so verbatim rule-id citation carries real signal in the overall weighted score (Caldova requires it).",
+      "Reinforced hard-gate language inside `intent_and_task_completeness` description: 'Any response that violates a Caldova policy rule scores 1 on this dimension regardless of other task completeness.'"
+    ],
+    "hard_gate_design_note": "Auto-generation distributed policy across multiple dimensions rather than treating it as a single hard-gate dimension. v2 keeps that distributed design but restores hard-gate teeth via the description of the highest-weighted dimension. Prefer this over regenerating unless a full re-baseline is needed."
+  },
+  "dimensions": [
+    {
+      "id": "intent_and_task_completeness",
+      "description": "The assistant fully addresses the user's requested tasks and decision points for the turn, explicitly reporting outcomes for any requested policy checks, providing appropriate next steps, and correctly handling 'brief reply' requests without omitting required elements or advancing policy-sensitive steps. Any response that violates a Caldova policy rule scores 1 on this dimension regardless of other task completeness.",
+      "weight": 9
+    },
+    {
+      "id": "travel_plan_correctness",
+      "description": "Proposed itineraries reference valid fixture ids and are feasible under constraints: cabin class permitted relative to flight duration, nightly caps with over-cap items excluded or flagged, preferred vendor selection follows the 'within 8% of the cheapest compliant option' logic, connection times meet minimums, and segments are coherent. Any segment requiring approval is summarized and flagged.",
+      "weight": 6
+    },
+    {
+      "id": "receipt_accuracy",
+      "description": "When REC-* receipts are present, the assistant's merchant, dates, currency, subtotal/tax/fees/total, and line-level reimbursable classifications exactly match extract_receipt tool outputs; non-reimbursable exceptions are correctly excluded; any foreign exchange conversion uses only the rate provided by the tool; and if lines are unreadable or tools fail, the assistant explicitly states what is known versus uncertain and does not fabricate.",
+      "weight": 6
+    },
+    {
+      "id": "rule_citation_fidelity",
+      "description": "When citing policy decisions, the assistant includes exactly the rule ids returned by the policy tool — verbatim, complete, and without placeholders or invented ids — and does not omit any ids that the tool reported.",
+      "weight": 6
+    },
+    {
+      "id": "tool_use_accuracy",
+      "description": "Tools are used correctly and sufficiently: options come only from preceding search_* calls; receipts are evaluated only after extract_receipt; arguments are accurate and derived from context (e.g., employee_id, travelers, days_before_departure, raw_instruction); no duplicated identical tool calls occur within the same turn; prepare_itinerary is not invoked without prior search results; and submit_booking is invoked only after a prior policy check indicates not blocked and passes the compliance_summary.",
+      "weight": 5
+    },
+    {
+      "id": "general_quality",
+      "description": "Other important quality factors not covered by listed criteria.",
+      "weight": 5,
+      "always_applicable": true
+    },
+    {
+      "id": "communication_clarity",
+      "description": "The response is clearly structured with an easy-to-follow summary of: understood tasks, tool timeline, policy decisions and any rule ids when relevant, and concise itinerary/expense summaries with clear next steps. 'Brief reply' outputs remain concise while retaining necessary information.",
+      "weight": 2
+    }
+  ]
+}

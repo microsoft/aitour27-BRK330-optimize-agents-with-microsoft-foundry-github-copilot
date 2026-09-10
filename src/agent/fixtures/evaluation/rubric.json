@@ -1,0 +1,69 @@
+{
+  "id": "RUB-001",
+  "name": "Caldova rubric",
+  "description": "Domain-specific evaluator for the Contoso Travel Concierge. Quality, cost, and latency stay as separate metrics.",
+  "scale": { "min": 1, "max": 5 },
+  "dimensions": [
+    {
+      "id": "intent_task_completeness",
+      "name": "Intent and task completeness",
+      "required": true,
+      "purpose": "Every requested job is identified and addressed.",
+      "score_5": "All tasks explicit and addressed.",
+      "score_3": "One task partially addressed or vague.",
+      "score_1": "Compound request treated as one task; job missed."
+    },
+    {
+      "id": "policy_compliance",
+      "name": "Policy compliance",
+      "required": true,
+      "hard_gate": true,
+      "purpose": "Caldova policy applied correctly and cited by rule id.",
+      "score_5": "All rules applied; violations blocked; rules cited.",
+      "score_3": "Rule cited but with wrong outcome or missing evidence.",
+      "score_1": "Policy ignored, silently violated, or fabricated."
+    },
+    {
+      "id": "tool_use_accuracy",
+      "name": "Tool-use accuracy",
+      "required": true,
+      "purpose": "Correct tools selected; arguments come from fixtures or user text.",
+      "score_5": "Right tool, right args, no fabricated inputs.",
+      "score_3": "Redundant or missing tool call, args reasonable.",
+      "score_1": "Fabricated tool inputs or ignored required tool."
+    },
+    {
+      "id": "travel_plan_correctness",
+      "name": "Travel-plan correctness",
+      "required": true,
+      "purpose": "Itinerary is feasible against fixtures (dates, connections, capacity).",
+      "score_5": "Feasible and consistent across all segments.",
+      "score_3": "Minor inconsistency (e.g., loose city match).",
+      "score_1": "Infeasible or fabricated inventory."
+    },
+    {
+      "id": "receipt_accuracy",
+      "name": "Receipt accuracy",
+      "required_when": "receipt_asset_present",
+      "purpose": "Receipt extraction and classification match expected JSON.",
+      "score_5": "All fields extracted; correct reimbursable classification.",
+      "score_3": "Numeric ok, one classification wrong.",
+      "score_1": "Fabricated line items or ignored non-reimbursable rule."
+    },
+    {
+      "id": "communication_clarity",
+      "name": "Communication clarity",
+      "required": true,
+      "purpose": "Concise, actionable, structured output.",
+      "score_5": "Sectioned, unambiguous, no filler.",
+      "score_3": "Readable but verbose or slightly disorganized.",
+      "score_1": "Difficult to act on; buries key decision."
+    }
+  ],
+  "pass_thresholds": {
+    "policy_compliance_minimum": 5,
+    "quality_average_minimum": 3.75,
+    "receipt_accuracy_minimum_when_applicable": 4
+  },
+  "separate_metrics": ["latency_ms", "tokens_prompt", "tokens_completion", "cost_per_call_usd", "cost_per_request_usd", "cost_per_trip_usd"]
+}

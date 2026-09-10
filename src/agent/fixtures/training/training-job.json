@@ -1,0 +1,13 @@
+{
+  "submitted_at": "2026-09-10T09:48:38+00:00",
+  "endpoint": "https://cog-hqxztqzboq4bq.services.ai.azure.com",
+  "model": "gpt-4.1-mini",
+  "suffix": "caldova-student-v1",
+  "n_epochs": 3,
+  "job_id": "ftjob-ed69758aaedb4195a91be44902d718fb",
+  "status": "pending",
+  "training_file_id": "file-4f8c680872874a1aa814de77fa859e29",
+  "validation_file_id": "file-1d341ef6a8574e109c7b82ed830945d5",
+  "train_source": "data/training/sft/train.jsonl",
+  "validation_source": "data/training/sft/validation.jsonl"
+}

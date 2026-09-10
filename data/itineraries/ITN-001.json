@@ -1,0 +1,27 @@
+{
+  "id": "ITN-001",
+  "title": "Krystal Paris hero itinerary",
+  "traveler": "EMP-001",
+  "trip_window": ["2026-03-09", "2026-03-12"],
+  "segments": [
+    { "kind": "flight", "id": "FL-001", "origin": "SEA", "dest": "CDG", "date": "2026-03-09" },
+    { "kind": "hotel",  "id": "HT-001", "city": "PAR", "check_in": "2026-03-09", "check_out": "2026-03-12", "nights": 3 },
+    { "kind": "car",    "id": "CR-001", "city": "PAR", "pickup": "2026-03-10", "return": "2026-03-10", "days": 1 },
+    { "kind": "return_flight", "id": "FL-026", "origin": "CDG", "dest": "NYC-connect", "date": "2026-03-12" }
+  ],
+  "receipts": ["REC-001"],
+  "policy_checks": [
+    { "rule": "CT-01", "result": "pass", "reason": "SEA-CDG 10.5h -> economy allowed" },
+    { "rule": "CT-03", "result": "pass", "reason": "HT-001 285+22 = 307 <= Tier1 cap 320" },
+    { "rule": "CT-04", "result": "pass", "reason": "compact selected" },
+    { "rule": "CT-20", "result": "pass", "reason": "REC-001 airport parking reimbursable" },
+    { "rule": "CT-24", "result": "pass", "reason": "receipt within trip window" }
+  ],
+  "estimated_cost_usd": {
+    "flights": 1720,
+    "hotel": 921,
+    "car": 42,
+    "parking_reimbursement": 187.72,
+    "total_reimbursable": 2870.72
+  }
+}

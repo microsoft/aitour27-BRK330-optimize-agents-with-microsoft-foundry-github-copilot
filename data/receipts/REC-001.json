@@ -1,0 +1,30 @@
+{
+  "receipt_id": "REC-001",
+  "language": "en",
+  "currency": "USD",
+  "merchant": {
+    "name": "Sea-Tac Int'l Airport Terminal Parking Garage",
+    "address": "17801 International Blvd, Seattle WA",
+    "phone": "(206) 555-0139",
+    "merchant_id": "SEA-PKG-4"
+  },
+  "receipt_number": "0025-778142",
+  "category": "airport_parking",
+  "entry": "2026-03-09T06:12:00",
+  "exit": "2026-03-12T22:47:00",
+  "days_billed": 4,
+  "line_items": [
+    { "description": "Daily max rate", "unit_price_usd": 42.00, "quantity": 4, "amount_usd": 168.00 },
+    { "description": "WA state tax 10.25%", "amount_usd": 17.22 },
+    { "description": "Airport fee", "amount_usd": 2.50 }
+  ],
+  "subtotal_usd": 168.00,
+  "tax_usd": 17.22,
+  "fees_usd": 2.50,
+  "total_usd": 187.72,
+  "payment": { "method": "VISA", "last4": "4128", "auth": "840712" },
+  "policy_notes": {
+    "reimbursable_category": true,
+    "matched_rule": "CT-20"
+  }
+}

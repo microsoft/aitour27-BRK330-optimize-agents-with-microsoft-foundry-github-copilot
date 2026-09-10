@@ -1,0 +1,19 @@
+[
+  { "code": "SEA", "name": "Seattle", "country": "US", "tier": 2, "timezone": "America/Los_Angeles" },
+  { "code": "SFO", "name": "San Francisco", "country": "US", "tier": 1, "timezone": "America/Los_Angeles" },
+  { "code": "LAX", "name": "Los Angeles", "country": "US", "tier": 2, "timezone": "America/Los_Angeles" },
+  { "code": "NYC", "name": "New York", "country": "US", "tier": 1, "timezone": "America/New_York" },
+  { "code": "BOS", "name": "Boston", "country": "US", "tier": 2, "timezone": "America/New_York" },
+  { "code": "CHI", "name": "Chicago", "country": "US", "tier": 2, "timezone": "America/Chicago" },
+  { "code": "YUL", "name": "Montreal", "country": "CA", "tier": 2, "timezone": "America/Montreal" },
+  { "code": "YYZ", "name": "Toronto", "country": "CA", "tier": 2, "timezone": "America/Toronto" },
+  { "code": "PAR", "name": "Paris", "country": "FR", "tier": 1, "timezone": "Europe/Paris" },
+  { "code": "LON", "name": "London", "country": "GB", "tier": 1, "timezone": "Europe/London" },
+  { "code": "AMS", "name": "Amsterdam", "country": "NL", "tier": 2, "timezone": "Europe/Amsterdam" },
+  { "code": "BER", "name": "Berlin", "country": "DE", "tier": 2, "timezone": "Europe/Berlin" },
+  { "code": "MAD", "name": "Madrid", "country": "ES", "tier": 2, "timezone": "Europe/Madrid" },
+  { "code": "ROM", "name": "Rome", "country": "IT", "tier": 2, "timezone": "Europe/Rome" },
+  { "code": "ZRH", "name": "Zurich", "country": "CH", "tier": 2, "timezone": "Europe/Zurich" },
+  { "code": "LYS", "name": "Lyon", "country": "FR", "tier": 2, "timezone": "Europe/Paris" },
+  { "code": "TYO", "name": "Tokyo", "country": "JP", "tier": 1, "timezone": "Asia/Tokyo" }
+]

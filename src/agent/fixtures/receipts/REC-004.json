@@ -1,0 +1,31 @@
+{
+  "receipt_id": "REC-004",
+  "language": "en",
+  "currency": "USD",
+  "merchant": {
+    "name": "Preferred-Am Car Rental",
+    "address": "Boston Logan Intl. - Terminal C",
+    "fed_ein": "22-7018842"
+  },
+  "agreement_number": "PA-BOS-2026-01184",
+  "category": "car_rental",
+  "renter": "Krystal McKinney",
+  "vehicle": "Midsize Sedan (2025)",
+  "class": "midsize",
+  "pickup": "2026-04-14T09:20:00",
+  "return": "2026-04-17T17:40:00",
+  "days_billed": 3,
+  "line_items": [
+    { "description": "Base rate 3 x $62.00",           "amount_usd": 186.00, "reimbursable": true,  "rule": "CT-04" },
+    { "description": "Prepaid fuel option",             "amount_usd":  58.00, "reimbursable": false, "rule": "CT-20", "note": "fuel policy 'same-to-same' preferred; prepaid excluded" },
+    { "description": "Optional insurance (LDW)",        "amount_usd":  87.00, "reimbursable": false, "rule": "CT-20", "note": "optional insurance excluded when preferred vendor includes coverage" },
+    { "description": "Vehicle license fee",             "amount_usd":   9.00, "reimbursable": true,  "rule": "CT-20" },
+    { "description": "Airport concession recovery",     "amount_usd":  22.35, "reimbursable": true,  "rule": "CT-20" },
+    { "description": "MA sales tax 6.25%",              "amount_usd":  22.72, "reimbursable": true,  "rule": "CT-20" }
+  ],
+  "totals_usd": {
+    "reimbursable": 240.07,
+    "not_reimbursable": 145.00,
+    "grand_total": 385.07
+  }
+}

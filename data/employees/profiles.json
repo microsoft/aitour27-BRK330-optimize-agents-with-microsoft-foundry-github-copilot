@@ -1,0 +1,54 @@
+{
+  "employees": [
+    {
+      "id": "EMP-001",
+      "name": "Krystal McKinney",
+      "role": "R&D Lead",
+      "home_airport": "SEA",
+      "home_city_tier": 2,
+      "loyalty": ["Preferred-1", "Preferred-Am"],
+      "accessibility": [],
+      "preferences": {
+        "no_departures_before": null,
+        "prefers_step_free_hotels": false,
+        "quiet_room_when_available": true
+      },
+      "approval_limits": {
+        "requires_manager_above_usd_per_trip": 6000
+      }
+    },
+    {
+      "id": "EMP-002",
+      "name": "Andre Lawson",
+      "role": "CFO",
+      "home_airport": "NYC",
+      "home_city_tier": 1,
+      "loyalty": ["Preferred-1"],
+      "accessibility": [],
+      "preferences": {},
+      "approval_limits": {}
+    },
+    {
+      "id": "EMP-003",
+      "name": "Cassandra Dunn",
+      "role": "Compliance Manager",
+      "home_airport": "CHI",
+      "home_city_tier": 2,
+      "loyalty": ["Preferred-3"],
+      "accessibility": [],
+      "preferences": {},
+      "approval_limits": {}
+    },
+    {
+      "id": "EMP-004",
+      "name": "Lydia Bauer",
+      "role": "Enterprise IT Architect",
+      "home_airport": "BOS",
+      "home_city_tier": 2,
+      "loyalty": ["Preferred-3"],
+      "accessibility": [],
+      "preferences": {},
+      "approval_limits": {}
+    }
+  ]
+}

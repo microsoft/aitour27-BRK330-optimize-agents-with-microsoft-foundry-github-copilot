@@ -1,0 +1,37 @@
+{
+  "receipt_id": "REC-002",
+  "language": "fr",
+  "currency": "EUR",
+  "merchant": {
+    "name": "Aeroport Paris - CDG Parking PC Terminal 2E",
+    "address": "95700 Roissy-en-France",
+    "phone": "01 70 36 39 50",
+    "lot": "PC-B12",
+    "tva_number": "FR22449671002"
+  },
+  "receipt_number": "4471-902",
+  "ticket": "B12-88245",
+  "category": "airport_parking",
+  "entry": "2026-03-08T17:24:00",
+  "exit": "2026-03-11T09:52:00",
+  "days_billed": 3,
+  "line_items": [
+    { "description": "Tarif jour max", "unit_price_eur": 32.00, "quantity": 3, "amount_eur": 80.00 },
+    { "description": "TVA 20%", "amount_eur": 16.00 },
+    { "description": "Frais aeroport", "amount_eur": 1.80 }
+  ],
+  "subtotal_ht_eur": 80.00,
+  "tax_eur": 16.00,
+  "fees_eur": 1.80,
+  "total_ttc_eur": 97.80,
+  "conversion": {
+    "fixture_rate_usd_per_eur": 1.08,
+    "total_usd_equivalent": 105.62
+  },
+  "payment": { "method": "CB", "last4": "7712", "auth": "201884" },
+  "policy_notes": {
+    "reimbursable_category": true,
+    "matched_rule": "CT-20",
+    "conversion_rule": "CT-22"
+  }
+}

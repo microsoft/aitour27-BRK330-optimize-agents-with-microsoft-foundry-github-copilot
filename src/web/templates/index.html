@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso Travel Concierge</title>
+<link rel="stylesheet" href="/static/style.css?v=2">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <div class="title">Contoso Travel Concierge</div>
+      <div class="subtitle">for Caldova &middot; policy-enforced dry-run demo</div>
+    </div>
+  </div>
+  <div class="who">Krystal McKinney &middot; R&amp;D Lead &middot; SEA</div>
+</header>
+
+<main class="layout">
+  <section class="left">
+    <h2>Ask the concierge</h2>
+    <div id="samples">
+      {% for s in samples %}
+      <button class="sample" data-id="{{s.id}}"
+              data-message="{{s.message|e}}"
+              data-attachments='{{s.attachments|tojson}}'>
+        <span class="tp">{{s.id}}</span> {{s.label}}
+      </button>
+      {% endfor %}
+    </div>
+
+    <form id="chat-form">
+      <label for="message">Your request</label>
+      <textarea id="message" name="message" rows="6" placeholder="Ask the concierge to plan a compliant trip..."></textarea>
+
+      <label>Attach receipts</label>
+      <div id="attach-picker">
+        {% for r in receipts %}
+        <label class="chip">
+          <input type="checkbox" name="attachments" value="{{r}}">
+          <img src="/receipts/{{r}}.png" alt="{{r}}"/>
+          <span>{{r}}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <button type="submit" id="send">Ask concierge</button>
+    </form>
+  </section>
+
+  <section class="right">
+    <div id="status" class="status idle">
+      <span class="indicator"></span>
+      <span class="text">Idle</span>
+      <span class="hint" id="hint"></span>
+    </div>
+
+    <div id="result" class="result hidden">
+      <div id="banner"></div>
+      <h3>Assistant reply</h3>
+      <div id="assistant" class="assistant"></div>
+
+      <h3>Task timeline</h3>
+      <ol id="timeline" class="timeline"></ol>
+
+      <h3>Policy decisions</h3>
+      <ul id="policy" class="policy"></ul>
+
+      <h3>Run metadata</h3>
+      <div id="meta" class="meta"></div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/app.js?v=2"></script>
+</body>
+</html>
