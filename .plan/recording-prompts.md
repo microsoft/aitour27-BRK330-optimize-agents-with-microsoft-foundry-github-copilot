@@ -47,12 +47,14 @@ must-have capability for Act 2 is available and Act 3/4 limitations are explicit
 > Implement the baseline Contoso Travel Concierge described in the approved
 > plan. Create the Python Microsoft Foundry hosted agent, deterministic synthetic
 > travel tools and data integration, and lightweight FastAPI HTML/CSS/JavaScript
-> experience. Use one verified frontier-model deployment for every task. Enforce
+> experience. Use Foundry Canvas visibly while creating the hosted agent. Use one
+> verified frontier-model deployment for every task. Enforce
 > Caldova policy as a hard booking gate. Run the repository's targeted local
 > validation, summarize the changed files, and stop before Azure deployment.
 
-**Record:** representative file creation and final change summary. Remove
-repetitive generation from the edited video.
+**Record:** Foundry Canvas opening in creation-progress mode, representative file
+creation, and the final change summary. Remove repetitive generation from the
+edited video.
 
 ### Prompt 3 — Provision and deploy
 
@@ -60,7 +62,8 @@ repetitive generation from the edited video.
 > or update the live Azure demo environment and deploy the baseline hosted agent
 > and FastAPI site. Ensure Application Insights is connected and required role
 > assignments are applied. Create or reuse only the resource group
-> `rg-brk330-concierge`. Execute the full operation, verify the deployment,
+> `rg-brk330-concierge`. Use Foundry Canvas **Deploy & test** visibly for the
+> hosted-agent deployment and smoke test. Execute the full operation, verify the deployment,
 > report the operation IDs and URLs, and do not claim success until the live
 > health and agent smoke tests pass.
 
@@ -118,7 +121,9 @@ Azure resources, operation IDs, and result manifest remain the handoff.
 
 > Implement task decomposition for the compound travel workflow and route each
 > independent task through the verified Model Router deployment. Never send the
-> full compound request as a single routed task. Add telemetry that records the
+> full compound request as a single routed task. Use Foundry Canvas **Build
+> current hosted agent** visibly while reviewing model and tool configuration.
+> Add telemetry that records the
 > selected model for every task. Run targeted local validation, show the focused
 > diff, and stop before deployment.
 
@@ -130,6 +135,7 @@ Azure resources, operation IDs, and result manifest remain the handoff.
 > 20 prompt IDs with the same rubric and settings. Verify the completed run and
 > produce a baseline-versus-router comparison with separate quality, compliance,
 > latency, token, cost-per-call, cost-per-request, and cost-per-trip values.
+> Use Foundry Canvas **Deploy & test** visibly for deployment and smoke testing.
 > Highlight any quality regression and do not select a winner.
 
 **Record:** deployment start, then completed portal comparison and route evidence.

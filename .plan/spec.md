@@ -75,6 +75,8 @@ must show the verified result of the operation started in the preceding clip.
 
 - Azure resource group named `rg-brk330-concierge`.
 - A Python Microsoft Foundry hosted agent.
+- Foundry Canvas used visibly from GitHub Copilot App for hosted-agent creation,
+  configuration, deployment, and testing.
 - A lightweight FastAPI application serving HTML, CSS, and JavaScript.
 - Live Azure deployment only.
 - Microsoft Foundry project connected to Application Insights.
@@ -83,6 +85,17 @@ must show the verified result of the operation started in the preceding clip.
 - A Model Router deployment or supported routing configuration.
 - A supported, catalog-verified student model for distillation or fine-tuning.
 - Agent Optimizer configured for the Python hosted agent.
+
+### Foundry Canvas role
+
+- **Act 2:** Open Foundry Canvas in creation-progress mode when Copilot creates
+  the new hosted agent. After creation, use **Deploy & test** to make deployment
+  and smoke testing visible.
+- **Act 3:** Open Foundry Canvas in manage mode. Use **Build current hosted
+  agent** for model, tool, skill, and configuration work, and **Deploy & test**
+  for candidate deployment and validation.
+- **Act 4:** Keep Agent Optimizer portal-first. Foundry Canvas may remain open for
+  agent context, but it does not replace the portal optimization-run experience.
 
 Do not choose or name the student model until implementation verifies live
 catalog availability and training eligibility.

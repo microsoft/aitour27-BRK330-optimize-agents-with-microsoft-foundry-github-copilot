@@ -25,8 +25,8 @@ decide whether each step improves the overall cost-quality outcome.
 |---|---|---|---|
 | 1 | GitHub Copilot App | Ask Copilot with Foundry skills to create/register the Caldova rubric and run baseline evaluation. | End after the job starts; resume at the verified completed result. |
 | 2 | Foundry portal | Show baseline dimensions and a failing policy/task-completeness row. | Establish the hill. |
-| 3 | GitHub Copilot App | Ask Copilot to identify tasks in the compound workload and implement decomposition before Model Router. | Show focused diff. |
-| 4 | Deployment action | Deploy the routed candidate. | End after Azure accepts the deployment; resume after verification. |
+| 3 | Foundry Canvas + GitHub Copilot App | Use **Build current hosted agent** while Copilot identifies tasks and implements decomposition before Model Router. | Show focused diff. |
+| 4 | Foundry Canvas | Use **Deploy & test** for the routed candidate. | End after Azure accepts the deployment; resume after verification. |
 | 5 | Foundry portal | Show per-task route evidence and the same 20-prompt comparison. | Highlight cost drop and any quality loss. |
 | 6 | GitHub Copilot App | Ask Copilot to curate teacher outputs and start the supported training workflow for the verified student model. | End after the training job starts; resume at its verified result. |
 | 7 | Completed training checkpoint | Show the trained model deployment and evaluation run. | Do not show fabricated success. |

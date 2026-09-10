@@ -84,6 +84,7 @@ The ordered prompts progressively create:
 - The exact kickoff prompt for each new Copilot session.
 - The complete ordered prompt script in `recording-prompts.md`.
 - Public or authenticated URLs for the web app and relevant portal pages.
+- Foundry Canvas creation-progress and manage-mode recording cues.
 - Stable prompt IDs and uploaded media paths.
 - Expected screen-by-screen results.
 - Reset steps for retakes.
