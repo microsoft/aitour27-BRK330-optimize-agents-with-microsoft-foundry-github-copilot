@@ -9,7 +9,7 @@ Presenter, re-delivery, and train-the-trainer materials for this session.
 | Item | Link | Notes |
 |---|---|---|
 | Delivery deck |  | Pending central public URL |
-| Session recording |  | Optional URL when available |
+| Session recording | [Recording](https://aka.ms/aitour27/BRK330/youtube) | Optional URL when available |
 | Attendee landing page | [Session README](../README.md) | Public starting point |
 | Attendee instructions | [Instructions](../instructions/README.md) | Post-event self-run decision deferred; revisit before publication |
 
