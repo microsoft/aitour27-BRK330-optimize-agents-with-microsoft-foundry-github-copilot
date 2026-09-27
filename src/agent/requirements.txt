@@ -1,6 +1,0 @@
-agent-framework-foundry
-agent-framework-foundry-hosting>=1.0.0b260813
-azure-identity>=1.17.0
-python-dotenv>=1.0.1
-pydantic>=2.7.0
-typing-extensions>=4.12
