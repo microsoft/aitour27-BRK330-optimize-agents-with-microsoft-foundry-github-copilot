@@ -49,7 +49,8 @@ Production is the beginning of the improvement loop, not its conclusion.
 - Establish a repeatable baseline.
 - Pull one hill-climb lever at a time.
 - Lever 1: replace the frontier deployment with Model Router, enabling dynamic multi-model routing by task.
-- Lever 2: distill behavior from quality-filtered frontier traces into a smaller fine-tuned student model.
+- Lever 2: distill harvested frontier responses into a smaller fine-tuned student model.
+- Lever 3: keep the student setup fixed but replace harvested labels with fixture/policy-reviewed gold responses.
 - Measure each option against the same evidence and criteria.
 - Keep or reject each change based on quality, policy compliance, cost, and latency evidence.
 
@@ -61,8 +62,8 @@ The outcome is not predetermined. A regression is evidence: reject the change, p
 
 **After slide 35: Make it scale**
 
-- Start from production traces, agent configuration, and trusted evaluators.
-- Use GitHub Copilot to run Agent Optimizer from code or CLI and generate approximately three candidates.
+- Start from the best eligible v1-v4 configuration, agent artifacts, and trusted evaluators.
+- Use GitHub Copilot to run Agent Optimizer from code or CLI and generate approximately three candidates for immutable v5 promotion.
 - Evaluate and rank every candidate with the frozen evaluation contract.
 - Optimize across prompts, tools, skills, and model choice.
 - Independently validate the recommendation for policy, quality, cost, and latency regressions.
@@ -97,9 +98,9 @@ Agent v1 must be useful but imperfect:
 - The hero request succeeds.
 - A simple noncompliant request is blocked with a CT-rule citation.
 - Repeatable edge cases expose missing policy-tool evidence or incomplete CT-rule citations.
-- Existing TP-02, TP-03, TP-11, and TP-19 scenarios provide the starting evidence.
+- The recorded HERO, BLOCK, EVIDENCE, and ACCESS scenarios provide the starting evidence.
 
-Create a dedicated, versioned Insights seed set from existing fixtures and scenarios. Do not modify the fixed 20-prompt comparison dataset. Persist:
+Create a dedicated, versioned Insights seed set from existing fixtures and scenarios. Do not modify the frozen four-case recording dataset. Broader 20- and 50-prompt coverage is deferred from the lightweight delivery path. Persist:
 
 - Seed prompts and expected tools, rules, and outcomes.
 - Replay command and run window.
@@ -177,7 +178,7 @@ Demo 2 asks whether the model can be right-sized for the task. It demonstrates t
 ### Demo 2 acceptance
 
 - Generate the rubric from Demo 1 context and traces, then review, refine, and pin it.
-- Version the fixed 20 prompts and expected behaviors.
+- Version the four fixed prompts and expected behaviors used by the recording path.
 - Complete the baseline evaluation under the frozen evaluation contract.
 - Verify Router changes only the model strategy and retains the baseline instruction SHA.
 - Record the distillation source traces, train and validation data, provenance, training job, and deployed student identifiers.
@@ -189,6 +190,21 @@ Demo 2 asks whether the model can be right-sized for the task. It demonstrates t
 - The final recording and transcript accurately reflect the verified runs.
 
 The last accepted Demo 2 configuration becomes Demo 3's immutable optimizer baseline.
+
+### Verified Demo 2 state on September 28, 2026
+
+- Frozen contract: `brk330-lightweight-eval` v2, `brk330-contoso-travel-quality` v1, threshold `0.5`, judge `gpt-5.4-mini`, four rows.
+- Baseline v1: 2/4 passed, mean quality `0.600`, P50 `10.809 s`, P95 `36.499 s`, 29,519 evaluated-agent tokens.
+- Model Router v2: 4/4 passed, mean quality `0.625`, P50 `9.185 s`, P95 `65.496 s`, 60,847 evaluated-agent tokens.
+- Router conclusion: default Balanced routing improved eligibility and median latency, but doubled the token cost proxy and produced a slower tail. V2 is eligible, not automatically the winner.
+- Trace corpus: 30 isolated retained-v1 traces generated without rerouting the active v2 endpoint; 20 reviewed training and 4 validation traces accepted, 6 rejected, zero exact overlap with the frozen evaluation set.
+- Student training: supervised fine-tuning job `ftjob-05824f3cc0584ee3b327ea76a7658b61` succeeded using `gpt-4.1-mini` version `2025-04-14`, seed `331`, and three epochs.
+- Student deployment: `contoso-student`, DeveloperTier capacity 100, provisioning state `Succeeded`.
+- Fine-tuned v3: 0/4 passed, mean quality `0.270`, P50 `6.873 s`, P95 `18.736 s`, 7,297 evaluated-agent tokens. The student reduced latency and tokens but did not retain quality and also misattributed CT-02 policy to CT-04 in the smoke trace.
+- V3 is rejected. V2 remains the current best eligible v1-v3 configuration, but final Agent Optimizer baseline selection waits for the controlled curated-response v4 result.
+- Curated-response v4 is a controlled third lever: same `gpt-4.1-mini`, 20/4 split, seed, epochs, instructions, deployment tier, and evaluator; only manually reviewed response labels differ. Select the best eligible v1-v4 result before Agent Optimizer.
+- Curated-response v4: 1/4 passed, mean quality `0.334`, P50 `5.016 s`, P95 `14.868 s`, 6,224 evaluated-agent tokens. Curated labels improved over v3 but did not clear quality or independent policy-attribution gates.
+- Final selection: Model Router v2 is the best eligible v1-v4 baseline. Reroute to v2 before Agent Optimizer and reserve v5 for an approved promotion.
 
 ## Demo 3 contract: Automate and repeat
 
@@ -235,16 +251,16 @@ For hosted agents, the generation service obtains the agent description rather t
 
 | Dimension | Weight | Purpose |
 |---|---:|---|
-| Policy compliance | 9 | Makes the correct policy decision; a policy violation is a hard failure. |
-| Policy evidence fidelity | 6 | Uses required policy tools and cites complete, attributable CT rules. |
-| Intent and task completeness | 6 | Identifies and completes every requested task. |
-| Tool-use accuracy | 5 | Uses required tools with correct, grounded arguments. |
-| Travel-plan correctness | 5 | Produces feasible, fixture-backed itinerary choices. |
-| Receipt accuracy | 4 | Correctly extracts, reconciles, and converts receipt data. |
-| General quality | 4 | Measures grounding, honesty, and uncertainty handling; always applicable. |
-| Communication clarity | 2 | Produces an actionable, concise, correctly structured response. |
+| Policy-checked compliance | 10 | Checks policy before surfacing decisions and never advances a blocked option. |
+| Evidence-grounded citations | 6 | Attributes policy conclusions and CT identifiers to returned tool evidence. |
+| Fixture-grounded content | 6 | Uses only fixture-backed options, values, and claims. |
+| Exact arithmetic reconciliation | 8 | Reconciles itemized amounts, totals, and conversions exactly. |
+| Hard-constraint enforcement | 6 | Enforces accessibility, timing, policy, and other mandatory constraints. |
+| Receipt classification and uncertainty | 5 | Separates reimbursable/personal lines and states uncertainty without invention. |
+| Compliant alternative or refusal | 4 | Provides a grounded compliant alternative or a useful refusal/remediation path. |
+| General quality | 5 | Measures completeness, clarity, structure, and usefulness. |
 
-The dedicated policy regression gate prevents an improved weighted average from hiding a compliance failure.
+The reviewed evaluator normalizes these dimensions to threshold `0.5`. Dedicated policy gates remain separate so an improved weighted average cannot hide a compliance failure.
 
 ### Freeze rule
 

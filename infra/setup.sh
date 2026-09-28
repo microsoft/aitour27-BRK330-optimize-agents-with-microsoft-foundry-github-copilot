@@ -60,7 +60,7 @@ azd env set AZURE_LOCATION "$location"
 azd env set AZURE_RESOURCE_GROUP "$resource_group"
 azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME gpt-5.4
 azd env set AZURE_AI_JUDGE_DEPLOYMENT_NAME gpt-5.4-mini
-azd env set AZURE_AI_STUDENT_BASE_MODEL gpt-5.4-mini
+azd env set AZURE_AI_STUDENT_BASE_MODEL gpt-4.1-mini
 azd env set CONTOSO_CONFIGURATION baseline
 azd env set CONTOSO_INSTRUCTION_SHA "$(sha256sum src/agent/.agent_configs/baseline/instructions.md | cut -d' ' -f1)"
 

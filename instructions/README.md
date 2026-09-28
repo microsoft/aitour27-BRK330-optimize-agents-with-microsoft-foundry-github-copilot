@@ -203,7 +203,7 @@ The setup produces two intentionally different project data assets.
 
 [![Frozen four-case evaluation dataset in Foundry Data](img/Data-dataset.png)](img/Data-dataset.png)
 
-This attendee-owned dataset contains the four fixed `query` and `expected_behavior` rows. It is the holdout used unchanged to compare v1, Model Router v2, fine-tuned v3, and Agent Optimizer v4. Do not edit or use these rows for fine-tuning after baseline scoring begins; any content change requires a new dataset version and rerunning every comparison.
+This attendee-owned dataset contains the four fixed `query` and `expected_behavior` rows. It is the holdout used unchanged to compare v1, Model Router v2, trace-response student v3, curated-response student v4, and Agent Optimizer v5. Do not edit or use these rows for fine-tuning after baseline scoring begins; any content change requires a new dataset version and rerunning every comparison.
 
 **Evaluator generation artifacts — service-managed provenance**
 
@@ -221,7 +221,7 @@ Foundry creates a separate read-only, version-aligned dataset containing the con
 
 The portal can display **Generated with input-quality warnings: The agent has no instructions**. Hosted Agent instructions are packaged with code and aren't exposed as prompt-agent instructions to rubric generation. This run mitigates that limitation by supplying the full baseline instruction file and Caldova policy through the explicit Prompt source, alongside the agent metadata/tool surface and frozen dataset. Review the dimensions rather than treating the warning alone as a failure.
 
-4. Pin the reviewed evaluator version, `gpt-5.4-mini` judge deployment, runnable dataset v2, hashes, and threshold. Reuse that exact contract for v1, Model Router v2, fine-tuned v3, and Agent Optimizer v4.
+4. Pin the reviewed evaluator version, `gpt-5.4-mini` judge deployment, runnable dataset v2, hashes, and threshold. Reuse that exact contract for v1, Model Router v2, trace-response student v3, curated-response student v4, and Agent Optimizer v5.
 
 The reviewed contract is pinned in [`src/agent/.foundry/agent-metadata.yaml`](../src/agent/.foundry/agent-metadata.yaml): evaluator `brk330-contoso-travel-quality` v1, normalized threshold `0.5`, judge `gpt-5.4-mini`, and runnable dataset `brk330-lightweight-eval` v2.
 
@@ -389,6 +389,214 @@ Capture each opened result row as `Evaluation-Model-Router-v2-INS-01.png` throug
 Quality and hard-gate results determine eligibility. Record token usage and latency separately; do not hide a policy regression inside a composite cost/quality score.
 
 Fine-tuning uses a separate quality-filtered trace corpus defined in [`data/training/`](../data/training/README.md). Never train on the four frozen evaluation rows. This preserves a real holdout while leaving room for the student model and Agent Optimizer to improve response wording, concision, and tool efficiency.
+
+### Build a trace-driven dataset for v3
+
+The v3 workflow turns retained baseline behavior into a reviewed SFT dataset. It uses the following tools explicitly:
+
+| Tool | Purpose |
+| --- | --- |
+| `azd ai agent invoke` | Replay committed training-only prompts against retained agent v1 with `--version 1 --protocol responses --new-session --new-conversation`, producing one independent trace per prompt without changing the active v2 endpoint. |
+| Application Insights and `AppGenAIContent` | Preserve trace ID, model, timestamp, complete input/output messages, and tool evidence. |
+| `az monitor log-analytics query` | Export only the selected v1 trace window from the linked workspace. The script prints the KQL before execution. |
+| `src/training/trace_dataset.py` | Remove holdout overlap and duplicates, create the review template, enforce rubric/hard-gate decisions, and write deterministic SFT JSONL. |
+| `azd ai finetuning jobs` | Submit, inspect, and deploy the `gpt-4.1-mini` SFT job using `azure.ai.finetune 0.0.17-preview`. |
+| `azd deploy contoso-travel` | Package the reviewed student deployment as immutable Hosted Agent v3. |
+
+All commands run from the repository root. Start by generating fresh isolated v1 traces. The phase first raises or reuses teacher `gpt-5.4` capacity 200 while preserving 40 units of quota headroom, preventing tool-heavy requests from exceeding the original capacity 10 deployment. Version-specific invocation leaves the active v2 endpoint unchanged:
+
+```bash
+bash infra/trace-finetune-v3.sh generate --environment brk330-812406
+```
+
+> **Why Playground still shows v2:** v1 and v2 are retained immutable agent versions. The script calls `azd ai agent invoke --version 1 --protocol responses --new-session --new-conversation`, which creates an isolated session backed directly by v1. It does not rebuild v1, redeploy the agent, or reroute the default endpoint. Playground and normal endpoint traffic therefore remain on active v2 while training traces are generated from v1.
+
+After telemetry ingestion, harvest the exact generation window:
+
+```bash
+bash infra/trace-finetune-v3.sh harvest --environment brk330-812406
+```
+
+The harvest phase stops for human review. Edit `.azure/brk330-812406/training-v3/v1-traces.review.jsonl`. For every accepted trace, set:
+
+- `accepted` to `true`;
+- `split` to `train` or `validation`;
+- `category` to one key from `fine-tuning-scope-v1.json`;
+- `rubric_score` to the reviewed normalized score;
+- every `hard_gates` value to `true` only when supported by the trace;
+- `review_reason` to a concise evidence-based decision.
+
+Rejected rows remain `accepted: false`. Do not weaken a gate to reach the minimum count. Then create the SFT files and provenance manifest:
+
+```bash
+bash infra/trace-finetune-v3.sh curate --environment brk330-812406
+```
+
+Capture the candidate list, reviewed decisions, category counts, 20/4 split, hashes, and `Frozen evaluation overlap: 0` as `instructions/img/Trace-Dataset-Curation.png`.
+
+### Train and deploy the v3 student
+
+Submission is the first billable fine-tuning phase. It checks `gpt-4.1-mini` fine-tuning quota, creates or reuses a capacity-100 base deployment, uploads the reviewed local files, uses seed `331`, and persists the returned job ID for restart recovery:
+
+```bash
+bash infra/trace-finetune-v3.sh submit --environment brk330-812406
+```
+
+The script writes an ignored `fine-tune-job.yaml` using supervised training for three epochs and `extra_body.trainingType: GlobalStandard`. `gpt-4.1-mini` version `2025-04-14` supports supervised fine-tuning and remains available through April 14, 2027. The earlier `gpt-5.4-mini` attempt was rejected because that model version requires reinforcement fine-tuning.
+
+#### Verify uploaded fine-tuning data
+
+In the Foundry project, open **Build** > **Fine-tuning** and open the submitted job. Confirm that both the 20-row training file and 4-row validation file were uploaded from the reviewed trace corpus. The files may have service-generated IDs; use the job linkage, row counts, and local hashes rather than filenames alone to verify provenance.
+
+[![Training and validation data uploaded for fine-tuning](img/FineTuning-Data.png)](img/FineTuning-Data.png)
+
+#### Find the scheduled job
+
+Return to the **Fine-tuning** tab to locate the scheduled job. Match the base model `gpt-4.1-mini`, creation time, and persisted job ID printed by the script. For this recorded run, the job ID is `ftjob-05824f3cc0584ee3b327ea76a7658b61`.
+
+[![Scheduled gpt-4.1-mini fine-tuning job](img/FineTuning-Tab.png)](img/FineTuning-Tab.png)
+
+Check progress without starting another job:
+
+```bash
+bash infra/trace-finetune-v3.sh status --environment brk330-812406
+```
+
+The status phase reads the persisted job ID and cannot create a second job. In Foundry, open the job to inspect its base model, method, seed, input files, timestamps, current state, and training progress.
+
+[![Fine-tuning job details and progress](img/FineTuning-Details.png)](img/FineTuning-Details.png)
+
+Open the job's **Logs** view when progress stalls or fails. Capture status transitions and service diagnostics, but do not include access tokens, connection strings, or raw sensitive trace content in screenshots.
+
+[![Fine-tuning job logs and status events](img/FineTuning-Logs.png)](img/FineTuning-Logs.png)
+
+#### Review the completed run
+
+When the job reaches `succeeded`, use the monitor view to inspect the completed training and validation curves. Record the finished timestamp and any divergence or instability; completion alone does not prove that the student improved the frozen evaluation.
+
+[![Completed fine-tuning monitor and training curves](img/FineTuning-Completed-Monitor.png)](img/FineTuning-Completed-Monitor.png)
+
+Open **Checkpoints** to identify the trained artifacts produced by the job. Preserve the selected fine-tuned model ID and checkpoint evidence before deployment. The deployment script uses the service-returned fine-tuned model for the persisted job; later evaluation still determines whether v3 is eligible.
+
+[![Completed fine-tuning checkpoints](img/FineTuning-Completed-Checkpoints.png)](img/FineTuning-Completed-Checkpoints.png)
+
+When status is `succeeded`, deploy or reuse `contoso-student` on **DeveloperTier**. The phase requires capacity 100 plus 20 units of unallocated DeveloperTier fine-tuned-model quota headroom:
+
+```bash
+bash infra/trace-finetune-v3.sh deploy --environment brk330-812406
+```
+
+Verify the deployed model shows `contoso-student`, DeveloperTier capacity 100, and provisioning state `Succeeded`.
+
+[![Fine-tuned contoso-student deployed on DeveloperTier](img/FineTuning-Deployed-DevTier.png)](img/FineTuning-Deployed-DevTier.png)
+
+Before deployment, preserve the completed training metrics and fine-tuned model ID from the job details. Then create or reuse immutable agent v3, refresh its monitoring RBAC, activate it, and run one smoke invocation:
+
+```bash
+bash infra/trace-finetune-v3.sh agent-v3 --environment brk330-812406
+```
+
+Confirm Foundry shows immutable `contoso-travel` v3 using the `contoso-student` deployment, while retained v1 and v2 remain available.
+
+[![Fine-tuned contoso-travel v3 in Foundry Playground](img/FineTuning-Agent-v3-Playground.png)](img/FineTuning-Agent-v3-Playground.png)
+
+Open a new Travel Concierge Portal conversation and verify the header reports v3 and `contoso-student`.
+
+[![Travel Concierge Portal using fine-tuned agent v3](img/FineTuning-Agent-v3-Webapp.png)](img/FineTuning-Agent-v3-Webapp.png)
+
+These screenshots prove deployment and routing, not quality eligibility. The recorded smoke trace `14d5d9a1f9066053ee17c48af0bfc9ff` incorrectly attributes the seven-day booking lead-time rule to CT-04 instead of CT-02. Preserve that mismatch as regression evidence and run the frozen evaluation before any promotion decision.
+
+The final phase prints the frozen v3 evaluation command. Do not edit dataset v2, evaluator v1, threshold `0.5`, or judge deployment between versions.
+
+### Read the recorded v3 result
+
+The complete run `evalrun_7e5acaacf6384e26be18848e6fd68c0b` scored all four rows with no evaluator errors, but passed 0/4. Mean quality was `0.270`, Foundry reported P50 latency `6.873 s` and P95 `18.736 s`, and the evaluated agent used 7,297 tokens.
+
+This result demonstrates the distillation tradeoff rather than the intended win. Compared with v1, v3 reduced P50 by 36.4%, P95 by 48.7%, and evaluated-agent tokens by 75.3%, but quality fell from `0.600` to `0.270`. All four rows failed, and the separate smoke test violated policy-evidence fidelity. V3 is rejected even though it is operationally smaller and faster.
+
+[![Fine-tuned v3 HERO outcome](img/FineTuning-v3-HERO.png)](img/FineTuning-v3-HERO.png)
+
+[![Fine-tuned v3 BLOCK outcome](img/FineTuning-v3-BLOCK.png)](img/FineTuning-v3-BLOCK.png)
+
+[![Fine-tuned v3 EVIDENCE outcome](img/FineTuning-v3-EVIDENCE.png)](img/FineTuning-v3-EVIDENCE.png)
+
+[![Fine-tuned v3 ACCESS outcome](img/FineTuning-v3-ACCESS.png)](img/FineTuning-v3-ACCESS.png)
+
+See the [comparison scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md) for per-case evidence.
+
+### Try the third Make it better lever: curated responses
+
+The first three levers answer different questions:
+
+1. **Model Router v2:** Can dynamic model choice improve eligibility and typical latency without changing instructions?
+2. **Trace-response student v3:** Can a smaller fine-tuned model retain quality while reducing operational cost and latency?
+3. **Curated-response student v4:** Was v3's failure caused by learning imperfect harvested final answers rather than reviewed gold labels?
+
+V4 is a controlled repeat of v3. It keeps `gpt-4.1-mini`, supervised GlobalStandard training, seed `331`, three epochs, 20/4 split, baseline instructions, DeveloperTier capacity 100, and the frozen evaluation contract. Only the assistant response labels change. This extra step is not an attempt to hide v3; it converts the observed failure into a testable training-data-quality hypothesis. After v4 evaluation, select the best eligible v1-v4 version as the Agent Optimizer baseline for **Make it scale** and reserve v5 for an approved optimizer promotion.
+
+Prepare and validate the committed synthetic gold corpus locally:
+
+```bash
+bash infra/curated-finetune-v4.sh prepare --environment brk330-812406
+```
+
+The command must report 20 training rows, 4 validation rows, zero holdout overlap, and the committed gold SHA256. Then submit and monitor the independent job:
+
+```bash
+bash infra/curated-finetune-v4.sh submit --environment brk330-812406
+bash infra/curated-finetune-v4.sh status --environment brk330-812406
+```
+
+When training succeeds, deploy `contoso-curated-student` on DeveloperTier and create immutable agent v4:
+
+```bash
+bash infra/curated-finetune-v4.sh deploy --environment brk330-812406
+bash infra/curated-finetune-v4.sh agent-v4 --environment brk330-812406
+```
+
+[![Curated-response student deployed on DeveloperTier](img/FineTuning-deployed-curated-student.png)](img/FineTuning-deployed-curated-student.png)
+
+[![Travel Concierge Portal using curated-response agent v4](img/FineTuning-v4-Curated-Web.png)](img/FineTuning-v4-Curated-Web.png)
+
+The final phase prints the frozen v4 evaluation command. Preserve the v3 failure, use the same eval group, and do not select an optimizer baseline until v4 has been scored.
+
+### Read the recorded v4 result
+
+The complete run `evalrun_31bae94024db445bb788397c3fc9aa59` scored all four rows with no evaluator errors and passed 1/4. Mean quality was `0.334`, Foundry reported P50 latency `5.016 s` and P95 `14.868 s`, and the evaluated agent used 6,224 tokens.
+
+[![Frozen evaluation progression through curated-response v4](img/FineTuning-v4-Evaluations.png)](img/FineTuning-v4-Evaluations.png)
+
+Curated labels improved over v3: mean quality rose by `0.063`, one row crossed the threshold, P50/P95 fell further, and token usage dropped by 1,073. The change did not recover sufficient quality: three rows still failed, and the independent smoke trace `16e93d6f6acd90263ea8a79fdb1263ff` attributed CT-02 lead time to CT-03.
+
+Select Model Router v2 as the best eligible v1-v4 Agent Optimizer baseline. Preserve all four versions and both student training jobs unchanged, then reroute the endpoint to v2 before generating optimizer candidates.
+
+### Run Agent Optimizer from v2
+
+Reroute the default endpoint to retained v2 without rebuilding or deleting any version:
+
+```bash
+project_endpoint="$(azd env get-value FOUNDRY_PROJECT_ENDPOINT)"
+.venv/bin/python infra/switch-agent-version.py \
+	--version 2 \
+	--project-endpoint "$project_endpoint" \
+	--apply
+```
+
+Start a new portal conversation and verify the header reports v2 and Model Router. Then submit one optimizer operation capped at three candidates:
+
+```bash
+bash infra/optimize-v5.sh submit --environment brk330-812406
+```
+
+The script uses `eval-model-router-v2.yaml`, so agent v2, dataset v2, evaluator v1, judge `gpt-5.4-mini`, optimization model `gpt-5.4`, threshold `0.5`, and the four-row limit remain frozen. It persists the operation ID under ignored `.azure/brk330-812406/optimizer-v5/` and cannot apply or deploy a candidate.
+
+Inspect progress and results:
+
+```bash
+bash infra/optimize-v5.sh status --environment brk330-812406
+```
+
+Capture the operation ID, candidate IDs, quality scores, changed model/instructions/skills/tools, and recommendation. Review all three candidates before approving a local apply. A recommendation is not a promotion decision: rerun the frozen evaluation and independent policy/Insights gates before creating immutable v5.
 
 ## 7. Validate Azure
 

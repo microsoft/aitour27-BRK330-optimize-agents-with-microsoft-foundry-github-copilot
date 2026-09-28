@@ -45,7 +45,16 @@ for file in \
   "$python_bin" -m json.tool "$file" >/dev/null
 done
 
+while IFS= read -r line; do
+  printf '%s' "$line" | "$python_bin" -m json.tool >/dev/null
+done < data/training/trace-seed-prompts.jsonl
+
+while IFS= read -r line; do
+  printf '%s' "$line" | "$python_bin" -m json.tool >/dev/null
+done < data/training/curated-gold-v1.jsonl
+
 "$python_bin" - <<'PY'
+import json
 import yaml
 from pathlib import Path
 manifest = yaml.safe_load(Path("azure.yaml").read_text(encoding="utf-8"))
@@ -56,7 +65,9 @@ deployments = {
   deployment["name"]: deployment
   for deployment in manifest["services"]["ai-project"]["deployments"]
 }
+assert deployments["gpt-5.4"]["sku"]["capacity"] == 200
 assert deployments["gpt-5.4-mini"]["sku"]["capacity"] == 200
+assert deployments["gpt-4.1-mini"]["sku"]["capacity"] == 100
 assert (
   manifest["services"]["contoso-travel"]["env"]["OPTIMIZATION_CANDIDATE_ID"]
   == "${CONTOSO_CONFIGURATION}"
@@ -73,6 +84,34 @@ assert router_eval["agent"]["model"] == "model-router"
 assert router_eval["dataset"] == eval_config["dataset"]
 assert router_eval["evaluators"] == eval_config["evaluators"]
 assert router_eval["options"] == eval_config["options"]
+student_eval = yaml.safe_load(
+  Path("src/agent/eval-student-v3.yaml").read_text(encoding="utf-8")
+)
+assert student_eval["agent"]["version"] == "3"
+assert student_eval["agent"]["model"] == "contoso-student"
+assert student_eval["dataset"] == eval_config["dataset"]
+assert student_eval["evaluators"] == eval_config["evaluators"]
+assert student_eval["options"] == eval_config["options"]
+curated_eval = yaml.safe_load(
+  Path("src/agent/eval-curated-student-v4.yaml").read_text(encoding="utf-8")
+)
+assert curated_eval["agent"]["version"] == "4"
+assert curated_eval["agent"]["model"] == "contoso-curated-student"
+assert curated_eval["dataset"] == eval_config["dataset"]
+assert curated_eval["evaluators"] == eval_config["evaluators"]
+assert curated_eval["options"] == eval_config["options"]
+
+def jsonl(path):
+  return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+def normalized(value):
+  return " ".join(value.casefold().split())
+
+seed_prompts = [normalized(row["prompt"]) for row in jsonl("data/training/trace-seed-prompts.jsonl")]
+holdout_prompts = {normalized(row["query"]) for row in jsonl("data/evaluation/lightweight-v1/dataset-v2.jsonl")}
+assert len(seed_prompts) == 30
+assert len(seed_prompts) == len(set(seed_prompts))
+assert not set(seed_prompts) & holdout_prompts
 PY
 
 for script in .devcontainer/post-create.sh infra/*.sh; do

@@ -130,6 +130,83 @@ Do not clone the evaluator solely to hide the warning. Create a new evaluator ve
 
 <br/>
 
+## Trace generation reuses one conversation
+
+### Symptom
+
+Multiple training prompts report the same `Session` and `Conversation` identifiers.
+
+### Cause and fix
+
+`azd ai agent invoke` persists sessions per agent by default. Reusing one conversation contaminates otherwise independent SFT examples with earlier turns.
+
+The v3 generation phase invokes retained v1 with both `--new-session` and `--new-conversation`. Confirm the first two outputs have different session, conversation, trace, and response IDs before allowing the full run to continue.
+
+<br/>
+
+## Retained v1 invoke cannot determine protocol
+
+### Symptom
+
+> cannot determine protocol for agent version "1" because deployed protocol metadata reflects version "2"
+
+### Cause and fix
+
+The default endpoint metadata belongs to active v2 even though immutable v1 remains invocable. Version-specific invocation must also specify `--protocol responses`. The script combines `--version 1 --protocol responses --new-session --new-conversation`, so Playground/default traffic stays on v2 while isolated teacher traces run against v1.
+
+<br/>
+
+## Teacher trace generation hits token rate limit
+
+### Symptom
+
+> Model deployment rate limit exceeded ... requests to gpt-5.4 ... exceeded token rate limit
+
+### Cause and fix
+
+The original baseline deployment used capacity 10, which is too small for tool-heavy teacher traces. `teacher-capacity.bicep` and the v3 script raise or reuse `gpt-5.4` capacity 200 after verifying quota plus a 40-unit reserve. Rerunning `generate` writes a new harvest start timestamp, so failed partial traces are excluded from the next bounded harvest.
+
+<br/>
+
+## Fine-tuning submission rejects model contract
+
+### Standard training type failure
+
+The training and validation files upload, but job creation fails with:
+
+> The specified base model gpt-5.4-mini-2026-03-17 does not support fine-tuning with Standard TrainingType.
+
+The fine-tuning extension's flag-only submission defaults to `Standard`. Submitting through an explicit job YAML allows:
+
+```yaml
+extra_body:
+   trainingType: GlobalStandard
+```
+
+### Supervised method failure
+
+After correcting the training type, `gpt-5.4-mini` returns:
+
+> Finetuning with gpt-5.4-mini-2026-03-17 requires the reinforcement method of finetuning.
+
+The live catalog's `globalFineTune=true` capability does not imply that supervised fine-tuning is supported. This trace corpus is reviewed input/output data for SFT, not a calibrated reinforcement dataset and grader.
+
+For the December 2026 delivery window, the approved student base is `gpt-4.1-mini` version `2025-04-14`. It supports supervised and global fine-tuning, Responses, and Agents v2. Its live catalog retirement date for both fine-tuning and inference is April 14, 2027. The script creates or reuses a capacity-100 base deployment, checks the 500-unit fine-tuning quota, and submits the existing 20/4 supervised corpus.
+
+If job creation fails, no job ID is persisted. Rerun `curate` after any model-contract change so provenance records the correct student base, then rerun `submit`. Earlier uploaded files may remain in Foundry, but the script never deletes them or mistakes them for a completed training job.
+
+### Fine-tuning status JSON has an invalid numeric literal
+
+The extension can emit environment warnings, animated spinner control codes, and a heading before the JSON requested by `--output json`. Saving stdout directly and parsing it with `jq` produces:
+
+> parse error: Invalid numeric literal at line 1, column 8
+
+The deploy phase now preserves the complete output as `job-status.raw.log`, extracts content beginning at the first JSON object into `job-status.json`, validates it with `jq -e`, and only then reads the job status. This parser error occurs before model deployment and is safe to retry.
+
+The extension can also warn that the environment is already configured and that explicit subscription/project flags are ignored. This is expected when `azure.ai.finetune` was initialized earlier for the same `brk330-812406` project. Verify the endpoint in the warning, then continue; do not reinitialize or submit another job solely to remove the warning.
+
+<br/>
+
 ## RBAC scope notes
 
 - Use **Foundry Agent Consumer** at project or agent scope for applications that only invoke an endpoint.

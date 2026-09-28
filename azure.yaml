@@ -16,7 +16,7 @@ services:
           version: '2026-03-05'
         sku:
           name: GlobalStandard
-          capacity: 10
+          capacity: 200
       - name: gpt-5.4-mini
         model:
           format: OpenAI
@@ -25,6 +25,14 @@ services:
         sku:
           name: GlobalStandard
           capacity: 200
+      - name: gpt-4.1-mini
+        model:
+          format: OpenAI
+          name: gpt-4.1-mini
+          version: '2025-04-14'
+        sku:
+          name: GlobalStandard
+          capacity: 100
   contoso-travel:
     host: azure.ai.agent
     project: src/agent

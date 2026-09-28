@@ -134,12 +134,12 @@ advanced = {
     "quota": "OpenAI.GlobalStandard.ModelRouter",
     "minimum_remaining": 240,
   },
-  "gpt-5.4-mini-student": {
-    "catalog_name": "gpt-5.4-mini",
-    "version": "2026-03-17",
+  "gpt-4.1-mini-student": {
+    "catalog_name": "gpt-4.1-mini",
+    "version": "2025-04-14",
     "sku": "GlobalStandard",
-    "capability": "globalFineTune",
-    "quota": "OpenAI.GlobalStandard.gpt-5.4-mini-2026-03-17-finetune",
+    "capability": "fineTune",
+    "quota": "OpenAI.GlobalStandard.gpt4.1-mini-finetune",
     "minimum_remaining": 10,
   },
 }

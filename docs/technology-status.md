@@ -1,6 +1,6 @@
 # Technology status
 
-Status last verified against current Microsoft documentation on **September 27, 2026**. Preview and rollout status can change; presenters must rerun preflight and verify the target tenant before recording or delivery.
+Status last verified against current Microsoft documentation and the live Sweden Central tenant on **September 28, 2026**. Preview and rollout status can change; presenters must rerun preflight and verify the target tenant before recording or delivery.
 
 | Capability | Status at verification | BRK330 use |
 |---|---|---|
@@ -16,7 +16,8 @@ Status last verified against current Microsoft documentation on **September 27, 
 | Insights in Foundry | **Public preview** | Demo 1 production-evidence hero and policy-evidence finding. |
 | [Rubric Evaluator](https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/rubric-evaluators) | **Preview** | Demo 2 generated/refined quality contract, frozen across Demos 2 and 3. |
 | [Model Router](https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-router) | Generally available; underlying model availability remains regional | Demo 2 lever 1: dynamic right-sizing through one deployment swap. |
-| [`gpt-5.4-mini` fine-tuning](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/fine-tuning) | Live Sweden Central catalog: GA, Responses/Agents support, and `globalFineTune=true` | Demo 2 smaller student-model base. Revalidate immediately before training. |
+| [`gpt-4.1-mini` fine-tuning](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/fine-tuning) | Live Sweden Central catalog: Legacy, Responses/Agents v2 support, SFT/global fine-tuning, retirement April 14, 2027 | Demo 2 supervised student base through the December 2026 delivery revisit. Revalidate immediately before training. |
+| Foundry Fine Tuning azd extension | `azure.ai.finetune` `0.0.17-preview`; output and config contracts remain preview | Submit, inspect, and deploy the trace-driven v3 student. |
 | Synthetic and traces-to-dataset generation | Announced for GA later September 2026; verify rollout in the target tenant | Optional acceleration for Demo 2 data curation; versioned manual provenance remains the fallback. |
 | [Agent Optimizer](https://learn.microsoft.com/en-us/azure/foundry/agents/quickstarts/quickstart-optimize-hosted-agent) | **Preview**; current quickstart requires subscription allow-list | Demo 3 candidate generation/evaluation and human promote, reject, or hold decision. |
 | Azure Container Apps | Generally available | Persistent FastAPI behavior surface across sequential agent versions. |
@@ -27,13 +28,13 @@ Never change labels merely to match a slide. Update this table, recordings, scre
 
 ## Recording model plan
 
-Live preflight against subscription `ai-team` in Sweden Central on September 27, 2026:
+Live preflight against subscription `ai-team` in Sweden Central on September 28, 2026:
 
 | Role | Model/version | Lifecycle | Remaining quota at check | Earliest model-level retirement |
 |---|---|---|---:|---|
-| Frontier baseline and optimizer | `gpt-5.4` `2026-03-05` | Generally available | 13,920 | September 2, 2027 |
-| Rubric judge | `gpt-5.4-mini` `2026-03-17` | Generally available | 1,551 | September 21, 2027 |
-| Model-right-sizing lever | `model-router` `2025-11-18` | Generally available | 11,809 | May 20, 2027 |
-| Fine-tuned student base | `gpt-5.4-mini` `2026-03-17` | Generally available; `globalFineTune=true` | 5,000 fine-tuned deployment quota | September 21, 2027 |
+| Frontier baseline and optimizer | `gpt-5.4` `2026-03-05` | Generally available | 13,720 | September 2, 2027 |
+| Rubric judge | `gpt-5.4-mini` `2026-03-17` | Generally available | 794 | September 21, 2027 |
+| Model-right-sizing lever | `model-router` `2025-11-18` | Generally available | 11,609 | May 20, 2027 |
+| Fine-tuned student base/deployment | `gpt-4.1-mini` `2025-04-14` | Legacy; supervised `fineTune=true`, `globalFineTune=true`; `contoso-student` deployed on DeveloperTier capacity 100 | 400 DeveloperTier units remaining | April 14, 2027 |
 
-Quota is subscription-specific and can change after this check. `infra/preflight.sh` is the source of truth before every rebuild or recording. `gpt-4.1-mini` remains a legacy fallback only; `gpt-oss` models are intentionally excluded from this session.
+Quota is subscription-specific and can change after this check. `infra/preflight.sh` is the source of truth before every rebuild or recording. `gpt-4.1-mini` is intentionally accepted for the December 2026 revisit because it remains supported until April 14, 2027. `gpt-oss` models are intentionally excluded from this session.

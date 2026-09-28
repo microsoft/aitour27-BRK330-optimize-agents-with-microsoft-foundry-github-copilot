@@ -3,7 +3,7 @@
   "version": "1",
   "teacher_agent_version": "1",
   "teacher_model": "gpt-5.4",
-  "student_base_model": "gpt-5.4-mini",
+  "student_base_model": "gpt-4.1-mini",
   "target_deployment": "contoso-student",
   "minimum_training_examples": 20,
   "minimum_validation_examples": 4,

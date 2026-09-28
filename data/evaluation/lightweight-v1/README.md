@@ -1,6 +1,6 @@
 # Lightweight evaluation contract v1
 
-This four-case dataset continues directly from the Demo 1 Agent Insights evidence. It is frozen for baseline v1, Model Router v2, fine-tuned v3, and Agent Optimizer v4 comparisons.
+This four-case dataset continues directly from the Demo 1 Agent Insights evidence. It is frozen for baseline v1, Model Router v2, trace-response student v3, curated-response student v4, and Agent Optimizer v5 comparisons.
 
 ## Frozen inputs
 

@@ -15,6 +15,9 @@ Reproducible deployment and cleanup for an isolated BRK330 environment.
 | `bash infra/preflight.sh --help` | None | Check clients, authentication, subscription, region, and model availability. |
 | `bash infra/setup.sh --help` | Creates billable resources | Generate an isolated environment, provision, and deploy. |
 | `bash infra/deploy-model-router-v2.sh --help` | Creates/updates a billable model deployment and Hosted Agent v2 | Provision Model Router with quota headroom, deploy and activate immutable v2, refresh RBAC, and smoke-test. |
+| `bash infra/trace-finetune-v3.sh --help` | Read-only in harvest/status; billable in generate/submit/deploy/agent-v3 | Build a reviewed trace-derived SFT dataset, fine-tune/deploy `contoso-student`, and activate immutable v3 in resumable phases. |
+| `bash infra/curated-finetune-v4.sh --help` | Local-only in prepare; billable in submit/deploy/agent-v4 | Validate committed gold responses, fine-tune/deploy `contoso-curated-student`, and activate immutable v4 in resumable phases. |
+| `bash infra/optimize-v5.sh --help` | Billable optimizer submission; status is read-only | Submit/reuse three optimizer candidates from v2 and stop for human review before any apply/deploy action. |
 | `bash infra/validate-local.sh` | None | Run fixture, syntax, manifest, Bicep, and test checks. |
 | `bash infra/validate-deployment.sh` | Read-only Azure queries | Verify the active Hosted Agent, web health, roles, and telemetry. |
 | `python infra/switch-agent-version.py --help` | Read-only unless `--apply` | Inspect or reroute the endpoint to a retained immutable version. |
@@ -41,3 +44,11 @@ Generated environments use `rg-aitour-brk330-NNNNNN`. Every destructive command 
 Model Router is intentionally not part of the baseline `setup.sh` path. The stage script deploys `model-router` version `2025-11-18` as Global Standard capacity 200 through [`model-router.bicep`](model-router.bicep). Before deployment it requires enough unallocated quota for any additional capacity plus a 40-unit reserve.
 
 The script is resumable: environment metadata records v2 after a successful agent deploy, so a rerun reuses v2 instead of creating v3. It never deletes resources and refuses any resource group outside `rg-aitour-brk330-NNNNNN`.
+
+## Trace-driven fine-tuning stage
+
+[`trace-finetune-v3.sh`](trace-finetune-v3.sh) separates trace generation, harvest, human curation, training, model deployment, and agent deployment. Volatile trace content and training files remain under ignored `.azure/<environment>/training-v3/`; committed files contain only the training-only seed prompts, curation code, schemas, and instructions needed to reproduce the workflow.
+
+Every phase is resumable and refuses `rg-brk330-concierge`. The script never deletes jobs, deployments, agents, traces, or datasets.
+
+The curated-response stage keeps the v3 base model, method, seed, epochs, instruction hash, 20/4 split, deployment tier, and frozen evaluation unchanged. Only the response labels change, making training-data quality a controlled third optimization lever.

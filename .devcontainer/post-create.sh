@@ -8,9 +8,9 @@ Configure the BRK330 Codespaces/dev-container workspace.
 Usage: .devcontainer/post-create.sh
 
 Validates the container toolchain, installs the Application Insights Azure CLI
-extension, installs or upgrades the Microsoft Foundry azd extension, creates
-`.venv`, and installs root `requirements.txt`. It does not authenticate, create
-cloud resources, deploy, or delete anything.
+extension, installs or upgrades the Microsoft Foundry agent and fine-tuning azd
+extensions, creates `.venv`, and installs root `requirements.txt`. It does not
+authenticate, create cloud resources, deploy, or delete anything.
 EOF
 }
 
@@ -68,10 +68,17 @@ else
     azd ext install microsoft.foundry
 fi
 
+finetune_installed_version="$(azd ext list -o json | python3 -c 'import json,sys; print(next((item["installedVersion"] for item in json.load(sys.stdin) if item["id"] == "azure.ai.finetune"), ""))')"
+if [[ -n "$finetune_installed_version" ]]; then
+    azd ext upgrade azure.ai.finetune
+else
+    azd ext install azure.ai.finetune
+fi
+
 azd ext list -o json | python3 -c '
 import json, sys
 extensions = {item["id"]: item["installedVersion"] for item in json.load(sys.stdin)}
-required = ("microsoft.foundry", "azure.ai.agents")
+required = ("microsoft.foundry", "azure.ai.agents", "azure.ai.finetune")
 missing = [extension_id for extension_id in required if not extensions.get(extension_id)]
 if missing:
     raise SystemExit(f"Foundry extension installation incomplete: {chr(44).join(missing)}")
