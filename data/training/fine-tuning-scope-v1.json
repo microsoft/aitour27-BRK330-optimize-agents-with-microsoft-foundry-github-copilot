@@ -1,0 +1,30 @@
+{
+  "name": "brk330-contoso-student-training",
+  "version": "1",
+  "teacher_agent_version": "1",
+  "teacher_model": "gpt-5.4",
+  "student_base_model": "gpt-5.4-mini",
+  "target_deployment": "contoso-student",
+  "minimum_training_examples": 20,
+  "minimum_validation_examples": 4,
+  "evaluation_holdout": "data/evaluation/lightweight-v1/dataset-v2.jsonl",
+  "coverage": {
+    "compliant_multi_tool_planning": 6,
+    "policy_refusal_and_remediation": 4,
+    "receipt_extraction_and_conversion": 4,
+    "accessibility_and_timing": 4,
+    "numeric_reconciliation": 2
+  },
+  "acceptance_gates": [
+    "rubric_threshold_passed",
+    "no_policy_hard_gate_violation",
+    "policy_checks_before_recommendations",
+    "no_unsupported_rule_attribution",
+    "reported_totals_reconcile",
+    "all_tool_outputs_fixture_grounded"
+  ],
+  "excluded_models": [
+    "gpt-oss-120b",
+    "gpt-oss-20b"
+  ]
+}

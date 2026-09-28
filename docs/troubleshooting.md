@@ -96,6 +96,40 @@ This extension enables the read-only telemetry query in `infra/validate-deployme
 
 <br/>
 
+## Rubric generation poller reports Evaluations preview header missing
+
+### Symptom
+
+The evaluator generation job is created, but the Python SDK poller fails on a GET request:
+
+> `This operation requires ... Foundry-Features: Evaluations=V1Preview`
+
+### Cause and recovery
+
+In `azure-ai-projects 2.6.1`, the evaluator-generation initial request receives the preview header through `allow_preview=True`, but the generic long-running-operation poller can omit it from status GET requests. The server-side job can still succeed and create the evaluator.
+
+`src/scripts/setup_lightweight_evaluation.py` starts generation without SDK polling, then calls `get_generation_job` with the explicit preview header until a terminal state. Rerunning `--apply` first reuses an existing evaluator version and does not create a duplicate.
+
+<br/>
+
+## Generated rubric says the Hosted Agent has no instructions
+
+### Symptom
+
+The evaluator details show:
+
+> `Generated with input-quality warnings: The agent has no instructions.`
+
+### Meaning and mitigation
+
+Foundry can retrieve full instructions from prompt agents, but a Hosted Agent's instructions are packaged inside its deployed code/configuration. The Agent generation source therefore contributes description and tool metadata but cannot expose the complete instruction text.
+
+This repository supplies the full baseline instructions and Caldova policy in the explicit Prompt source, plus the frozen expected-behavior dataset. The generated v1 dimensions are domain-specific and cover the observed Insights findings, so the warning does not invalidate the evaluator. Review and pin the returned definition rather than generating repeatedly to remove a cosmetic warning.
+
+Do not clone the evaluator solely to hide the warning. Create a new evaluator version only when a reviewer changes dimensions, descriptions, weights, applicability, or threshold.
+
+<br/>
+
 ## RBAC scope notes
 
 - Use **Foundry Agent Consumer** at project or agent scope for applications that only invoke an endpoint.

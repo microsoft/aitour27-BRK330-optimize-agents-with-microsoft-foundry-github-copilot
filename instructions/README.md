@@ -138,10 +138,10 @@ The same monitor can be inspected or run from code without deleting or resetting
 
 ```bash
 # Read-only monitor and run-history inspection
-python scripts/run_agent_insights.py
+python src/scripts/run_agent_insights.py
 
 # Start one on-demand three-hour analysis
-python scripts/run_agent_insights.py --run --model-deployment insights-judge
+python src/scripts/run_agent_insights.py --run --model-deployment insights-judge
 ```
 
 Agent Insights is a preview service. A successful run can return different findings or no findings; that is valid measured evidence. If **Run now** reports that a required dependency is unavailable, verify the deployment before retrying:
@@ -175,7 +175,153 @@ These short calls target Azure Instance Metadata Service at `169.254.169.254`. I
 
 The app shows the actual active Hosted Agent version, model/configuration identity, response ID, tools, CT evidence, latency, and token usage. Open the corresponding response in Foundry traces. Insights findings and wording can vary; preserve the exact trace IDs and measured evidence from your run.
 
-## 6. Validate Azure
+## 6. Start Make it better
+
+Freeze and register the evaluation contract before scoring any agent version.
+
+1. Validate the four-case dataset, Insights-derived gates, rubric source, and hashes locally:
+
+	```bash
+	python src/scripts/setup_lightweight_evaluation.py
+	```
+
+	Capture the four-case count, dataset SHA256, rubric SHA256, evaluator name, and judge deployment. This mode makes no Azure changes.
+
+2. Upload immutable runnable dataset v2 and start or reuse one rubric-generation job:
+
+	```bash
+	python src/scripts/setup_lightweight_evaluation.py --apply
+	```
+
+	Capture the remote dataset ID, generation job ID, evaluator name/version, and saved review-artifact path. The script reuses matching retained artifacts and never deletes datasets, evaluators, jobs, or agents.
+
+### Data assets created in Foundry
+
+The setup produces two intentionally different project data assets.
+
+**`brk330-lightweight-eval` v2 — frozen runnable evaluation input**
+
+[![Frozen four-case evaluation dataset in Foundry Data](img/Data-dataset.png)](img/Data-dataset.png)
+
+This attendee-owned dataset contains the four fixed `query` and `expected_behavior` rows. It is the holdout used unchanged to compare v1, Model Router v2, fine-tuned v3, and Agent Optimizer v4. Do not edit or use these rows for fine-tuning after baseline scoring begins; any content change requires a new dataset version and rerunning every comparison.
+
+**Evaluator generation artifacts — service-managed provenance**
+
+[![Service-managed rubric generation artifacts in Foundry Data](img/Data-generation-artifacts.png)](img/Data-generation-artifacts.png)
+
+Foundry creates a separate read-only, version-aligned dataset containing the context used to generate the evaluator, such as rubric specification, Hosted Agent metadata/tool surface, and reference context. This asset explains how the rubric was produced. It is not the four-case evaluation dataset, not a fine-tuning corpus, and should not be edited or deleted during the demo.
+
+3. Review the returned evaluator before running the v1 baseline. Confirm it measures policy-check sequencing, attributable policy evidence, numeric consistency, and hard-gate compliance while allowing alternate correct wording, fixture-backed choices, and efficient tool strategies.
+
+[![Evaluator catalog showing Caldova Travel Quality](img/Evaluator-Catalog.png)](img/Evaluator-Catalog.png)
+
+[![Generated Caldova Travel Quality evaluator details](img/Evaluator-Caldova-Travel-Quality.png)](img/Evaluator-Caldova-Travel-Quality.png)
+
+[![Generated rubric dimensions and weights](img/Evaluator-Rubric.png)](img/Evaluator-Rubric.png)
+
+The portal can display **Generated with input-quality warnings: The agent has no instructions**. Hosted Agent instructions are packaged with code and aren't exposed as prompt-agent instructions to rubric generation. This run mitigates that limitation by supplying the full baseline instruction file and Caldova policy through the explicit Prompt source, alongside the agent metadata/tool surface and frozen dataset. Review the dimensions rather than treating the warning alone as a failure.
+
+4. Pin the reviewed evaluator version, `gpt-5.4-mini` judge deployment, runnable dataset v2, hashes, and threshold. Reuse that exact contract for v1, Model Router v2, fine-tuned v3, and Agent Optimizer v4.
+
+The reviewed contract is pinned in [`src/agent/.foundry/agent-metadata.yaml`](../src/agent/.foundry/agent-metadata.yaml): evaluator `brk330-contoso-travel-quality` v1, normalized threshold `0.5`, judge `gpt-5.4-mini`, and runnable dataset `brk330-lightweight-eval` v2.
+
+### Pinned evaluation contract
+
+| Item | Pinned value |
+|---|---|
+| Environment | `brk330-812406` |
+| Agent | `contoso-travel` v1 baseline |
+| Dataset | `brk330-lightweight-eval` v2 |
+| Dataset SHA256 | `5a6808f03ffce76dcf87366ff489793920324127c7d09e118c43f7249cff2699` |
+| Evaluator | `brk330-contoso-travel-quality` v1 |
+| Rubric source SHA256 | `f937a04d86ec75a1eb7f845266f5b23595dea22f3600a214078c6b13768b5995` |
+| Judge deployment | `gpt-5.4-mini` |
+| Normalized pass threshold | `0.5` |
+| Generation job | `evaluatorgen-brk330-contoso-travel-quality-v1-091df611` |
+
+Pinning writes no duplicate remote resources. It records the reviewed references and provenance in:
+
+- `src/agent/eval.yaml` — local evaluation intent and three-candidate optimizer limit;
+- `src/agent/.foundry/agent-metadata.yaml` — selected azd environment plus immutable dataset/evaluator references;
+- `src/agent/.foundry/datasets/contoso-travel-brk330-lightweight-eval-v2.ref.json` — remote runnable dataset URI and local content hash;
+- `src/agent/.foundry/evaluators/brk330-contoso-travel-quality-v1.json` — exact service-returned evaluator definition and generation provenance.
+
+To reproduce or verify the pin:
+
+```bash
+azd env select brk330-812406
+python src/scripts/setup_lightweight_evaluation.py
+python src/scripts/setup_lightweight_evaluation.py --apply
+bash infra/validate-local.sh
+```
+
+The second command validates hashes without cloud changes. Apply mode uploads or reuses runnable dataset v2 and evaluator v1, then refreshes the local review artifact and `.foundry` pin. Do not generate a new evaluator version unless a reviewer intentionally changes dimensions, weights, applicability, or threshold.
+
+### Run the v1 baseline evaluation
+
+Select the generated session environment, then run the frozen recipe against baseline agent v1:
+
+```bash
+azd env select brk330-NNNNNN
+azd ai agent eval run \
+	--agent contoso-travel \
+	--config eval.yaml \
+	--name brk330-v1-baseline
+```
+
+Dev Pack resolves `eval.yaml` relative to `src/agent/`. It invokes all four dataset tasks and applies `brk330-contoso-travel-quality` v1 with `gpt-5.4-mini`.
+
+The completed run is available through either Foundry navigation path.
+
+**Project navigation — Optimize > Evaluations**
+
+[![Evaluation run listed on the project Evaluations page](img/Evaluations-Run-Main.png)](img/Evaluations-Run-Main.png)
+
+Use this view to compare runs across agents and versions, inspect aggregate scores, and return later without opening a specific agent first.
+
+**Agent navigation — Build > Agents > contoso-travel > Evaluation**
+
+[![Evaluation run listed from the contoso-travel Evaluation tab](img/Evaluations-Run-Agent.png)](img/Evaluations-Run-Agent.png)
+
+Use this view when telling the version-specific story from the active agent. It keeps the evaluation adjacent to the agent's details, traces, optimization, and Insights tabs.
+
+Inspect the latest run and copy its eval ID, run ID, resolved agent/dataset/evaluator versions, status, and score summary:
+
+```bash
+azd ai agent eval show
+```
+
+### Read the recorded v1 baseline
+
+The complete baseline retry scored every row with no evaluator errors. It passed 2/4 cases with mean rubric quality `0.600`. Its latency was P50 `11.916 s` and P95 `36.499 s`, and the evaluated agent used 29,519 total tokens. See the [comparison scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md) for the per-case values and cost method.
+
+[![Baseline v1 evaluation overview showing two passed and two failed cases](img/Evaluation-Baseline-v1-Overview.png)](img/Evaluation-Baseline-v1-Overview.png)
+
+Open each row to inspect its rubric score and judge explanation. The two failures are retained as baseline evidence rather than rewritten after evaluation.
+
+**INS-01 — Multi-city itinerary: failed at 0.325**
+
+[![INS-01 baseline evaluation details](img/Evaluation-Baseline-v1-INS-01.png)](img/Evaluation-Baseline-v1-INS-01.png)
+
+**INS-02 — Reimbursable receipt: passed at 0.770**
+
+[![INS-02 baseline evaluation details](img/Evaluation-Baseline-v1-INS-02.png)](img/Evaluation-Baseline-v1-INS-02.png)
+
+**INS-03 — Mixed receipt classification: passed at 0.905**
+
+[![INS-03 baseline evaluation details](img/Evaluation-Baseline-v1-INS-03.png)](img/Evaluation-Baseline-v1-INS-03.png)
+
+**INS-04 — Impossible constrained trip: failed at 0.400**
+
+[![INS-04 baseline evaluation details](img/Evaluation-Baseline-v1-INS-04.png)](img/Evaluation-Baseline-v1-INS-04.png)
+
+Do not create Model Router v2 until all four per-item results and independent hard gates have been reviewed. Preserve the raw run output under `src/agent/.foundry/results/` before comparing another version.
+
+Quality and hard-gate results determine eligibility. Record token usage and latency separately; do not hide a policy regression inside a composite cost/quality score.
+
+Fine-tuning uses a separate quality-filtered trace corpus defined in [`data/training/`](../data/training/README.md). Never train on the four frozen evaluation rows. This preserves a real holdout while leaving room for the student model and Agent Optimizer to improve response wording, concision, and tool efficiency.
+
+## 7. Validate Azure
 
 ```bash
 bash infra/validate-deployment.sh
@@ -196,7 +342,7 @@ bash infra/validate-deployment.sh
 
 Do not pass the old suffix to `infra/setup.sh`. Preserve the new environment and web URL as the clean debugging and recording baseline.
 
-## 7. Review a retained version
+## 8. Review a retained version
 
 Inspect first; add `--apply` only after reviewing the target:
 
@@ -207,7 +353,7 @@ python infra/switch-agent-version.py --version VERSION --apply
 
 Start a new app conversation after switching. Use the reported previous version to restore routing.
 
-## 8. Tear down
+## 9. Tear down
 
 The attendee must run teardown directly in their terminal. An assistant or automation must not initiate Azure resource deletion. Before running it, confirm that the selected environment belongs to this session and that no teammate is using the generated resource group.
 

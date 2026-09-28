@@ -1,0 +1,147 @@
+{
+  "dataset": {
+    "name": "brk330-lightweight-eval",
+    "version": "2",
+    "id": "azureai://accounts/cog-x2uoqhfhq5q7g/projects/brk330-812406/data/brk330-lightweight-eval/versions/2",
+    "sha256": "5a6808f03ffce76dcf87366ff489793920324127c7d09e118c43f7249cff2699"
+  },
+  "evaluator": {
+    "id": "azureai://accounts/cog-x2uoqhfhq5q7g/projects/brk330-812406/evaluators/brk330-contoso-travel-quality/versions/1",
+    "name": "brk330-contoso-travel-quality",
+    "display_name": "Caldova Travel Quality",
+    "metadata": {
+      "generation_job_id": "evaluatorgen-brk330-contoso-travel-quality-v1-091df611",
+      "generation_status": "succeeded",
+      "generation_agent_source": "contoso-travel",
+      "operation_id": "brk330-rubric-f937a04d86ec75a1eb7f8452"
+    },
+    "description": "Frozen four-case quality rubric derived from v1 Agent Insights findings and Caldova policy.",
+    "version": "1",
+    "created_by": "ninarasi (BAMI)",
+    "created_at": "2026-09-28T02:15:06.8037932+00:00",
+    "modified_at": "2026-09-28T02:15:27.6671547+00:00",
+    "categories": [
+      "quality",
+      "agents"
+    ],
+    "supported_evaluation_levels": [
+      "turn",
+      "conversation"
+    ],
+    "evaluator_type": "custom",
+    "definition": {
+      "type": "rubric",
+      "dimensions": [
+        {
+          "id": "policy_checked_compliance",
+          "description": "For each flight, hotel, or car that is presented as compliant or recommended, the transcript shows a prior relevant policy check for that specific option; no option is surfaced as compliant before it has been checked.",
+          "weight": 10,
+          "always_applicable": false
+        },
+        {
+          "id": "evidence_grounded_citations",
+          "description": "Any rule identifier, blocking reason, reimbursement claim, or policy statement is attributed only to structured tool evidence and not invented, paraphrased from memory, or cited without support.",
+          "weight": 6,
+          "always_applicable": false
+        },
+        {
+          "id": "fixture_grounded_content",
+          "description": "All itinerary items, fixture IDs, receipt fields, prices, exchange rates, and other factual values come only from returned fixture/tool outputs and are not fabricated or altered.",
+          "weight": 6,
+          "always_applicable": false
+        },
+        {
+          "id": "exact_arithmetic_reconciliation",
+          "description": "All visible arithmetic is exact: line-item sums, subtotals, currency conversions, reimbursable and non-reimbursable totals, and grand totals reconcile precisely with the provided fixture values.",
+          "weight": 8,
+          "always_applicable": false
+        },
+        {
+          "id": "hard_constraint_enforcement",
+          "description": "Mandatory accessibility, time-of-day, uncertainty, refundability, and approval-required constraints are treated as binding, overriding price or preference-based choices when they conflict.",
+          "weight": 6,
+          "always_applicable": false
+        },
+        {
+          "id": "receipt_classification_and_uncertainty",
+          "description": "Receipt lines are correctly separated into reimbursable and non-reimbursable categories, and any unreadable or missing information is explicitly labeled uncertain rather than filled in with invented details.",
+          "weight": 5,
+          "always_applicable": false
+        },
+        {
+          "id": "compliant_alternative_or_refusal",
+          "description": "When no compliant option exists or a hard gate blocks the request, the agent refuses the blocked action and provides a correct evidence-based explanation and compliant alternative when available.",
+          "weight": 4,
+          "always_applicable": false
+        },
+        {
+          "id": "general_quality",
+          "description": "Other important quality factors not covered by listed criteria.",
+          "weight": 5,
+          "always_applicable": true
+        }
+      ],
+      "pass_threshold": 0.5,
+      "init_parameters": {
+        "required": [
+          "model"
+        ],
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model deployment name for the LLM judge"
+          }
+        }
+      },
+      "metrics": {
+        "brk330-contoso-travel-quality": {
+          "type": "continuous",
+          "desirable_direction": "increase",
+          "min_value": 0.0,
+          "max_value": 1.0,
+          "is_primary": true
+        }
+      },
+      "data_schema": {
+        "required": [],
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "User query (turn mode)"
+          },
+          "response": {
+            "type": "string",
+            "description": "Agent response (turn mode)"
+          },
+          "messages": {
+            "type": "array",
+            "description": "Conversation messages (conversation mode)"
+          },
+          "tool_definitions": {
+            "type": "array",
+            "description": "Tool definitions available to the agent"
+          }
+        }
+      },
+      "prompt_text": ""
+    },
+    "generation_artifacts": {
+      "dataset": {
+        "name": "sys-evalartifacts-brk330-contoso-travel-quality",
+        "version": "v1-091df611"
+      },
+      "kinds": [
+        "spec",
+        "context"
+      ]
+    },
+    "generation_job_id": "evaluatorgen-brk330-contoso-travel-quality-v1-091df611",
+    "warnings": [
+      "input_quality"
+    ]
+  },
+  "rubric_source_sha256": "f937a04d86ec75a1eb7f845266f5b23595dea22f3600a214078c6b13768b5995",
+  "judge_deployment": "gpt-5.4-mini"
+}

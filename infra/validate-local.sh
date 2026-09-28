@@ -32,11 +32,16 @@ if [[ "$python_available" != true ]]; then
 fi
 
 "$python_bin" src/scripts/validate_fixtures.py
+"$python_bin" src/scripts/setup_lightweight_evaluation.py >/dev/null
 "$python_bin" -m compileall -q src infra/switch-agent-version.py
 "$python_bin" -m pytest -q src/agent/tests src/web/tests
 node --check src/web/static/app.js
 
-for file in .devcontainer/devcontainer.json .vscode/mcp.json; do
+for file in \
+  .devcontainer/devcontainer.json \
+  .vscode/mcp.json \
+  data/evaluation/lightweight-v1/rubric-source.json \
+  data/training/fine-tuning-scope-v1.json; do
   "$python_bin" -m json.tool "$file" >/dev/null
 done
 
@@ -47,6 +52,10 @@ manifest = yaml.safe_load(Path("azure.yaml").read_text(encoding="utf-8"))
 assert manifest["infra"]["provider"] == "microsoft.foundry"
 assert set(manifest["services"]) == {"ai-project", "contoso-travel", "web"}
 assert manifest["services"]["contoso-travel"]["codeConfiguration"]["runtime"] == "python_3_13"
+eval_config = yaml.safe_load(Path("src/agent/eval.yaml").read_text(encoding="utf-8"))
+assert eval_config["dataset"]["version"] == "2"
+assert eval_config["options"]["max_samples"] == 4
+assert eval_config["options"]["max_candidates"] == 3
 PY
 
 for script in .devcontainer/post-create.sh infra/*.sh; do

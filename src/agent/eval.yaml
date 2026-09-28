@@ -1,0 +1,22 @@
+name: brk330-lightweight-evaluation
+agent:
+  name: contoso-travel
+  kind: hosted
+  version: '1'
+  model: gpt-5.4
+  config: .agent_configs/baseline/metadata.yaml
+dataset:
+  local_uri: ../../data/evaluation/lightweight-v1/dataset-v2.jsonl
+  name: brk330-lightweight-eval
+  version: '2'
+evaluators:
+  - name: brk330-contoso-travel-quality
+    version: '1'
+options:
+  eval_model: gpt-5.4-mini
+  optimization_model: gpt-5.4
+  max_candidates: 3
+  pass_threshold: 0.5
+  max_samples: 4
+  trace_days: 7
+  generation_instruction: ../../data/evaluation/lightweight-v1/rubric-source.json

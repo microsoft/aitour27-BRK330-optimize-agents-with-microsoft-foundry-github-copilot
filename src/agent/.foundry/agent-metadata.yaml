@@ -1,0 +1,54 @@
+defaultEnvironment: brk330-812406
+environments:
+  brk330-812406:
+    azd:
+      environmentName: brk330-812406
+      service: contoso-travel
+    evaluationSuites:
+    - id: lightweight-v1
+      generationSource: eval-yaml
+      tags:
+        tier: smoke
+        purpose: baseline
+        stage: generated
+      dataset: brk330-lightweight-eval
+      datasetVersion: '2'
+      datasetFile: .foundry/datasets/contoso-travel-brk330-lightweight-eval-v2.ref.json
+      datasetContentPath: ../../data/evaluation/lightweight-v1/dataset-v2.jsonl
+      datasetUri: azureai://accounts/cog-x2uoqhfhq5q7g/projects/brk330-812406/data/brk330-lightweight-eval/versions/2
+      evaluators:
+      - name: brk330-contoso-travel-quality
+        version: '1'
+        threshold: 0.5
+        judgeDeployment: gpt-5.4-mini
+        generationJobId: evaluatorgen-brk330-contoso-travel-quality-v1-091df611
+        definitionFile: .foundry/evaluators/brk330-contoso-travel-quality-v1.json
+        rubricSourceSha256: f937a04d86ec75a1eb7f845266f5b23595dea22f3600a214078c6b13768b5995
+    lastEval:
+      evalId: eval_5bbae1d5025b45b9a3b40fd04dae17a8
+      evalRunId: evalrun_d518cfe6064d4d51ba6be97b4c211a60
+      runName: brk330-v1-baseline-retry
+      suiteId: lightweight-v1
+      agentVersion: '1'
+      status: completed
+      startedAt: '2026-09-28T02:53:28Z'
+      completedAt: '2026-09-28T02:54:57Z'
+      results:
+        total: 4
+        passed: 2
+        failed: 2
+        errored: 0
+        meanScore: 0.6
+        caseScores:
+          INS-01: 0.325
+          INS-02: 0.77
+          INS-03: 0.905
+          INS-04: 0.4
+      judgeUsage:
+        promptTokens: 29244
+        completionTokens: 2745
+        totalTokens: 31989
+        cachedTokens: 3584
+      artifacts:
+        run: .foundry/results/brk330-812406/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_d518cfe6064d4d51ba6be97b4c211a60.json
+        items: .foundry/results/brk330-812406/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_d518cfe6064d4d51ba6be97b4c211a60.items.json

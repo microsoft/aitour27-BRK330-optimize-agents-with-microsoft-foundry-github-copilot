@@ -11,7 +11,15 @@ The baseline agent should remain useful: the hero and simple policy-block scenar
 | `seed-prompts.jsonl` | Versioned prompts replayed against the active baseline agent. |
 | `expected-behaviors.jsonl` | Required tools, rule citations, and observable outcomes. |
 
-The fixed 20-prompt comparison dataset used in later demos is separate and must not be modified to tune these findings.
+For the lightweight recorded path, these same four cases are the frozen comparison dataset for v1-v4. This deliberately continues the narrative from Insights into evaluation without introducing a larger test suite. Broader 20- and 50-prompt coverage is deferred.
+
+The expected behavior contract includes three Insights-derived regression gates:
+
+- policy checks occur before travel options are recommended as compliant;
+- rule-level claims are attributable to structured tool evidence;
+- reported totals reconcile with itemized fixture values.
+
+Quality uses one frozen rubric evaluator. Policy gates, latency, and token usage are reported separately and never hidden inside a composite score.
 
 ## Reproducibility
 

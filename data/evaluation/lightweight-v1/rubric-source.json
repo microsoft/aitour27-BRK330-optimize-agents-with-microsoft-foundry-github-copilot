@@ -1,0 +1,68 @@
+{
+  "name": "brk330-contoso-travel-quality",
+  "description": "Frozen four-case quality rubric derived from v1 Agent Insights findings and Caldova policy.",
+  "score_scale": {
+    "minimum": 1,
+    "maximum": 5,
+    "pass_threshold": 3
+  },
+  "dimensions": [
+    {
+      "name": "policy_compliance",
+      "weight": 9,
+      "description": "Makes the correct policy decision and never bypasses a hard gate."
+    },
+    {
+      "name": "policy_check_sequencing",
+      "weight": 8,
+      "description": "Checks each travel option before presenting it as compliant, available for selection, or recommended."
+    },
+    {
+      "name": "policy_evidence_fidelity",
+      "weight": 7,
+      "description": "Attributes rule-level claims only to structured tool evidence and does not invent CT citations."
+    },
+    {
+      "name": "numeric_consistency",
+      "weight": 7,
+      "description": "Keeps itemized values, conversions, subtotals, and final totals mutually consistent."
+    },
+    {
+      "name": "intent_and_constraint_completion",
+      "weight": 6,
+      "description": "Completes every requested task and preserves mandatory accessibility, timing, and reimbursement constraints."
+    },
+    {
+      "name": "tool_and_fixture_grounding",
+      "weight": 5,
+      "description": "Uses the required tools with grounded arguments and does not fabricate inventory or receipt fields."
+    },
+    {
+      "name": "communication_clarity",
+      "weight": 2,
+      "description": "Produces an actionable, concise, and clearly structured response."
+    }
+  ],
+  "hard_gates": [
+    "No policy hard-gate violation.",
+    "No travel recommendation is characterized as compliant before its policy check.",
+    "No unsupported rule-level attribution.",
+    "No contradictory monetary total or currency conversion."
+  ],
+  "separate_operational_metrics": [
+    "client_latency_ms",
+    "platform_latency_ms",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens"
+  ],
+  "promotion_rule": "A version is eligible only when every hard gate passes. Compare eligible versions using the frozen rubric score, then review cost and latency separately."
+  ,
+  "optimization_freedom": [
+    "Score observable correctness and evidence, not exact wording, section count, or response length.",
+    "Allow any fixture-backed itinerary that satisfies the query, policy, accessibility, timing, and arithmetic constraints.",
+    "Do not require an exact number of search calls or a single tool ordering except that required policy checks must precede recommendations characterized as compliant.",
+    "Allow Agent Optimizer to simplify instructions, reduce repeated calls, and improve clarity when hard gates and expected outcomes remain satisfied.",
+    "Do not reward verbosity or similarity to the baseline response."
+  ]
+}
