@@ -382,6 +382,8 @@ When prompted, reuse the existing eval. This groups v1 and v2 for comparison whi
 
 The completed v2 run `evalrun_8afcad0acc194c07a8948f38eed7b6e1` passed 4/4 rows with no evaluator errors. Mean quality was `0.625`, Foundry reported P50 latency `9.185 s` and P95 `65.496 s`, and the evaluated agent used 60,847 tokens. The fast half became faster, but tail latency and token use regressed substantially. Keep those signals separate in the [comparison scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md).
 
+Model Router's default **Balanced** mode makes a cost/quality choice for each request. In this run, the simpler receipt cases stayed fast and compact, while the harder itinerary cases used 52,869 of the 60,847 evaluated-agent tokens and produced the slower tail. The result is the intended teaching point: quality eligibility improved, median latency improved, and the additional cost proxy was concentrated in difficult work rather than spread evenly. Do not claim a specific underlying routed model because these evaluation artifacts do not expose that attribution reliably.
+
 Capture each opened result row as `Evaluation-Model-Router-v2-INS-01.png` through `Evaluation-Model-Router-v2-INS-04.png`. Keep judge usage separate from evaluated-agent cost.
 
 Quality and hard-gate results determine eligibility. Record token usage and latency separately; do not hide a policy regression inside a composite cost/quality score.

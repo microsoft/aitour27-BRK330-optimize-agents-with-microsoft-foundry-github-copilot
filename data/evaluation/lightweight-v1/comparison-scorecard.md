@@ -33,6 +33,8 @@ P50 and P95 use Foundry's nearest-rank display convention. With four rows, P50 i
 
 The v2 rubric judge used another 27,097 tokens. Compared with v1, v2 improved pass count from 2/4 to 4/4 and mean quality by `0.025`. P50 improved by `1.624 s` (15.0%), but evaluated-agent tokens increased by 31,328 (106.1%) and P95 latency increased by `28.997 s` (79.4%). The fast half became faster while the slow tail became substantially slower; these operational signals are not folded into the quality score.
 
+Model Router uses **Balanced** routing by default, trading cost and quality per request rather than applying one fixed model strategy to every row. This run reflects that split: INS-02 and INS-03 remained fast and compact, while the harder INS-01 and INS-04 cases consumed 52,869 of 60,847 evaluated-agent tokens and drove the slower tail. Quality eligibility improved across the suite, but the extra cost proxy was concentrated in the difficult cases. The evaluation artifacts do not expose reliable routed-model attribution, so do not infer which underlying model served an individual row.
+
 ## Cost method
 
 The evaluation API does not return billed USD. Preserve a dated Azure price snapshot for each deployment before calculating cost:
