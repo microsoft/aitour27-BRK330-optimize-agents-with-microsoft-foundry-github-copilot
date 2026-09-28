@@ -50,6 +50,10 @@ def active_version(details) -> str:
     return details.versions.latest.version
 
 
+def status_value(status: object) -> str:
+    return str(getattr(status, "value", status)).lower()
+
+
 def main() -> None:
     args = parse_args()
     if not args.project_endpoint:
@@ -60,13 +64,14 @@ def main() -> None:
         details = project.agents.get(agent_name=args.agent)
         previous = active_version(details)
         target = project.agents.get_version(agent_name=args.agent, agent_version=args.version)
-        if str(target.status).lower() != "active":
+        target_status = status_value(target.status)
+        if target_status != "active":
             raise SystemExit(f"Target version {args.version} is not active/ready: {target.status}")
         report = {
             "agent": args.agent,
             "previous_version": previous,
             "target_version": args.version,
-            "target_status": str(target.status),
+            "target_status": target_status,
             "applied": args.apply,
         }
         if args.apply and previous != args.version:

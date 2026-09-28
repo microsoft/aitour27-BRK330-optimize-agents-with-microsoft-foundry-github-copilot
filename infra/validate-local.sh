@@ -52,26 +52,46 @@ manifest = yaml.safe_load(Path("azure.yaml").read_text(encoding="utf-8"))
 assert manifest["infra"]["provider"] == "microsoft.foundry"
 assert set(manifest["services"]) == {"ai-project", "contoso-travel", "web"}
 assert manifest["services"]["contoso-travel"]["codeConfiguration"]["runtime"] == "python_3_13"
+deployments = {
+  deployment["name"]: deployment
+  for deployment in manifest["services"]["ai-project"]["deployments"]
+}
+assert deployments["gpt-5.4-mini"]["sku"]["capacity"] == 200
+assert (
+  manifest["services"]["contoso-travel"]["env"]["OPTIMIZATION_CANDIDATE_ID"]
+  == "${CONTOSO_CONFIGURATION}"
+)
 eval_config = yaml.safe_load(Path("src/agent/eval.yaml").read_text(encoding="utf-8"))
 assert eval_config["dataset"]["version"] == "2"
 assert eval_config["options"]["max_samples"] == 4
 assert eval_config["options"]["max_candidates"] == 3
+router_eval = yaml.safe_load(
+  Path("src/agent/eval-model-router-v2.yaml").read_text(encoding="utf-8")
+)
+assert router_eval["agent"]["version"] == "2"
+assert router_eval["agent"]["model"] == "model-router"
+assert router_eval["dataset"] == eval_config["dataset"]
+assert router_eval["evaluators"] == eval_config["evaluators"]
+assert router_eval["options"] == eval_config["options"]
 PY
 
 for script in .devcontainer/post-create.sh infra/*.sh; do
   bash -n "$script"
 done
 
-bicep_output="$(mktemp --suffix=.json)"
-trap 'rm -f "$bicep_output"' EXIT
-if command -v az >/dev/null 2>&1; then
-  az bicep build --file infra/supplemental.bicep --outfile "$bicep_output" >/dev/null
-elif command -v bicep >/dev/null 2>&1; then
-  bicep build infra/supplemental.bicep --outfile "$bicep_output" >/dev/null
-elif [[ -x /tmp/bicep ]]; then
-  /tmp/bicep build infra/supplemental.bicep --outfile "$bicep_output" >/dev/null
-else
-  printf 'Bicep CLI not found. Rebuild the dev container before retrying.\n' >&2
-  exit 3
-fi
+bicep_output_dir="$(mktemp -d)"
+trap 'rm -rf "$bicep_output_dir"' EXIT
+for template in infra/*.bicep; do
+  output="$bicep_output_dir/$(basename "${template%.bicep}").json"
+  if command -v az >/dev/null 2>&1; then
+    az bicep build --file "$template" --outfile "$output" >/dev/null
+  elif command -v bicep >/dev/null 2>&1; then
+    bicep build "$template" --outfile "$output" >/dev/null
+  elif [[ -x /tmp/bicep ]]; then
+    /tmp/bicep build "$template" --outfile "$output" >/dev/null
+  else
+    printf 'Bicep CLI not found. Rebuild the dev container before retrying.\n' >&2
+    exit 3
+  fi
+done
 printf 'Local validation passed.\n'

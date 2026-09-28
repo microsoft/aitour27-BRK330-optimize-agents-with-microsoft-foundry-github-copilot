@@ -14,6 +14,7 @@ Reproducible deployment and cleanup for an isolated BRK330 environment.
 |---|---|---|
 | `bash infra/preflight.sh --help` | None | Check clients, authentication, subscription, region, and model availability. |
 | `bash infra/setup.sh --help` | Creates billable resources | Generate an isolated environment, provision, and deploy. |
+| `bash infra/deploy-model-router-v2.sh --help` | Creates/updates a billable model deployment and Hosted Agent v2 | Provision Model Router with quota headroom, deploy and activate immutable v2, refresh RBAC, and smoke-test. |
 | `bash infra/validate-local.sh` | None | Run fixture, syntax, manifest, Bicep, and test checks. |
 | `bash infra/validate-deployment.sh` | Read-only Azure queries | Verify the active Hosted Agent, web health, roles, and telemetry. |
 | `python infra/switch-agent-version.py --help` | Read-only unless `--apply` | Inspect or reroute the endpoint to a retained immutable version. |
@@ -32,4 +33,11 @@ Generated environments use `rg-aitour-brk330-NNNNNN`. Every destructive command 
 7. It creates the telemetry-enabled Hosted Agent version, then reapplies RBAC for that immutable version identity.
 8. It deploys the FastAPI image and runs the resource-group guard check.
 9. Run deployment validation and the curated scenarios.
-10. Run teardown when finished to stop ongoing charges.
+10. After accepting the frozen v1 evaluation, run `deploy-model-router-v2.sh` to add the first optimization lever without changing v1.
+11. Run teardown when finished to stop ongoing charges.
+
+## Model Router stage
+
+Model Router is intentionally not part of the baseline `setup.sh` path. The stage script deploys `model-router` version `2025-11-18` as Global Standard capacity 200 through [`model-router.bicep`](model-router.bicep). Before deployment it requires enough unallocated quota for any additional capacity plus a 40-unit reserve.
+
+The script is resumable: environment metadata records v2 after a successful agent deploy, so a rerun reuses v2 instead of creating v3. It never deletes resources and refuses any resource group outside `rg-aitour-brk330-NNNNNN`.

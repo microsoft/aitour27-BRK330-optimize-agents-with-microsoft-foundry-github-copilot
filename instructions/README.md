@@ -293,7 +293,7 @@ azd ai agent eval show
 
 ### Read the recorded v1 baseline
 
-The complete baseline retry scored every row with no evaluator errors. It passed 2/4 cases with mean rubric quality `0.600`. Its latency was P50 `11.916 s` and P95 `36.499 s`, and the evaluated agent used 29,519 total tokens. See the [comparison scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md) for the per-case values and cost method.
+The complete baseline retry scored every row with no evaluator errors. It passed 2/4 cases with mean rubric quality `0.600`. Foundry reported P50 latency `10.809 s` and P95 `36.499 s`, and the evaluated agent used 29,519 total tokens. See the [comparison scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md) for the per-case values and cost method.
 
 [![Baseline v1 evaluation overview showing two passed and two failed cases](img/Evaluation-Baseline-v1-Overview.png)](img/Evaluation-Baseline-v1-Overview.png)
 
@@ -315,7 +315,74 @@ Open each row to inspect its rubric score and judge explanation. The two failure
 
 [![INS-04 baseline evaluation details](img/Evaluation-Baseline-v1-INS-04.png)](img/Evaluation-Baseline-v1-INS-04.png)
 
-Do not create Model Router v2 until all four per-item results and independent hard gates have been reviewed. Preserve the raw run output under `src/agent/.foundry/results/` before comparing another version.
+### Deploy Model Router as v2
+
+Start this stage only after all four v1 results and independent hard gates have been reviewed. The baseline artifacts must remain under `src/agent/.foundry/results/`; v2 does not overwrite or delete v1.
+
+From the repository root, run the attendee-owned stage script with the generated environment name:
+
+```bash
+bash infra/deploy-model-router-v2.sh --environment brk330-812406
+```
+
+The script performs the reproducible transition:
+
+1. Selects the named azd environment and refuses the protected `rg-brk330-concierge` resource group or any resource group outside `rg-aitour-brk330-NNNNNN`.
+2. Reads live `OpenAI.GlobalStandard.ModelRouter` usage from ARM. It targets capacity 200 and preserves 40 additional quota units; insufficient quota stops the script before deployment.
+3. Creates or updates the `model-router` deployment at version `2025-11-18`, Global Standard capacity 200.
+4. Selects the `model-router` immutable configuration, which reuses the exact baseline instructions and tool implementation.
+5. Creates `contoso-travel` v2 once. A successful rerun reuses v2 rather than creating v3.
+6. Refreshes monitoring RBAC for the v2 instance identity, routes the endpoint to v2, verifies its environment metadata, and runs one CT-02 lead-time smoke invocation.
+
+The script prints three screenshot checkpoints. Capture them before starting evaluation:
+
+| Checkpoint | Portal view | Save as |
+| --- | --- | --- |
+| Router deployment | **Models + endpoints** > `model-router`; include model version, Global Standard SKU, capacity 200, and successful state. | `instructions/img/Model-Router-Deployment.png` |
+| Immutable agent version | **Build** > **Agents** > `contoso-travel`; include retained v1 and active v2, then open v2 details. | `instructions/img/Model-Router-Agent-v2.png` |
+| Routed smoke response | Open the smoke-test conversation and include the v2/model-router response. | `instructions/img/Model-Router-Smoke-Conversation.png` |
+
+[![Model Router deployment in Models and endpoints](img/Model-Router-Deployment.png)](img/Model-Router-Deployment.png)
+
+[![Deployed contoso-travel v2 using Model Router](img/Model-Router-Agent-v2.png)](img/Model-Router-Agent-v2.png)
+
+[![Model Router v2 smoke-test conversation](img/Model-Router-Smoke-Conversation.png)](img/Model-Router-Smoke-Conversation.png)
+
+The smoke query asks for the booking lead-time policy, which is CT-02. The response correctly avoids inventing evidence but fails to recover the fixture-backed rule. Preserve this result as measured evidence rather than repairing the candidate before evaluation.
+
+Open trace `d42bbb546b98ed6c17659a15288cfe32` and capture its complementary views:
+
+[![Model Router smoke trace conversation view](img/Model-Router-Trace-Conversation.png)](img/Model-Router-Trace-Conversation.png)
+
+[![Model Router smoke trace trajectory view](img/Model-Router-Trace-Trajectory.png)](img/Model-Router-Trace-Trajectory.png)
+
+[![Model Router smoke trace graph view](img/Model-Router-Trace-Graph.png)](img/Model-Router-Trace-Graph.png)
+
+Report the script's final status and any warning before evaluating. Do not continue if the reported active version is not `2`, the model is not `model-router`, or the configuration is not `model-router`.
+
+### Score Model Router v2
+
+After capturing the deployment screenshots, run the same frozen four-case contract against v2:
+
+```bash
+cd src/agent
+AZURE_DEV_USER_AGENT=microsoft_foundry_skill azd ai agent eval run \
+	--agent contoso-travel \
+	--config eval-model-router-v2.yaml \
+	--name brk330-v2-model-router
+```
+
+The v2 recipe changes only the immutable agent version, model, and config path. Dataset `brk330-lightweight-eval` v2, evaluator `brk330-contoso-travel-quality` v1, judge `gpt-5.4-mini`, threshold `0.5`, and four-row limit remain identical to baseline.
+
+When prompted, reuse the existing eval. This groups v1 and v2 for comparison while preserving each immutable run.
+
+[![Baseline and Model Router runs in one evaluation group](img/Evaluation-Model-Router-v2-Runs.png)](img/Evaluation-Model-Router-v2-Runs.png)
+
+[![Baseline and Model Router quality, latency, and token progression](img/Evaluation-runs-v1-v2.png)](img/Evaluation-runs-v1-v2.png)
+
+The completed v2 run `evalrun_8afcad0acc194c07a8948f38eed7b6e1` passed 4/4 rows with no evaluator errors. Mean quality was `0.625`, Foundry reported P50 latency `9.185 s` and P95 `65.496 s`, and the evaluated agent used 60,847 tokens. The fast half became faster, but tail latency and token use regressed substantially. Keep those signals separate in the [comparison scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md).
+
+Capture each opened result row as `Evaluation-Model-Router-v2-INS-01.png` through `Evaluation-Model-Router-v2-INS-04.png`. Keep judge usage separate from evaluated-agent cost.
 
 Quality and hard-gate results determine eligibility. Record token usage and latency separately; do not hide a policy regression inside a composite cost/quality score.
 

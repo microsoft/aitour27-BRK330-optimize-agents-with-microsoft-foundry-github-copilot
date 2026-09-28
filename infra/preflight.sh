@@ -117,7 +117,7 @@ required = {
     "version": "2026-03-17",
     "sku": "GlobalStandard",
     "quota": "OpenAI.GlobalStandard.gpt-5.4-mini",
-    "minimum_remaining": 10,
+    "minimum_remaining": 200,
   },
 }
 advanced = {
@@ -132,7 +132,7 @@ advanced = {
     "version": "2025-11-18",
     "sku": "GlobalStandard",
     "quota": "OpenAI.GlobalStandard.ModelRouter",
-    "minimum_remaining": 10,
+    "minimum_remaining": 240,
   },
   "gpt-5.4-mini-student": {
     "catalog_name": "gpt-5.4-mini",

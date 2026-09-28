@@ -6,6 +6,7 @@ Python 3.13 Microsoft Foundry Hosted Agent using Agent Framework and the Respons
 
 - `main.py` loads the active immutable configuration with `azure.ai.agentserver.optimization.load_config`.
 - `.agent_configs/baseline/` is the baseline model and instruction source.
+- `.agent_configs/model-router/` selects Model Router while reusing the exact baseline instructions.
 - `tools/` exposes deterministic catalog, receipt, policy, itinerary, and dry-run booking tools.
 - `fixtures/` is generated before packaging from the repository's canonical `data/fixtures/` and is not tracked.
 
@@ -16,6 +17,7 @@ Required environment:
 | `FOUNDRY_PROJECT_ENDPOINT` | Foundry project endpoint used by `FoundryChatClient`. |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Consumed by the hosted runtime's built-in telemetry integration. |
 | `OPTIMIZATION_LOCAL_DIR` | Local optimization config directory; defaults to `.agent_configs`. |
+| `OPTIMIZATION_CANDIDATE_ID` | Named immutable config folder; `baseline` for v1 and `model-router` for v2. |
 | `OPTIMIZATION_CANDIDATE_ID` | Optional applied candidate identifier. |
 | `FOUNDRY_AGENT_VERSION` | Platform-provided immutable agent version when hosted. |
 

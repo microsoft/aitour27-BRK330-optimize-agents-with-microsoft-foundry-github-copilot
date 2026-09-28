@@ -24,7 +24,7 @@ services:
           version: '2026-03-17'
         sku:
           name: GlobalStandard
-          capacity: 10
+          capacity: 200
   contoso-travel:
     host: azure.ai.agent
     project: src/agent
@@ -54,6 +54,7 @@ services:
       AZURE_AI_MODEL_DEPLOYMENT_NAME: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
       CONTOSO_CONFIGURATION: ${CONTOSO_CONFIGURATION}
       CONTOSO_INSTRUCTION_SHA: ${CONTOSO_INSTRUCTION_SHA}
+      OPTIMIZATION_CANDIDATE_ID: ${CONTOSO_CONFIGURATION}
       OPTIMIZATION_LOCAL_DIR: .agent_configs
     metadata:
       tags:
