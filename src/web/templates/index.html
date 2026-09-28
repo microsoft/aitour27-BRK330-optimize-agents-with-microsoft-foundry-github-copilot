@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Travel Concierge Portal</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">CONTOSO TRAVEL FOR CALDOVA EMPLOYEES</p>
+      <h1>Travel Concierge Portal</h1>
+    </div>
+    <div id="runtime" class="runtime" aria-live="polite">
+      <span class="runtime-status"></span>
+      <span>Checking Hosted Agent…</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="request-pane" aria-labelledby="request-title">
+      <div class="section-heading">
+        <span>01</span>
+        <div><p>YOUR TRIP</p><h2 id="request-title">Plan your business travel</h2></div>
+      </div>
+
+      <div class="samples" aria-label="Common travel requests">
+        {% for sample in samples %}
+        <button class="sample" type="button" data-message="{{ sample.message|e }}"
+                data-attachments='{{ sample.attachments|tojson }}'>
+          <span>{{ sample.id }}</span>{{ sample.label }}
+        </button>
+        {% endfor %}
+      </div>
+
+      <form id="chat-form">
+        <label for="message">What do you need?</label>
+        <textarea id="message" rows="8" required placeholder="Choose an example or describe your trip."></textarea>
+
+        <fieldset>
+          <legend>Receipt fixtures</legend>
+          <div class="receipt-grid">
+            {% for receipt in receipts %}
+            <label class="receipt">
+              <input type="checkbox" name="attachments" value="{{ receipt }}">
+              <img src="/receipts/{{ receipt }}.png" alt="Synthetic receipt {{ receipt }}">
+              <span>{{ receipt }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <button id="send" type="submit">Review travel request</button>
+      </form>
+    </aside>
+
+    <section class="evidence-pane" aria-labelledby="evidence-title">
+      <div class="section-heading">
+        <span>02</span>
+        <div><p>TRIP REVIEW</p><h2 id="evidence-title">Recommendation and policy details</h2></div>
+      </div>
+
+      <div id="status" class="status idle" role="status" aria-live="polite">
+        <span class="status-mark"></span><strong>Ready</strong><span id="status-detail">Choose an example or describe your trip.</span>
+      </div>
+
+      <div id="result" hidden>
+        <div id="decision" class="decision"></div>
+        <section><h3>Travel recommendation</h3><pre id="assistant" class="response"></pre></section>
+        <section><h3>How your request was checked</h3><ol id="timeline" class="timeline"></ol></section>
+        <section><h3>Policy review</h3><ul id="policy" class="policy"></ul></section>
+        <section><h3>Service details</h3><dl id="metadata" class="metadata"></dl></section>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

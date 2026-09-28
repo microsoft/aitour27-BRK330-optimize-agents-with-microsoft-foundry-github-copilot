@@ -1,0 +1,21 @@
+# Workspace dependencies for BRK330 development, validation, evaluation, and training.
+# Deployed services also keep complete runtime manifests in their own folders.
+agent-framework-foundry>=1.13.1,<2.0.0
+agent-framework-foundry-hosting>=1.0.0b260918,<2.0.0
+azure-ai-agentserver-optimization>=1.0.0b1,<2.0.0
+azure-ai-projects>=2.6.1,<2.7.0
+azure-identity>=1.17.0,<2.0.0
+azure-monitor-opentelemetry>=1.8.10,<2.0.0
+fastapi>=0.115.0,<1.0.0
+httpx>=0.27.0,<1.0.0
+jinja2>=3.1.4,<4.0.0
+jsonschema>=4.23.0,<5.0.0
+openai>=3.19.2,<4.0.0
+pillow>=11.0.0,<13.0.0
+pydantic>=2.7.0,<3.0.0
+pytest>=8.3.0,<9.0.0
+python-dotenv>=1.0.1,<2.0.0
+python-multipart>=0.0.9,<1.0.0
+pyyaml>=6.0.2,<7.0.0
+typing-extensions>=4.12.0,<5.0.0
+uvicorn[standard]>=0.30.0,<1.0.0

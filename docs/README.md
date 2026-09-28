@@ -1,10 +1,11 @@
 # Docs
 
-<!-- AI TOUR TEMPLATE PLACEHOLDER: remove this folder when the session needs no additional documentation. -->
+Reference material supporting the attendee and presenter workflows.
 
-Use this folder for supporting documentation such as reference material and
-architecture/context.
+| Document | Purpose |
+|---|---|
+| [`session-source-of-truth.md`](session-source-of-truth.md) | Approved session narrative, demo contracts, evaluation contract, and readiness plan. |
+| [`technology-status.md`](technology-status.md) | Date-stamped lifecycle status and demo usage for Foundry/Copilot capabilities. |
+| [`troubleshooting.md`](troubleshooting.md) | Verified failure modes, Agent Insights prerequisites, RBAC scope guidance, and repeatable recovery checks. |
 
-If this repository intentionally uses MkDocs or another docs-site pattern,
-attendee instructions can remain here. Link the attendee entry point clearly
-from the root README.
+Core rebuild steps are under [`../instructions/`](../instructions/README.md). Infrastructure ownership, scripts, and RBAC are under [`../infra/`](../infra/README.md). Additional architecture and optimization references are added in later sprints only when backed by validated implementation.

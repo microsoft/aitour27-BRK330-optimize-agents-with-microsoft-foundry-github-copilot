@@ -1,0 +1,4 @@
+{"id":"INS-01","expected_tools":["search_flights","search_hotels","check_travel_policy","prepare_itinerary"],"must_cite_rules":["CT-01","CT-03"],"expected_outcomes":{"multi_stop":true,"no_inventory_fabrication":true,"policy_evidence_attributed":true}}
+{"id":"INS-02","expected_tools":["extract_receipt"],"must_cite_rules":["CT-20","CT-22","CT-24"],"expected_outcomes":{"receipt_reimbursable":true,"currency_converted":true,"policy_evidence_attributed":true}}
+{"id":"INS-03","expected_tools":["extract_receipt"],"must_cite_rules":["CT-20","CT-24"],"expected_outcomes":{"minibar_excluded":true,"in_room_movie_excluded":true,"policy_evidence_attributed":true}}
+{"id":"INS-04","expected_tools":["search_flights","search_hotels","search_car_rentals","check_travel_policy","prepare_itinerary"],"must_cite_rules":["CT-07","CT-08"],"expected_outcomes":{"accessibility_mandatory":true,"time_constraint_honored":true,"policy_evidence_attributed":true}}

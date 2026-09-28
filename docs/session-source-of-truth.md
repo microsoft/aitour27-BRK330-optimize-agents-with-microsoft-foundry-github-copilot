@@ -4,7 +4,6 @@ This document is the working source of truth for rebuilding BRK330 for delivery.
 
 - `AITour27-BRK330.pdf`, especially the outline, demo transitions after slides 15, 29, and 35, and the closing principles.
 - [Ship agents faster with expanded model choice, voice agents, and continuous optimization](https://azure.microsoft.com/en-us/blog/ship-agents-faster-with-expanded-model-choice-voice-agents-and-continuous-optimization/), especially "Turn production evidence into continuous improvement."
-- The BRK240 repository under `REFERENCE ONLY/`, used as a quality reference for delivery-ready structure and guidance.
 
 ## Breakout narrative
 

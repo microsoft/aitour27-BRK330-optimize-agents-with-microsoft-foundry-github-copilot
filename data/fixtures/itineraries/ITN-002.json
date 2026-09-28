@@ -1,0 +1,20 @@
+{
+  "generated": "deterministic-synthetic",
+  "id": "ITN-002",
+  "title": "Multi-stop EU research meetings",
+  "traveler": "EMP-001",
+  "trip_window": ["2027-08-10", "2027-08-15"],
+  "segments": [
+    { "kind": "flight", "id": "FL-001", "origin": "SEA", "dest": "CDG", "date": "2027-08-10" },
+    { "kind": "hotel",  "id": "HT-001", "city": "PAR", "check_in": "2027-08-11", "check_out": "2027-08-12" },
+    { "kind": "flight", "id": "FL-004", "origin": "CDG", "dest": "BER", "date": "2027-08-12" },
+    { "kind": "hotel",  "id": "HT-005", "city": "BER", "check_in": "2027-08-12", "check_out": "2027-08-15" },
+    { "kind": "flight", "id": "FL-005", "origin": "BER", "dest": "SEA", "date": "2027-08-15" }
+  ],
+  "receipts": [],
+  "policy_checks": [
+    { "rule": "CT-01", "result": "pass" },
+    { "rule": "CT-03", "result": "pass", "reason": "each hotel within its tier cap" },
+    { "rule": "CT-09", "result": "pass", "reason": "no short connection" }
+  ]
+}

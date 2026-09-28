@@ -1,16 +1,13 @@
-# Demo source
+# Source
 
-This folder is reserved for the travel concierge and model optimization demo
-described in the approved session description.
+Implementation for the Contoso Travel Concierge and its continuous-improvement workflow.
 
-## Demo scope
+| Folder | Purpose |
+|---|---|
+| [`agent/`](agent/README.md) | Python 3.13 Microsoft Foundry Hosted Agent using Agent Framework, Responses, deterministic tools, and optimizer-ready configuration. |
+| [`web/`](web/README.md) | Persistent FastAPI behavior surface used to replay the same scenarios against sequential agent versions. |
+| [`scripts/`](scripts/README.md) | Deterministic asset generation and local validation utilities. |
+| `evaluation/` | Added in Sprint 05 for baseline/comparison runners and result provenance. |
+| `training/` | Added in Sprint 05 for trace curation and fine-tuning workflows. |
 
-- Travel concierge built on Microsoft Foundry
-- GitHub Copilot running a hill-climbing loop
-- Optimization that targets cost and quality while model choices and costs shift
-- A repeatable model optimization playbook for AI agents
-
-## Implementation status
-
-No implementation assets are present yet. Add the approved demo assets here
-after the source, runtime, and reproducibility requirements are confirmed.
+The canonical runtime data is under [`../data/fixtures/`](../data/fixtures/README.md). Azure provisioning and validation are under [`../infra/`](../infra/README.md).
