@@ -1,0 +1,2 @@
+model: contoso-student
+instruction_file: ../baseline/instructions.md

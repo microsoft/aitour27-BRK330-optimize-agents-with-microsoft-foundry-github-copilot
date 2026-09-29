@@ -1,0 +1,46 @@
+defaultEnvironment: recorded
+environments:
+  recorded:
+    evaluationSuites:
+    - id: lightweight-v1
+      generationSource: eval-yaml
+      tags:
+        tier: smoke
+        purpose: baseline
+        stage: generated
+      dataset: brk330-lightweight-eval
+      datasetVersion: '2'
+      datasetFile: .foundry/datasets/contoso-travel-brk330-lightweight-eval-v2.ref.json
+      datasetContentPath: ../../data/evaluation/lightweight-v1/dataset-v2.jsonl
+      evaluators:
+      - name: brk330-contoso-travel-quality
+        version: '1'
+        threshold: 0.5
+        judgeDeployment: gpt-5.4-mini
+        definitionFile: .foundry/evaluators/brk330-contoso-travel-quality-v1.json
+        rubricSourceSha256: f937a04d86ec75a1eb7f845266f5b23595dea22f3600a214078c6b13768b5995
+    lastEval:
+      evalId: eval_5bbae1d5025b45b9a3b40fd04dae17a8
+      evalRunId: evalrun_31bae94024db445bb788397c3fc9aa59
+      runName: brk330-v4-curated-student
+      suiteId: lightweight-v1
+      agentVersion: '4'
+      status: completed
+      startedAt: '2026-09-28T19:35:02Z'
+      completedAt: '2026-09-28T19:36:54Z'
+      results:
+        total: 4
+        passed: 1
+        failed: 3
+        errored: 0
+        meanScore: 0.333704954954955
+        caseScores:
+          INS-01: 0.2364864864864865
+          INS-02: 0.605
+          INS-03: 0.15999999999999998
+          INS-04: 0.33333333333333337
+      judgeUsage:
+        totalTokens: 12972
+      artifacts:
+        run: .foundry/results/recorded/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_31bae94024db445bb788397c3fc9aa59.json
+        items: .foundry/results/recorded/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_31bae94024db445bb788397c3fc9aa59.items.json

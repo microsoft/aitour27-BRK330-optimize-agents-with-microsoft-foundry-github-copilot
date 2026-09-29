@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "microsoft-learn": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    },
+    "foundry-mcp-remote": {
+      "type": "http",
+      "url": "https://mcp.ai.azure.com"
+    }
+  }
+}
