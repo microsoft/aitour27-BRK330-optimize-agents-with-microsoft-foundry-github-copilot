@@ -5,8 +5,8 @@ Synthetic, deterministic inputs and measured evidence for the BRK330 continuous-
 | Folder | Stage | Purpose |
 |---|---|---|
 | [`fixtures/`](fixtures/README.md) | Build | Canonical catalogs, traveler profiles, itineraries, policy, receipts, and generated images used by the Hosted Agent. |
-| [`evaluation/`](evaluation/) | Observe/evaluate | Demo 1 Insights seed prompts and expected evidence. Sprint 05 adds the frozen comparison contract and canonical results. |
-| `training/` | Optimize | Added in Sprint 05 for trace-derived distillation data and provenance. |
+| [`evaluation/`](evaluation/) | Observe/evaluate | Insights seed prompts, frozen comparison contract, rubric source, and measured result summaries. |
+| [`training/`](training/README.md) | Optimize | Trace-derived and curated fine-tuning data with provenance and holdout controls. |
 
 Validate runtime fixtures from the repository root:
 

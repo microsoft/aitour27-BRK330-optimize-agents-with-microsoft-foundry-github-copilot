@@ -7,14 +7,15 @@ Provision and deploy a reproducible BRK330 environment.
 
 Usage: infra/setup.sh [--subscription NAME_OR_ID] [--location REGION] [--suffix NNNNNN]
 
-Defaults: subscription ai-team, location swedencentral, random six-digit suffix.
+Set BRK330_SUBSCRIPTION and BRK330_LOCATION before running. Command-line flags
+override those values. The suffix defaults to a random six-digit value.
 Creates azd environment brk330-<suffix> and resource group
 rg-aitour-brk330-<suffix>. The protected prototype group is never used.
 EOF
 }
 
-subscription="ai-team"
-location="swedencentral"
+subscription="${BRK330_SUBSCRIPTION:-}"
+location="${BRK330_LOCATION:-}"
 suffix=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -25,6 +26,11 @@ while [[ $# -gt 0 ]]; do
     *) printf 'Unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+if [[ -z "$subscription" || -z "$location" ]]; then
+  printf 'Set BRK330_SUBSCRIPTION and BRK330_LOCATION, or pass --subscription and --location.\n' >&2
+  exit 2
+fi
 
 if [[ -z "$suffix" ]]; then
   suffix="$(python3 - <<'PY'

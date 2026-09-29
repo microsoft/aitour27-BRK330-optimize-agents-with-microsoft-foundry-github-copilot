@@ -7,17 +7,16 @@ Run read-only BRK330 Azure and toolchain readiness checks.
 
 Usage: infra/preflight.sh [--subscription NAME_OR_ID] [--location REGION] [--output FILE]
 
-Defaults:
-  --subscription ai-team
-  --location     swedencentral
+Set BRK330_SUBSCRIPTION and BRK330_LOCATION before running. Command-line flags
+override those values when supplied.
 
 The command creates no Azure resources. It exits nonzero when a core prerequisite
 is missing and records optional advanced capability findings separately.
 EOF
 }
 
-subscription="ai-team"
-location="swedencentral"
+subscription="${BRK330_SUBSCRIPTION:-}"
+location="${BRK330_LOCATION:-}"
 output=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -28,6 +27,11 @@ while [[ $# -gt 0 ]]; do
     *) printf 'Unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+if [[ -z "$subscription" || -z "$location" ]]; then
+  printf 'Set BRK330_SUBSCRIPTION and BRK330_LOCATION, or pass --subscription and --location.\n' >&2
+  exit 2
+fi
 
 missing=()
 for command_name in git gh node npx az azd python3; do
@@ -44,10 +48,6 @@ az account set --subscription "$subscription"
 subscription_id="$(az account show --query id -o tsv)"
 subscription_name="$(az account show --query name -o tsv)"
 principal_id="$(az ad signed-in-user show --query id -o tsv)"
-
-if [[ "$location" != "swedencentral" ]]; then
-  printf 'Warning: canonical recording region is swedencentral; requested %s.\n' "$location" >&2
-fi
 
 catalog_file="$(mktemp)"
 usage_file="$(mktemp)"

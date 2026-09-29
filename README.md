@@ -17,14 +17,14 @@ You need agents to meet cost & quality targets, but model choices & costs keep s
 #### In a guided session
 
 Use this README as the attendee starting point during the live breakout. Follow
-the presenter guidance, and open [`instructions/`](instructions/README.md) if
-step-by-step materials are published for the session.
+the presenter guidance, and open the complete
+[`instructions/`](instructions/README.md) when running the workflow.
 
 #### On your own
 
-Post-event self-run guidance has not yet been confirmed for this breakout. When
-that decision is made, any attendee steps will be published in
-[`instructions/`](instructions/README.md).
+Use the cloud-required [`instructions/`](instructions/README.md) to rebuild the
+isolated environment, replay the measured workflow, and clean up generated
+resources. Choose your own Azure subscription and supported region during setup.
 
 ### 🎯 Learning outcomes
 
@@ -49,14 +49,12 @@ Pick your next step based on your learning style:
 
 | Resource | What you'll get |
 |----------|-----------------|
-| **[Session Recording](https://aka.ms/aitour27/BRK330/youtube)** | A recording of session BRK330 by the session creator |
+| **Session recording** | Forthcoming after the canonical demo recordings are reviewed and published |
 | **[Microsoft Learn](https://learn.microsoft.com)** | Official documentation and guided learning paths on these topics |
 | **[AI Tour 2027 Resource Center](https://aka.ms/aitour27-resource-center)** | Additional session repos and materials from AI Tour 2027 |
 | **[Microsoft Foundry Community](https://aka.ms/MicrosoftFoundryDiscord-AITour27)** | Connect with other learners and experts in our Discord community |
 
 ### 🌟 Microsoft Learn MCP Server
-
-<!-- Remove this section if the Microsoft Learn MCP Server is not relevant to the session. -->
 
 The Microsoft Learn MCP Server gives your AI agent direct access to Microsoft's official documentation — grounded, up-to-date answers about the topics in this session.
 

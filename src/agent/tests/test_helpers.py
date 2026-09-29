@@ -57,6 +57,18 @@ def test_booking_reference_is_stable() -> None:
         hotel_ids=["HT-001"],
         car_ids=["CR-001"],
     )
-    first = submit_booking(itinerary=itinerary)
-    second = submit_booking(itinerary=itinerary)
+    compliance = {"hard_gate_blocked": False, "decisions": []}
+    first = submit_booking(itinerary=itinerary, compliance_summary=compliance)
+    second = submit_booking(itinerary=itinerary, compliance_summary=compliance)
     assert first["reservation_ref"] == second["reservation_ref"]
+
+
+def test_booking_requires_dry_run_and_compliance_evidence() -> None:
+    itinerary = prepare_itinerary(employee_id="EMP-001", flight_ids=["FL-001"])
+
+    assert submit_booking(itinerary=itinerary)["status"] == "blocked"
+    assert submit_booking(
+        itinerary=itinerary,
+        dry_run=False,
+        compliance_summary={"hard_gate_blocked": False},
+    )["status"] == "blocked"

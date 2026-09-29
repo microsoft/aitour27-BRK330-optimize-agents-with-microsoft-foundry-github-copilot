@@ -23,6 +23,8 @@ environment_name="$(azd env get-value AZURE_ENV_NAME)"
 location="$(azd env get-value AZURE_LOCATION)"
 foundry_account="$(azd env get-value AZURE_AI_ACCOUNT_NAME)"
 foundry_project="$(azd env get-value AZURE_AI_PROJECT_NAME)"
+contoso_configuration="$(azd env get-value CONTOSO_CONFIGURATION)"
+contoso_model_deployment="$(azd env get-value AZURE_AI_MODEL_DEPLOYMENT_NAME)"
 principal_id="$(az ad signed-in-user show --query id -o tsv)"
 hosted_agent_principal_id="$(azd env get-values -o json | python3 -c '
 import json
@@ -92,6 +94,8 @@ outputs="$(az deployment group create \
     environmentName="$environment_name" \
     foundryAccountName="$foundry_account" \
     projectName="$foundry_project" \
+    contosoConfiguration="$contoso_configuration" \
+    contosoModelDeployment="$contoso_model_deployment" \
     principalId="$principal_id" \
     hostedAgentInstancePrincipalId="$hosted_agent_principal_id" \
     acrPullRoleId="$acr_pull_role" \

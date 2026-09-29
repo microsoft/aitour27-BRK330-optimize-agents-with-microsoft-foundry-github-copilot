@@ -17,8 +17,7 @@ Required environment:
 | `FOUNDRY_PROJECT_ENDPOINT` | Foundry project endpoint used by `FoundryChatClient`. |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Consumed by the hosted runtime's built-in telemetry integration. |
 | `OPTIMIZATION_LOCAL_DIR` | Local optimization config directory; defaults to `.agent_configs`. |
-| `OPTIMIZATION_CANDIDATE_ID` | Named immutable config folder; `baseline` for v1 and `model-router` for v2. |
-| `OPTIMIZATION_CANDIDATE_ID` | Optional applied candidate identifier. |
+| `OPTIMIZATION_CANDIDATE_ID` | Named immutable config folder: `baseline` for v1, `model-router` for v2, or an explicitly reviewed applied candidate. |
 | `FOUNDRY_AGENT_VERSION` | Platform-provided immutable agent version when hosted. |
 
 ## Local checks

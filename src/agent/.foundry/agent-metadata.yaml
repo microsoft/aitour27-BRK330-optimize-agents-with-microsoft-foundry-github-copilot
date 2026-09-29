@@ -26,26 +26,26 @@ environments:
         rubricSourceSha256: f937a04d86ec75a1eb7f845266f5b23595dea22f3600a214078c6b13768b5995
     lastEval:
       evalId: eval_5bbae1d5025b45b9a3b40fd04dae17a8
-      evalRunId: evalrun_02eea2706d8a405ab1d7aa2d1ff63ca7
-      runName: brk330-v5-optimizer
+      evalRunId: evalrun_31bae94024db445bb788397c3fc9aa59
+      runName: brk330-v4-curated-student
       suiteId: lightweight-v1
-      agentVersion: '5'
+      agentVersion: '4'
       status: completed
-      startedAt: '2026-09-28T21:10:07Z'
-      completedAt: '2026-09-28T21:12:20Z'
+      startedAt: '2026-09-28T19:35:02Z'
+      completedAt: '2026-09-28T19:36:54Z'
       results:
         total: 4
-        passed: 4
-        failed: 0
+        passed: 1
+        failed: 3
         errored: 0
-        meanScore: 0.625
+        meanScore: 0.333704954954955
         caseScores:
-          INS-01: 0.6
-          INS-02: 0.62
-          INS-03: 0.67
-          INS-04: 0.61
+          INS-01: 0.2364864864864865
+          INS-02: 0.605
+          INS-03: 0.15999999999999998
+          INS-04: 0.33333333333333337
       judgeUsage:
-        totalTokens: 27453
+        totalTokens: 12972
       artifacts:
-        run: .foundry/results/brk330-812406/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_02eea2706d8a405ab1d7aa2d1ff63ca7.json
-        items: .foundry/results/brk330-812406/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_02eea2706d8a405ab1d7aa2d1ff63ca7.items.json
+        run: .foundry/results/brk330-812406/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_31bae94024db445bb788397c3fc9aa59.json
+        items: .foundry/results/brk330-812406/eval_5bbae1d5025b45b9a3b40fd04dae17a8/evalrun_31bae94024db445bb788397c3fc9aa59.items.json

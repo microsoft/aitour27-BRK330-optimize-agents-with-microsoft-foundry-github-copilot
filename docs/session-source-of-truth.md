@@ -360,33 +360,15 @@ Create a repository that teaches and reproduces this exact story:
 
 - Keep the first-level hierarchy simple and aligned with the AI Tour template.
 - Organize `data/` as `fixtures/`, `evaluation/`, and `training/`.
-- Mirror the build, evaluate, and customize stages in `src/agent/`, `src/evaluation/`, and `src/training/`.
+- Keep runtime and evaluation provenance under `src/agent/`, reusable utilities under `src/scripts/`, and fine-tuning workflows under `src/training/`.
 - Generate `src/agent/fixtures/` from `data/fixtures/` during packaging; do not track the generated copy.
 - Keep attendee guidance in `instructions/`, deeper reference material in `docs/`, and presenter materials in `delivery-resources/`.
 - Remove `.plan/` after its durable content has been incorporated into published documentation.
 - Follow the latest Microsoft Foundry quickstarts as the golden path for SDKs, tooling, configuration, deployment, evaluation, optimization, tracing, and cleanup.
 
-## Continuous-optimization reference
+## Remaining delivery work
 
-Store the accepted continuous-optimization image at `docs/assets/continuous-optimization.png` and display it in `docs/optimization.md` with descriptive alt text and attribution to the Microsoft Azure article. Link to that guide from the root README and demo runbooks rather than duplicating the image.
-
-## Proposed micro-sprints
-
-| Sprint | Outcome |
-|---|---|
-| **03A: Lock the demo contracts** | Complete. Delivery modes, evidence, rubric, provenance, durations, and acceptance criteria are defined above. |
-| **03B: Define the audience path** | Complete. Cloud requirements, core and advanced scope, prerequisites, nondeterminism, and automation defaults are defined above. |
-| **04: Foundation and Make it work** | Rebuild structure, fixtures, hosted agent, FastAPI application, infrastructure, preflight, setup, and teardown. |
-| **05: Make it better** | Build the Insights seed, rubric, baseline evaluation, Model Router, and trace-based distillation workflows. |
-| **06: Make it scale and validate** | Build Agent Optimizer workflow, deploy cleanly, run regression gates, and capture canonical evidence. |
-| **07: Delivery experience** | Complete attendee instructions, presenter runbooks, transcripts, recording guidance, and supporting documentation. |
-| **08: Publication readiness** | Run final validation, remove staging and template artifacts, verify links, finalize screenshots, and prepare the commit and pull-request strategy. |
-
-## Operating agreement
-
-- Work interactively in labeled micro-sprints.
-- Ask one decision question at a time.
-- Discuss and confirm scope before making changes.
-- Execute only after the explicit instruction `RUN SPRINT <number>`.
-- End executed work with `Sprint <number> Complete` and a concise summary.
-- Do not push, open a pull request, or modify upstream without explicit approval.
+- Record and review the three canonical demo segments.
+- Review every screenshot for PII before committing or publishing it.
+- Add the public delivery deck and recording URLs when available.
+- Run the final publication checklist and remove template-only repository tooling last.

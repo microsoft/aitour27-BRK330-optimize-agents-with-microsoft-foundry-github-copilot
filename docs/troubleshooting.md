@@ -251,10 +251,10 @@ Resume the same generated environment by passing its suffix; do not create anoth
 
 ```bash
 bash infra/setup.sh \
-   --subscription ai-team \
-   --location swedencentral \
    --suffix 340368
 ```
+
+The command reuses `BRK330_SUBSCRIPTION` and `BRK330_LOCATION` from the learner's authenticated setup terminal. Export them again first if recovery starts in a new terminal.
 
 Provisioning and supplemental deployment are idempotent. The fixed script selects the existing `brk330-340368` environment, verifies data-plane readiness, and continues the supported deployment sequence.
 

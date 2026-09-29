@@ -1,6 +1,6 @@
 targetScope = 'resourceGroup'
 
-@description('Deployment location, normally Sweden Central.')
+@description('Learner-selected Azure deployment location.')
 param location string = resourceGroup().location
 
 @description('Short azd environment identifier.')
@@ -11,6 +11,12 @@ param foundryAccountName string
 
 @description('Foundry project provisioned by the microsoft.foundry provider.')
 param projectName string
+
+@description('Selected immutable agent configuration identifier.')
+param contosoConfiguration string
+
+@description('Selected model deployment name.')
+param contosoModelDeployment string
 
 @description('Signed-in deployment principal object ID.')
 param principalId string
@@ -297,9 +303,9 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: 'https://${foundry.name}.services.ai.azure.com/api/projects/${project.name}' }
             { name: 'CONTOSO_AGENT_NAME', value: 'contoso-travel' }
-            { name: 'CONTOSO_CONFIGURATION', value: 'baseline' }
+            { name: 'CONTOSO_CONFIGURATION', value: contosoConfiguration }
             { name: 'CONTOSO_FIXTURES_DIR', value: '/app/data/fixtures' }
-            { name: 'CONTOSO_MODEL_DEPLOYMENT', value: 'gpt-5.4' }
+            { name: 'CONTOSO_MODEL_DEPLOYMENT', value: contosoModelDeployment }
           ]
         }
       ]

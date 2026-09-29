@@ -6,7 +6,7 @@ This cloud-required path deploys the **Make it work** checkpoint: the `contoso-t
 
 - Azure subscription with active billing.
 - Permission to create a resource group/resources and assign RBAC roles. Setup grants the signed-in presenter Foundry Project Manager on the generated Foundry account and Monitoring Reader on its Application Insights resource.
-- Quota for the required models in Sweden Central. The preflight verifies live availability.
+- Quota for the required models in the selected Azure region. The preflight verifies live availability.
 - GitHub Codespaces or the repository dev container.
 - GitHub Copilot access for reproducing the recorded coding-agent workflow.
 
@@ -29,10 +29,19 @@ azd auth login
 
 Authentication is intentionally interactive. Never place credentials in repository files or prompts.
 
+Select the subscription and region for this learner-owned environment. Use an Azure subscription name or ID and an Azure region name supported by the preflight model catalog:
+
+```bash
+export BRK330_SUBSCRIPTION="<subscription-name-or-id>"
+export BRK330_LOCATION="<azure-region>"
+```
+
+The scripts do not default to the presenter subscription or recording region. Keep these variables set in the terminal for setup and recovery commands. Command-line flags remain available as explicit overrides.
+
 ## 3. Review preflight
 
 ```bash
-bash infra/preflight.sh --subscription ai-team --location swedencentral
+bash infra/preflight.sh
 ```
 
 The check is read-only. Resolve core failures before provisioning. Model Router, fine-tuning, and Agent Optimizer are advanced stages and can be unavailable without blocking this core deployment.
@@ -40,10 +49,16 @@ The check is read-only. Resolve core failures before provisioning. Model Router,
 ## 4. Deploy
 
 ```bash
-bash infra/setup.sh --subscription ai-team --location swedencentral
+bash infra/setup.sh
 ```
 
 Setup generates a random six-digit suffix, an azd environment named `brk330-NNNNNN`, and a resource group named `rg-aitour-brk330-NNNNNN`. It prints the web URL and exact teardown command. These resources incur Azure charges until removed.
+
+Set the generated environment name from setup output before running later optimization stages:
+
+```bash
+export BRK330_ENVIRONMENT="brk330-NNNNNN"
+```
 
 Use `infra/setup.sh` as the only fresh-install entry point. Do not reproduce the deployment by running its individual `azd provision`, `azd deploy`, or supplemental Bicep commands manually. The script performs the supported sequence:
 
@@ -249,7 +264,7 @@ Pinning writes no duplicate remote resources. It records the reviewed references
 To reproduce or verify the pin:
 
 ```bash
-azd env select brk330-812406
+azd env select "$BRK330_ENVIRONMENT"
 python src/scripts/setup_lightweight_evaluation.py
 python src/scripts/setup_lightweight_evaluation.py --apply
 bash infra/validate-local.sh
@@ -322,7 +337,7 @@ Start this stage only after all four v1 results and independent hard gates have 
 From the repository root, run the attendee-owned stage script with the generated environment name:
 
 ```bash
-bash infra/deploy-model-router-v2.sh --environment brk330-812406
+bash infra/deploy-model-router-v2.sh --environment "$BRK330_ENVIRONMENT"
 ```
 
 The script performs the reproducible transition:
@@ -423,7 +438,7 @@ The v3 workflow turns retained baseline behavior into a reviewed SFT dataset. It
 All commands run from the repository root. Start by generating fresh isolated v1 traces. The phase first raises or reuses teacher `gpt-5.4` capacity 200 while preserving 40 units of quota headroom, preventing tool-heavy requests from exceeding the original capacity 10 deployment. Version-specific invocation leaves the active v2 endpoint unchanged:
 
 ```bash
-bash infra/trace-finetune-v3.sh generate --environment brk330-812406
+bash infra/trace-finetune-v3.sh generate --environment "$BRK330_ENVIRONMENT"
 ```
 
 > **Why Playground still shows v2:** v1 and v2 are retained immutable agent versions. The script calls `azd ai agent invoke --version 1 --protocol responses --new-session --new-conversation`, which creates an isolated session backed directly by v1. It does not rebuild v1, redeploy the agent, or reroute the default endpoint. Playground and normal endpoint traffic therefore remain on active v2 while training traces are generated from v1.
@@ -431,10 +446,10 @@ bash infra/trace-finetune-v3.sh generate --environment brk330-812406
 After telemetry ingestion, harvest the exact generation window:
 
 ```bash
-bash infra/trace-finetune-v3.sh harvest --environment brk330-812406
+bash infra/trace-finetune-v3.sh harvest --environment "$BRK330_ENVIRONMENT"
 ```
 
-The harvest phase stops for human review. Edit `.azure/brk330-812406/training-v3/v1-traces.review.jsonl`. For every accepted trace, set:
+The harvest phase stops for human review. Edit `.azure/$BRK330_ENVIRONMENT/training-v3/v1-traces.review.jsonl`. For every accepted trace, set:
 
 - `accepted` to `true`;
 - `split` to `train` or `validation`;
@@ -446,7 +461,7 @@ The harvest phase stops for human review. Edit `.azure/brk330-812406/training-v3
 Rejected rows remain `accepted: false`. Do not weaken a gate to reach the minimum count. Then create the SFT files and provenance manifest:
 
 ```bash
-bash infra/trace-finetune-v3.sh curate --environment brk330-812406
+bash infra/trace-finetune-v3.sh curate --environment "$BRK330_ENVIRONMENT"
 ```
 
 Capture the candidate list, reviewed decisions, category counts, 20/4 split, hashes, and `Frozen evaluation overlap: 0` as `instructions/img/Trace-Dataset-Curation.png`.
@@ -456,7 +471,7 @@ Capture the candidate list, reviewed decisions, category counts, 20/4 split, has
 Submission is the first billable fine-tuning phase. It checks `gpt-4.1-mini` fine-tuning quota, creates or reuses a capacity-100 base deployment, uploads the reviewed local files, uses seed `331`, and persists the returned job ID for restart recovery:
 
 ```bash
-bash infra/trace-finetune-v3.sh submit --environment brk330-812406
+bash infra/trace-finetune-v3.sh submit --environment "$BRK330_ENVIRONMENT"
 ```
 
 The script writes an ignored `fine-tune-job.yaml` using supervised training for three epochs and `extra_body.trainingType: GlobalStandard`. `gpt-4.1-mini` version `2025-04-14` supports supervised fine-tuning and remains available through April 14, 2027. The earlier `gpt-5.4-mini` attempt was rejected because that model version requires reinforcement fine-tuning.
@@ -476,7 +491,7 @@ Return to the **Fine-tuning** tab to locate the scheduled job. Match the base mo
 Check progress without starting another job:
 
 ```bash
-bash infra/trace-finetune-v3.sh status --environment brk330-812406
+bash infra/trace-finetune-v3.sh status --environment "$BRK330_ENVIRONMENT"
 ```
 
 The status phase reads the persisted job ID and cannot create a second job. In Foundry, open the job to inspect its base model, method, seed, input files, timestamps, current state, and training progress.
@@ -500,7 +515,7 @@ Open **Checkpoints** to identify the trained artifacts produced by the job. Pres
 When status is `succeeded`, deploy or reuse `contoso-student` on **DeveloperTier**. The phase requires capacity 100 plus 20 units of unallocated DeveloperTier fine-tuned-model quota headroom:
 
 ```bash
-bash infra/trace-finetune-v3.sh deploy --environment brk330-812406
+bash infra/trace-finetune-v3.sh deploy --environment "$BRK330_ENVIRONMENT"
 ```
 
 Verify the deployed model shows `contoso-student`, DeveloperTier capacity 100, and provisioning state `Succeeded`.
@@ -510,7 +525,7 @@ Verify the deployed model shows `contoso-student`, DeveloperTier capacity 100, a
 Before deployment, preserve the completed training metrics and fine-tuned model ID from the job details. Then create or reuse immutable agent v3, refresh its monitoring RBAC, activate it, and run one smoke invocation:
 
 ```bash
-bash infra/trace-finetune-v3.sh agent-v3 --environment brk330-812406
+bash infra/trace-finetune-v3.sh agent-v3 --environment "$BRK330_ENVIRONMENT"
 ```
 
 Confirm Foundry shows immutable `contoso-travel` v3 using the `contoso-student` deployment, while retained v1 and v2 remain available.
@@ -554,21 +569,21 @@ V4 is a controlled repeat of v3. It keeps `gpt-4.1-mini`, supervised GlobalStand
 Prepare and validate the committed synthetic gold corpus locally:
 
 ```bash
-bash infra/curated-finetune-v4.sh prepare --environment brk330-812406
+bash infra/curated-finetune-v4.sh prepare --environment "$BRK330_ENVIRONMENT"
 ```
 
 The command must report 20 training rows, 4 validation rows, zero holdout overlap, and the committed gold SHA256. Then submit and monitor the independent job:
 
 ```bash
-bash infra/curated-finetune-v4.sh submit --environment brk330-812406
-bash infra/curated-finetune-v4.sh status --environment brk330-812406
+bash infra/curated-finetune-v4.sh submit --environment "$BRK330_ENVIRONMENT"
+bash infra/curated-finetune-v4.sh status --environment "$BRK330_ENVIRONMENT"
 ```
 
 When training succeeds, deploy `contoso-curated-student` on DeveloperTier and create immutable agent v4:
 
 ```bash
-bash infra/curated-finetune-v4.sh deploy --environment brk330-812406
-bash infra/curated-finetune-v4.sh agent-v4 --environment brk330-812406
+bash infra/curated-finetune-v4.sh deploy --environment "$BRK330_ENVIRONMENT"
+bash infra/curated-finetune-v4.sh agent-v4 --environment "$BRK330_ENVIRONMENT"
 ```
 
 [![Curated-response student deployed on DeveloperTier](img/FineTuning-deployed-curated-student.png)](img/FineTuning-deployed-curated-student.png)
@@ -604,15 +619,15 @@ project_endpoint="$(azd env get-value FOUNDRY_PROJECT_ENDPOINT)"
 Start a new portal conversation and verify the header reports v2 and Model Router. Then submit one optimizer operation capped at three candidates:
 
 ```bash
-bash infra/optimize-v5.sh submit --environment brk330-812406
+bash infra/optimize-v5.sh submit --environment "$BRK330_ENVIRONMENT"
 ```
 
-The script uses `eval-model-router-v2.yaml`, so agent v2, dataset v2, evaluator v1, judge `gpt-5.4-mini`, optimization model `gpt-5.4`, threshold `0.5`, and the four-row limit remain frozen. It persists the operation ID under ignored `.azure/brk330-812406/optimizer-v5/` and cannot apply or deploy a candidate.
+The script uses `eval-model-router-v2.yaml`, so agent v2, dataset v2, evaluator v1, judge `gpt-5.4-mini`, optimization model `gpt-5.4`, threshold `0.5`, and the four-row limit remain frozen. It persists the operation ID under ignored `.azure/$BRK330_ENVIRONMENT/optimizer-v5/` and cannot apply or deploy a candidate.
 
 Inspect progress and results:
 
 ```bash
-bash infra/optimize-v5.sh status --environment brk330-812406
+bash infra/optimize-v5.sh status --environment "$BRK330_ENVIRONMENT"
 ```
 
 Capture the operation ID, candidate IDs, internal ranking scores, changed model/instructions/skills/tools, and recommendation. The Optimizer score is a search signal inside this operation, not another point on the v1-v4 comparison chart.
@@ -640,7 +655,7 @@ New data or evaluators can change the result, which is exactly why the contract 
 This is a post-session reference, not part of the 45-minute breakout. Direct `azd ai agent optimize deploy` cannot deploy this Hosted Agent under the speaker account because the platform reserves `AGENT_*` environment variables. After an authorized owner reviews and locally applies the selected candidate, the repository demonstrates the supported normal-azd path:
 
 ```bash
-bash infra/deploy-optimizer-v5.sh --environment brk330-812406
+bash infra/deploy-optimizer-v5.sh --environment "$BRK330_ENVIRONMENT"
 ```
 
 The script pins the reviewed candidate, deploys one immutable v5, refreshes RBAC, activates it temporarily, and runs a smoke request. It preserves v1-v4 and deletes nothing. Promotion is still incomplete until the owner runs the independent v5 recipe printed by the script and reviews policy, quality, latency, token, and cost gates. [`eval-optimizer-v5.yaml`](../src/agent/eval-optimizer-v5.yaml) preserves that optional evaluation configuration.
@@ -660,7 +675,7 @@ For a reproducibility proof, run only the documented scripts in this order:
 bash infra/teardown.sh --environment brk330-OLD_SUFFIX
 
 # Rebuild from a new random suffix
-bash infra/setup.sh --subscription ai-team --location swedencentral
+bash infra/setup.sh
 
 # Read-only verification
 bash infra/validate-deployment.sh
@@ -689,4 +704,4 @@ bash infra/teardown.sh --environment brk330-NNNNNN
 
 The script displays the active subscription, environment, and resource group. It then requires two approvals: type the full generated resource-group name and answer `y` to a separate permanent-purge prompt. There is no noninteractive bypass. Teardown refuses names outside the `rg-aitour-brk330-` namespace and always refuses `rg-brk330-concierge`.
 
-Advanced Model Router, distillation, evaluation, and Agent Optimizer instructions are added in later session stages. Canonical recordings provide the delivery path when preview access or measured outcomes differ.
+The advanced Model Router, evaluation, fine-tuning reference, and Agent Optimizer workflows above are complete. Use the canonical reviewed recordings as the delivery fallback when preview access, quota, cloud latency, or nondeterministic outcomes differ.

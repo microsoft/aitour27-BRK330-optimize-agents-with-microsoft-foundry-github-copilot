@@ -60,7 +60,19 @@ def prepare_itinerary(*, employee_id: str,
 def submit_booking(*, itinerary: dict, dry_run: bool = True,
                    compliance_summary: dict | None = None) -> dict[str, Any]:
     """Dry-run booking. Blocks when compliance_summary contains any hard-gate violation."""
-    blocked = (compliance_summary or {}).get("hard_gate_blocked", False)
+    if not dry_run:
+        return {
+            "status": "blocked",
+            "reason": "Live booking is disabled; use dry_run=true.",
+            "itinerary": itinerary,
+        }
+    if compliance_summary is None or "hard_gate_blocked" not in compliance_summary:
+        return {
+            "status": "blocked",
+            "reason": "Explicit policy compliance evidence is required before a booking dry-run.",
+            "itinerary": itinerary,
+        }
+    blocked = compliance_summary["hard_gate_blocked"]
     if blocked:
         return {
             "status": "blocked",
@@ -71,7 +83,7 @@ def submit_booking(*, itinerary: dict, dry_run: bool = True,
     serialized = json.dumps(itinerary, sort_keys=True, separators=(",", ":"))
     reference = hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:10].upper()
     return {
-        "status": "dry_run_success" if dry_run else "committed",
+        "status": "dry_run_success",
         "reservation_ref": f"CT-DRY-{reference}",
         "itinerary": itinerary,
     }

@@ -61,7 +61,7 @@ fi
 
 az extension show --name application-insights --query '{name:name,version:version,path:path}' -o json >/dev/null
 
-foundry_installed_version="$(azd ext list -o json | python3 -c 'import json,sys; print(next(item for item in json.load(sys.stdin) if item["id"] == "microsoft.foundry")["installedVersion"])')"
+foundry_installed_version="$(azd ext list -o json | python3 -c 'import json,sys; print(next((item["installedVersion"] for item in json.load(sys.stdin) if item["id"] == "microsoft.foundry"), ""))')"
 if [[ -n "$foundry_installed_version" ]]; then
     azd ext upgrade microsoft.foundry
 else

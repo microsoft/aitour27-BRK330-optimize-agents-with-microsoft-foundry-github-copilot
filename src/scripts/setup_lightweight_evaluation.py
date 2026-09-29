@@ -179,7 +179,7 @@ def persist_pinned_metadata(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Validate the frozen contract. Add --apply to upload dataset v1 and "
+            "Validate the frozen contract. Add --apply to upload dataset v2 and "
             "generate or reuse the retained rubric evaluator."
         )
     )
