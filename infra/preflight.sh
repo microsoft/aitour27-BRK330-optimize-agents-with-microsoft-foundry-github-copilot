@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# -----------------------------------------------------------------------------
 usage() {
   cat <<'EOF'
 Run read-only BRK330 Azure and toolchain readiness checks.
@@ -18,6 +19,9 @@ EOF
 subscription="${BRK330_SUBSCRIPTION:-}"
 location="${BRK330_LOCATION:-}"
 output=""
+
+# -----------------------------------------------------------------------------
+# Resolve the learner-selected Azure target; explicit flags override environment values.
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --subscription) subscription="$2"; shift 2 ;;
@@ -33,6 +37,8 @@ if [[ -z "$subscription" || -z "$location" ]]; then
   exit 2
 fi
 
+# -----------------------------------------------------------------------------
+# Confirm the supported dev-container toolchain is available.
 missing=()
 for command_name in git gh node npx az azd python3; do
   command -v "$command_name" >/dev/null 2>&1 || missing+=("$command_name")
@@ -42,6 +48,8 @@ if (( ${#missing[@]} > 0 )); then
   exit 3
 fi
 
+# -----------------------------------------------------------------------------
+# Verify both Azure CLI sessions and select the requested subscription locally.
 az account show >/dev/null
 azd auth login --check-status >/dev/null
 az account set --subscription "$subscription"
@@ -49,6 +57,8 @@ subscription_id="$(az account show --query id -o tsv)"
 subscription_name="$(az account show --query name -o tsv)"
 principal_id="$(az ad signed-in-user show --query id -o tsv)"
 
+# -----------------------------------------------------------------------------
+# Download read-only model-catalog and quota snapshots for the selected region.
 catalog_file="$(mktemp)"
 usage_file="$(mktemp)"
 trap 'rm -f "$catalog_file" "$usage_file"' EXIT
@@ -60,6 +70,8 @@ import json
 import sys
 from datetime import datetime, timezone
 
+# -----------------------------------------------------------------------------
+# Load the temporary Azure catalog and quota snapshots.
 with open(sys.argv[6], encoding="utf-8") as handle:
   catalog = json.load(handle)
 with open(sys.argv[7], encoding="utf-8") as handle:
@@ -94,6 +106,8 @@ for item in catalog:
   }
   available.setdefault(name, {}).setdefault(version, record)
 
+# -----------------------------------------------------------------------------
+# Index quota records by Azure's stable quota name.
 quota_by_name = {
   item.get("name", {}).get("value"): {
     "localized_name": item.get("name", {}).get("localizedValue"),
@@ -106,6 +120,8 @@ quota_by_name = {
   if item.get("name", {}).get("value")
 }
 
+# -----------------------------------------------------------------------------
+# Core models must be ready before setup; advanced capabilities produce warnings.
 required = {
   "gpt-5.4": {
     "version": "2026-03-05",
@@ -145,6 +161,8 @@ advanced = {
 }
 
 
+# -----------------------------------------------------------------------------
+# Combine catalog, capability, SKU, and remaining-quota checks for one model.
 def capability(name, requirement):
   catalog_name = requirement.get("catalog_name", name)
   record = available.get(catalog_name, {}).get(requirement["version"])
@@ -175,6 +193,8 @@ def capability(name, requirement):
   }
 
 
+# -----------------------------------------------------------------------------
+# Evaluate required and optional capabilities independently.
 core_models = {
   name: capability(name, requirement) for name, requirement in required.items()
 }
@@ -195,6 +215,8 @@ for name, status in {**core_models, **advanced_models}.items():
   if not status.get("quota_ready"):
     warnings.append(f"{name} has insufficient remaining quota")
 
+# -----------------------------------------------------------------------------
+# Build one machine-readable readiness report for recording and recovery.
 report = {
   "checked_at": datetime.now(timezone.utc).isoformat(),
   "subscription_id": sys.argv[2],
@@ -212,13 +234,24 @@ report = {
     "Foundry and Microsoft Learn MCP status is verified in VS Code Agent mode.",
   ],
 }
-text = json.dumps(report, indent=2)
-print(text)
+
+# -----------------------------------------------------------------------------
+# Redact account identity from console output used in recordings.
+public_report = {
+  **report,
+  "subscription_id": "<redacted>",
+  "subscription_name": "<redacted>",
+  "principal_id": "<redacted>",
+}
+print(json.dumps(public_report, indent=2))
+
+# -----------------------------------------------------------------------------
+# Write the full private report only when the learner explicitly requests a file.
 if sys.argv[1]:
   with open(sys.argv[1], "w", encoding="utf-8") as handle:
-    handle.write(text + "\n")
+    handle.write(json.dumps(report, indent=2) + "\n")
 if missing:
   raise SystemExit(5)
 PY
 
-printf 'Preflight passed for %s (%s) in %s.\n' "$subscription_name" "$subscription_id" "$location"
+printf 'Preflight passed in %s.\n' "$location"

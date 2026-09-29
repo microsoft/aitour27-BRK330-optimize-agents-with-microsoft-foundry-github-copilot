@@ -1,17 +1,17 @@
 # Data
 
-Synthetic, deterministic inputs and measured evidence for the BRK330 continuous-improvement demos. Nothing in this folder represents a real company, employee, merchant, policy, or transaction.
+> **What evidence does the agent use, and how do we know a change helped?** This folder contains the fictional data used to build, evaluate, and improve the travel concierge. Nothing here represents a real person, company, merchant, policy, or transaction.
 
-| Folder | Stage | Purpose |
+| Folder | Question it answers | Contents |
 |---|---|---|
-| [`fixtures/`](fixtures/README.md) | Build | Canonical catalogs, traveler profiles, itineraries, policy, receipts, and generated images used by the Hosted Agent. |
-| [`evaluation/`](evaluation/) | Observe/evaluate | Insights seed prompts, frozen comparison contract, rubric source, and measured result summaries. |
-| [`training/`](training/README.md) | Optimize | Trace-derived and curated fine-tuning data with provenance and holdout controls. |
+| [`fixtures/`](fixtures/README.md) | What can the agent see and act on? | Catalogs, travelers, policy, receipts, and itineraries. |
+| [`evaluation/`](evaluation/) | How do we know one version is better? | Insights prompts, expected behavior, rubric criteria, and measured results. |
+| [`training/`](training/README.md) | What examples teach the student model? | Reviewed traces, curated responses, provenance, and holdout checks. |
 
-Validate runtime fixtures from the repository root:
+Use utility [S02](../src/scripts/README.md) to validate runtime fixtures from the repository root:
 
 ```bash
-python src/scripts/validate_fixtures.py
+.venv/bin/python src/scripts/validate_fixtures.py
 ```
 
 Generated copies under `src/agent/fixtures/` are packaging artifacts and are never the source of truth.

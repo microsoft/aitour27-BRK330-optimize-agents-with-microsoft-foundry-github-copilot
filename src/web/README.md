@@ -1,10 +1,21 @@
-# FastAPI demo surface
+# Travel Concierge demo app
 
-Persistent demonstration UI for replaying the same scenarios against the active `contoso-travel` Hosted Agent version.
+> **How can I see whether an agent change helped the user?**
+>
+> The Travel Concierge portal replays the same requests against the active `contoso-travel` Hosted Agent and makes its decisions, tool evidence, version, latency, and token usage visible.
+
+| On screen | What it tells you |
+|---|---|
+| Runtime banner | Active agent version, model, and configuration. |
+| Decision banner | Whether the request was approved, blocked, or missing policy evidence. |
+| Tool timeline | Which deterministic tools ran and what they returned. |
+| Metadata | Response ID, latency, and token usage. |
 
 The application uses `AIProjectClient.get_openai_client(agent_name=...)` rather than constructing preview endpoint URLs. It queries the endpoint version selector so every result shows the actual active and latest versions.
 
-## Environment
+After changing endpoint routing, refresh the page and start a new request. The `/api/health` endpoint resolves the current active version so the runtime banner and result metadata show what the user actually reached.
+
+## 1. Environment
 
 | Variable | Purpose |
 |---|---|
@@ -17,10 +28,10 @@ The application uses `AIProjectClient.get_openai_client(agent_name=...)` rather 
 
 Authentication uses `DefaultAzureCredential`; no API keys are stored by the app.
 
-## Local validation
+## 2. Local validation
 
 ```bash
-pytest src/web/tests
+.venv/bin/python -m pytest src/web/tests
 ```
 
-A live local run requires Azure authentication and a deployed Hosted Agent. Use the repository preflight/setup workflow rather than targeting the protected prototype resource group.
+A live run requires Azure authentication and a deployed Hosted Agent. Speakers should follow the main [`instructions/`](../../instructions/README.md) and numbered [`infra/`](../../infra/README.md) workflow rather than running this app directly or targeting the protected prototype resource group.

@@ -18,6 +18,8 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   exit 0
 fi
 
+# -----------------------------------------------------------------------------
+# Resolve the repository Python environment before running any checks.
 python_bin="${PYTHON_BIN:-.venv/bin/python}"
 if [[ "$python_bin" == */* ]]; then
   python_available=false
@@ -31,12 +33,19 @@ if [[ "$python_available" != true ]]; then
   exit 2
 fi
 
+# -----------------------------------------------------------------------------
+# Validate deterministic fixtures and the frozen local evaluation contract.
 "$python_bin" src/scripts/validate_fixtures.py
 "$python_bin" src/scripts/setup_lightweight_evaluation.py >/dev/null
+
+# -----------------------------------------------------------------------------
+# Compile source, run focused agent/web tests, and parse browser JavaScript.
 "$python_bin" -m compileall -q src infra/switch-agent-version.py
 "$python_bin" -m pytest -q src/agent/tests src/web/tests
 node --check src/web/static/app.js
 
+# -----------------------------------------------------------------------------
+# Parse standalone JSON configuration files.
 for file in \
   .devcontainer/devcontainer.json \
   .vscode/mcp.json \
@@ -45,6 +54,8 @@ for file in \
   "$python_bin" -m json.tool "$file" >/dev/null
 done
 
+# -----------------------------------------------------------------------------
+# Parse every training prompt as an independent JSONL record.
 while IFS= read -r line; do
   printf '%s' "$line" | "$python_bin" -m json.tool >/dev/null
 done < data/training/trace-seed-prompts.jsonl
@@ -53,6 +64,8 @@ while IFS= read -r line; do
   printf '%s' "$line" | "$python_bin" -m json.tool >/dev/null
 done < data/training/curated-gold-v1.jsonl
 
+# -----------------------------------------------------------------------------
+# Verify deployment, versioned evaluation, and holdout invariants together.
 "$python_bin" - <<'PY'
 import json
 import yaml
@@ -111,10 +124,14 @@ assert len(seed_prompts) == len(set(seed_prompts))
 assert not set(seed_prompts) & holdout_prompts
 PY
 
+# -----------------------------------------------------------------------------
+# Check every shell entry point without executing its cloud operations.
 for script in .devcontainer/post-create.sh infra/*.sh; do
   bash -n "$script"
 done
 
+# -----------------------------------------------------------------------------
+# Compile every Bicep template into a temporary directory.
 bicep_output_dir="$(mktemp -d)"
 trap 'rm -rf "$bicep_output_dir"' EXIT
 for template in infra/*.bicep; do

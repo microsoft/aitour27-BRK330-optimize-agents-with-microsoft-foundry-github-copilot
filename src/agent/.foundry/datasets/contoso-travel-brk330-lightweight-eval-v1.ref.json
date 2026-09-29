@@ -1,7 +1,7 @@
 {
   "name": "brk330-lightweight-eval",
   "version": "1",
-  "uri": "azureai://accounts/cog-x2uoqhfhq5q7g/projects/brk330-812406/data/brk330-lightweight-eval/versions/1",
+  "uri": "azureai://accounts/<account>/projects/<project>/data/brk330-lightweight-eval/versions/1",
   "content_path": "data/evaluation/lightweight-v1/dataset-v1.jsonl",
   "sha256": "e92b4caebdfcf00899a6f80477e41a72a19f9bf3662f6b0630b2b994f6f2c6b7"
 }

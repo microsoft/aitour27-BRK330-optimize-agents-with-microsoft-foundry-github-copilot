@@ -7,12 +7,9 @@
       "query": "Plan my Caldova research trip from Seattle to Paris to Berlin and back to Seattle from August 10 through August 15, 2027. Use compliant hotels near each meeting, prefer direct flights where possible, and identify every policy decision before preparing the itinerary.",
       "expected_behavior": "Use only fixture-backed flights and hotels; complete the multi-stop route; call check_travel_policy for every option before presenting it as compliant or recommended; prepare an itinerary only from checked selections; do not name a CT rule unless structured tool evidence attributes that rule; ensure every stated subtotal and total reconciles with the selected fixture values.",
       "sample.output_text": "## Understood tasks\n- Find direct/preferred flight options for Seattle\u2013Paris\u2013Berlin\u2013Seattle (August 10\u201315, 2027).\n- Find compliant hotels in Paris and Berlin near the meetings.\n- Check every selected option against Caldova policy before preparing a dry-run itinerary.\n\nI\u2019ll begin with the fixture searches. To apply employee-specific policy and select hotels \u201cnear each meeting,\u201d I still need your Caldova employee ID and the Paris/Berlin meeting locations or hotel-area preferences.## Understood tasks\n- Plan the Seattle\u2013Paris\u2013Berlin\u2013Seattle research trip for August 10\u201315, 2027.\n- Prefer direct flights where fixture inventory supports them.\n- Select compliant hotels near the meetings.\n- Identify policy decisions before preparing an itinerary.\n- Keep any booking operation in dry-run mode.\n\n## Tool timeline\n1. Searched preferred and general flight inventory for:\n   - Seattle\u2013Paris\n   - Paris\u2013Berlin\n   - Berlin\u2013Seattle\n2. Searched Paris and Berlin hotels.\n3. Applied Caldova policy to the available flight and hotel fixture IDs.\n4. Did not prepare or submit an itinerary because the requested route is incomplete in the deterministic inventory and no employee ID or meeting locations were provided.\n\n## Policy decisions and evidence\n- **SEA\u2013PAR:** No fixture flight returned.\n- **PAR\u2013BER:** No fixture flight returned.\n- **BER\u2013SEA:** `FL-005` returned:\n  - Preferred vendor: Preferred-1\n  - Premium economy\n  - Refundable\n  - Departure 10:30, arrival 13:10\n  - Policy check: **not blocked**; no CT rule IDs returned.\n- **Paris hotels:**\n  - `HT-001`, Hotel Louvre Rivoli \u2014 policy check **not blocked**. Preferred vendor, wheelchair accessible, six-minute walk to the Louvre.\n  - `HT-003`, Rue de Rivoli Inn \u2014 policy check **not blocked**. Preferred vendor, 14-minute walk to the Louvre.\n  - `HT-002`, Boutique Palais Royal \u2014 **blocked under CT-03**, because its $368 nightly total exceeds the Tier 1 cap of $320. Alternative identified by the tool: `HT-001`.\n  - `HT-004`, Opera Executive Suites \u2014 **blocked under CT-03**, because its $454 nightly total exceeds the Tier 1 cap of $320.\n- **Berlin hotels:**\n  - `HT-005`, Mitte Business Hotel \u2014 policy check **not blocked**. Preferred vendor, quiet room, step-free access.\n  - `HT-006`, Kreuzberg Loft \u2014 policy check **not blocked**, but it is not a preferred vendor.\n\n## Itinerary or expense summary\nNo itinerary was prepared because the fixture inventory does not contain the Seattle\u2013Paris or Paris\u2013Berlin segments. I also need:\n\n- Caldova employee ID for employee-specific policy validation.\n- Paris and Berlin meeting locations, since the available hotel proximity data only identifies distance to the Louvre in Paris and does not establish proximity to your actual meetings.\n- Confirmation of whether the route should use the available `PAR` and `BER` fixture city codes despite the missing outbound and intra-Europe flight fixtures.",
-      "response_id": "caresp_06d6d456bb634d4500Klk3iBGZS1MfpTGjFhC6WwohfP6deU9Z",
       "agent_id": "contoso-travel:2",
       "agent_name": "contoso-travel",
       "agent_version": "2",
-      "conversation_id": "conv_06d6d456bb634d45008tGuFoewRlyubxnz4MkKzk6H3SVZfRt2",
-      "previous_response_id": null,
       "sample.tool_calls": [
         {
           "run_id": "",
@@ -3938,9 +3935,7 @@
             }
           ]
         }
-      ],
-      "trace_id": "5b845eab4186792f50ef6d62f039b4cc",
-      "span_id": "2fc3a2a258b91e36"
+      ]
     },
     "datasource_item_id": 0,
     "eval_id": "eval_5bbae1d5025b45b9a3b40fd04dae17a8",
@@ -4175,12 +4170,9 @@
       "query": "My French airport parking receipt REC-002 covers November 8 through November 10, 2027. Translate the key fields, convert the total to USD using only the supplied fixture rate, and tell me whether it is reimbursable under Caldova policy.",
       "expected_behavior": "Extract REC-002 without inventing fields; translate the key receipt evidence; use EUR 117.00 and only the fixture rate 1.08 to report USD 126.36; conclude that airport parking is reimbursable; attribute reimbursement to CT-20 and conversion to CT-22 because those rules are present in structured receipt evidence; do not claim unsupported rules; keep all itemized and converted totals arithmetically consistent.",
       "sample.output_text": "Understood tasks: extract and translate the key fields from REC-002, convert the total to USD using the fixture exchange rate, and determine reimbursement eligibility under Caldova policy.## Understood tasks\n- Translate key fields from French receipt REC-002.\n- Convert the total from EUR to USD using the supplied fixture rate.\n- Confirm whether the airport-parking expense is reimbursable.\n\n## Tool timeline\n1. Called `extract_receipt` for **REC-002**.\n\n## Policy decisions and evidence\n- **Reimbursable:** Yes. Airport parking is an eligible reimbursable category under **CT-20**.\n- No receipt line items were flagged as non-reimbursable.\n- Currency conversion follows **CT-22**, using the fixture rate only: **USD 1.08 per EUR**.\n\n## Expense summary\n| Receipt field (French) | English translation | Value |\n|---|---|---|\n| Marchand | Merchant | A\u00e9roport Paris\u2013CDG Parking PC Terminal 2E |\n| Adresse | Address | 95700 Roissy-en-France |\n| Lot | Parking lot | PC-B12 |\n| Entr\u00e9e | Entry | November 8, 2027, 17:24 |\n| Sortie | Exit | November 10, 2027, 09:52 |\n| Jours factur\u00e9s | Days billed | 3 |\n| Tarif parking trois jours | Three-day parking charge | \u20ac96.00 |\n| TVA 20% | VAT, 20% | \u20ac19.20 |\n| Frais a\u00e9roport | Airport fee | \u20ac1.80 |\n| Total TTC | Total including tax | **\u20ac117.00** |\n| Mode de paiement | Payment method | Card (ending 7712) |\n\n**USD conversion:** \u20ac117.00 \u00d7 1.08 = **$126.36 USD**.",
-      "response_id": "caresp_0f15860b7ec3688000Vn3Ug1KIouQVHk4nmsqwTneTfPYVrLAB",
       "agent_id": "contoso-travel:2",
       "agent_name": "contoso-travel",
       "agent_version": "2",
-      "conversation_id": "conv_0f15860b7ec3688000NTGeT6krVjZULJdWVJ7TXtif4sO7NUCK",
-      "previous_response_id": null,
       "sample.tool_calls": [
         {
           "run_id": "",
@@ -5142,9 +5134,7 @@
             }
           ]
         }
-      ],
-      "trace_id": "f8ed9442a65934e0fa69191894b3b0c0",
-      "span_id": "0d096b9a1cf024fe"
+      ]
     },
     "datasource_item_id": 1,
     "eval_id": "eval_5bbae1d5025b45b9a3b40fd04dae17a8",
@@ -5283,12 +5273,9 @@
       "query": "Reconcile hotel folio REC-003 against my approved three-night Paris stay from October 18 through October 21, 2027. Itemize what Caldova will and will not reimburse and cite the applicable policy evidence.",
       "expected_behavior": "Extract REC-003 and reconcile only its fixture values; classify the minibar and in-room movie as non-reimbursable under CT-20; report EUR 1092.36 reimbursable, EUR 60.00 non-reimbursable, and EUR 1152.36 grand total; ensure line items sum to those totals; do not claim unsupported rules or approval evidence.",
       "sample.output_text": "## Understood tasks\n- Extract and reconcile receipt **REC-003** against the approved three-night Paris stay, **October 18\u201321, 2027**.\n- Itemize reimbursable and non-reimbursable folio lines.\n- Cite the applicable Caldova policy evidence and CT rule identifiers.## Tool timeline\n1. Called `extract_receipt` for **REC-003**.\n2. Reconciled the folio dates and line items with the approved Paris stay from **October 18 through October 21, 2027**\u2014three nights.\n\n## Policy decisions and evidence\nAll line-level decisions are supported by **CT-20 \u2014 Reimbursable receipt types**.\n\n### Reimbursable\n\n| Date | Item | Amount |\n|---|---|---:|\n| Oct 18 | Room \u2014 Superior King | \u20ac285.00 |\n| Oct 18 | City tax | \u20ac4.40 |\n| Oct 19 | Room \u2014 Superior King | \u20ac285.00 |\n| Oct 19 | City tax | \u20ac4.40 |\n| Oct 19 | Room service \u2014 Continental | \u20ac32.00 |\n| Oct 20 | Room \u2014 Superior King | \u20ac285.00 |\n| Oct 20 | City tax | \u20ac4.40 |\n| Oct 21 | VAT 20% on room and services | \u20ac192.16 |\n| **Total reimbursable** |  | **\u20ac1,092.36** |\n\nThe **\u20ac32.00 room-service meal** is reimbursable under **CT-20** because it was charged to the room and is within the applicable per-diem.\n\n### Not reimbursable\n\n| Date | Item | Amount | Policy evidence |\n|---|---|---:|---|\n| Oct 20 | Minibar \u2014 2 wines and snacks | \u20ac46.00 | **CT-20** excludes minibar charges and alcohol |\n| Oct 20 | In-room movie | \u20ac14.00 | **CT-20** excludes in-room movies |\n| **Total not reimbursable** |  | **\u20ac60.00** |  |\n\n## Itinerary or expense summary\n- **Receipt:** REC-003, Hotel Louvre Rivoli, Paris\n- **Stay:** Oct 18\u201321, 2027 \u2014 three nights\n- **Folio total:** **\u20ac1,152.36**\n- **Caldova-reimbursable amount:** **\u20ac1,092.36**\n- **Employee-paid/non-reimbursable amount:** **\u20ac60.00**\n- **Action:** Submit only the **\u20ac1,092.36** reimbursable portion; exclude the minibar and in-room movie charges pursuant to **CT-20**.",
-      "response_id": "caresp_0adf3da7ed67b1b400bT5y1FsTIm6NhQYHeVsrTKNPwQ3VulN2",
       "agent_id": "contoso-travel:2",
       "agent_name": "contoso-travel",
       "agent_version": "2",
-      "conversation_id": "conv_0adf3da7ed67b1b400OGy0QiWJdrIisxDsUtq4g1SOWRvPx3tn",
-      "previous_response_id": null,
       "sample.tool_calls": [
         {
           "run_id": "",
@@ -6670,9 +6657,7 @@
             }
           ]
         }
-      ],
-      "trace_id": "bea7e57a9572124a35e7f286c5592fb0",
-      "span_id": "c6ddd7a54939cfe8"
+      ]
     },
     "datasource_item_id": 2,
     "eval_id": "eval_5bbae1d5025b45b9a3b40fd04dae17a8",
@@ -6811,12 +6796,9 @@
       "query": "Plan a Caldova trip from Seattle to Montreal from November 15 through November 18, 2027. I need a wheelchair-accessible hotel, an automatic compact car with hand controls, and no departure before 8:00 a.m. Treat accessibility and timing as mandatory and cite every policy decision.",
       "expected_behavior": "Treat wheelchair access, automatic transmission, hand controls, and departure at or after 08:00 as mandatory; use only fixture-backed inventory; call check_travel_policy before presenting any selected travel option as compliant or recommended; do not relax accessibility for preferred-vendor or price preferences; do not name a CT rule unless structured tool evidence attributes it; keep any stated costs arithmetically consistent.",
       "sample.output_text": "## Understood tasks\n- Find a Seattle\u2013Montreal flight departing no earlier than 8:00 a.m. on November 15, 2027.\n- Find a wheelchair-accessible Montreal hotel for November 15\u201318.\n- Find an automatic compact rental car with hand controls.\n- Apply Caldova policy as a hard gate and cite each policy decision.\n- Prepare a dry-run itinerary only; no live booking.## Understood tasks\n- Plan a Caldova trip from Seattle (SEA) to Montreal (YUL), November 15\u201318, 2027.\n- Require departure at or after 8:00 a.m.\n- Require a wheelchair-accessible hotel.\n- Require an automatic compact car with hand controls.\n- Apply Caldova policy as a hard gate and keep booking in dry-run mode.\n\n## Tool timeline\n1. Searched SEA\u2013YUL economy flights departing at or after 8:00 a.m.; no fixture flights were returned.\n2. Searched preferred-only refundable flights with the same timing requirement; no fixture flights were returned.\n3. Searched Montreal hotels requiring wheelchair accessibility; found **HT-010, Vieux Port Suites**.\n4. Searched Montreal compact automatic cars with hand controls; found **CR-008**.\n5. Checked Caldova policy for the hotel and accessibility car exception; neither was blocked.\n6. No itinerary or booking submission was performed because no qualifying flight fixture was available.\n\n## Policy decisions and evidence\n- **Flight timing:** No flight was returned, so there is no flight fixture to evaluate or recommend. The 8:00 a.m. minimum remains a hard requirement.\n- **Hotel accessibility:** **HT-010** has `wheelchair_accessible: true` and `step_free`. The policy tool returned `hard_gate_blocked: false`; however, it returned no CT rule identifiers (`cited_rule_ids: []`).\n- **Car accessibility:** **CR-008** is a compact, automatic vehicle with hand controls available. The accessibility exception was supplied to the policy check, which returned `hard_gate_blocked: false`; no CT rule identifiers were returned (`cited_rule_ids: []`).\n- Because the policy tools returned no CT rule identifiers, no fabricated rule citation is provided.\n\n## Itinerary or expense summary\nNo complete itinerary can be prepared from the fixture inventory: the required SEA\u2013YUL flight is unavailable.\n\nAvailable qualifying ground arrangements:\n- **Hotel:** HT-010 \u2014 Vieux Port Suites, Montreal; $195 nightly plus $18 taxes/fees, or **$213 nightly total**.\n- **Car:** CR-008 \u2014 Preferred-Am compact automatic with hand controls; $44/day, insurance included.\n\nA qualifying flight fixture is required before Contoso Travel can assemble or submit even a dry-run itinerary.",
-      "response_id": "caresp_00f7fc94cccdc16100IrRaM0vH5xExAyftMUxtSpIfmHGxkZHh",
       "agent_id": "contoso-travel:2",
       "agent_name": "contoso-travel",
       "agent_version": "2",
-      "conversation_id": "conv_00f7fc94cccdc16100vWQXG7Z0zk5GjFfygDo1ZltVk6w80toa",
-      "previous_response_id": null,
       "sample.tool_calls": [
         {
           "run_id": "",
@@ -8952,9 +8934,7 @@
             }
           ]
         }
-      ],
-      "trace_id": "c708274e6d8cab1daf5ca37e4ca58c28",
-      "span_id": "918d59a3329c04fa"
+      ]
     },
     "datasource_item_id": 3,
     "eval_id": "eval_5bbae1d5025b45b9a3b40fd04dae17a8",

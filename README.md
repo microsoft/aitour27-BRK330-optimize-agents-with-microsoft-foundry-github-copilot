@@ -12,19 +12,31 @@
 
 You need agents to meet cost & quality targets, but model choices & costs keep shifting. Watch GitHub Copilot run a hill-climbing loop on a travel concierge built on Microsoft Foundry. Build a repeatable model optimization playbook for your AI agents.
 
+> **Storyline:** Caldova is a fictional pharmaceutical company whose travel program needs an AI concierge that can keep meeting quality, policy, latency, and cost targets as models and requirements change. Contoso Travel is the fictional provider building that concierge on Microsoft Foundry. In this breakout, we follow the AI engineer's optimization journey in three acts:
+> - **Make it work** with a Hosted Agent and Insights in Foundry
+> - **Make it better** with Rubric Evaluator and Model Router in Foundry
+> - **Make it scale** with Agent Optimizer and human-controlled promotion in Foundry
+
 ### 🚀 Getting started
+
+If you will be delivering this session, see the [`delivery-resources/`](delivery-resources/README.md) folder for the checklist and presenter materials. If you want to reproduce the demos, pick a path below.
 
 #### In a guided session
 
-Use this README as the attendee starting point during the live breakout. Follow
-the presenter guidance, and open the complete
-[`instructions/`](instructions/README.md) when running the workflow.
+1. Fork this repository and open it in a supported Codespace or dev container.
+2. Authenticate with Azure CLI and Azure Developer CLI using the provided Azure
+    subscription.
+3. Follow the complete [`instructions/`](instructions/README.md). Your presenter
+    may have completed the environment setup before the guided session.
 
 #### On your own
 
-Use the cloud-required [`instructions/`](instructions/README.md) to rebuild the
-isolated environment, replay the measured workflow, and clean up generated
-resources. Choose your own Azure subscription and supported region during setup.
+1. Fork this repository and open it in a supported Codespace or dev container.
+2. Authenticate with Azure CLI and Azure Developer CLI using your own Azure
+    subscription.
+3. Follow [`instructions/`](instructions/README.md) from the beginning to deploy
+    the isolated environment, replay the measured workflow, and clean up the
+    resources you create.
 
 ### 🎯 Learning outcomes
 
@@ -36,12 +48,12 @@ By the end of this session, you will be able to:
 
 ### 💻 Technologies used
 
-- Microsoft Foundry
-- Agent Optimizer
-- Rubric Evaluator
-- Foundry Models
-- GitHub Copilot
-- Foundry Observability
+- [Microsoft Foundry](https://learn.microsoft.com/azure/foundry/what-is-foundry) — Hosted Agent runtime, projects, models, evaluation, and optimization.
+- [Agent Optimizer](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-optimizer-overview) — automated candidate generation and ranking.
+- [Rubric Evaluator](https://learn.microsoft.com/azure/foundry/concepts/evaluation-evaluators/rubric-evaluators) — versioned quality and policy evaluation contract.
+- [Model Router](https://learn.microsoft.com/azure/foundry/openai/concepts/model-router) — dynamic model selection behind one deployment.
+- [GitHub Copilot](https://docs.github.com/en/copilot) — coding-agent orchestration for the repeatable optimization workflow.
+- [Insights in Foundry](https://learn.microsoft.com/azure/foundry/observability/how-to/agent-insights) — trace-driven findings and optimization evidence.
 
 ### 📚 Continue your learning
 
@@ -81,10 +93,13 @@ For more information, visit the [Learn MCP Server repo](https://aka.ms/learnmcp)
     </td>
 </tr></table>
 
-### Deliver this session
+### 🤝 Contributing
 
-Presenters and re-delivery partners can find the deck, recordings, presenter
-notes, and delivery guidance in [`delivery-resources/`](delivery-resources/README.md).
+This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit [Contributor License Agreements](https://cla.opensource.microsoft.com).
+
+When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately. Simply follow the instructions provided by the bot. You will only need to do this once across all repos.
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any questions or comments.
 
 ### ⚖️ Trademarks
 

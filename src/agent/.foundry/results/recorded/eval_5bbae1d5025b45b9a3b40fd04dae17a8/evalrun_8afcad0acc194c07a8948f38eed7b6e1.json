@@ -1,11 +1,10 @@
 {
-  "id": "evalrun_31bae94024db445bb788397c3fc9aa59",
+  "id": "evalrun_8afcad0acc194c07a8948f38eed7b6e1",
   "eval_id": "eval_5bbae1d5025b45b9a3b40fd04dae17a8",
-  "name": "brk330-v4-curated-student",
+  "name": "brk330-v2-model-router",
   "status": "completed",
-  "created_at": 1790624102,
-  "modified_at": 1790624214,
-  "created_by": "ninarasi (BAMI)",
+  "created_at": 1790566986,
+  "modified_at": 1790567123,
   "data_source": {
     "type": "azure_ai_target_completions",
     "input_messages": {
@@ -20,12 +19,12 @@
     },
     "source": {
       "type": "file_id",
-      "id": "azureai://accounts/cog-x2uoqhfhq5q7g/projects/brk330-812406/data/brk330-lightweight-eval/versions/2"
+      "id": "azureai://accounts/<account>/projects/<project>/data/brk330-lightweight-eval/versions/2"
     },
     "target": {
       "type": "azure_ai_agent",
       "name": "contoso-travel",
-      "version": "4",
+      "version": "2",
       "tool_descriptions": []
     }
   },
@@ -33,19 +32,18 @@
     "azd_agent": "contoso-travel",
     "trigger_type": "oneoff"
   },
-  "report_url": "https://ai.azure.com/nextgen/r/eogHKHDTSdCt3kJQcWz9lA,rg-aitour-brk330-812406,,cog-x2uoqhfhq5q7g,brk330-812406/build/evaluations/eval_5bbae1d5025b45b9a3b40fd04dae17a8/run/evalrun_31bae94024db445bb788397c3fc9aa59",
   "result_counts": {
     "total": 4,
-    "passed": 1,
-    "failed": 3,
+    "passed": 4,
+    "failed": 0,
     "errored": 0,
     "skipped": 0
   },
   "per_testing_criteria_results": [
     {
       "testing_criteria": "brk330-contoso-travel-quality",
-      "passed": 1,
-      "failed": 3,
+      "passed": 4,
+      "failed": 0,
       "errored": 0,
       "skipped": 0
     }

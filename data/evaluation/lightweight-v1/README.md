@@ -1,14 +1,23 @@
-# Lightweight evaluation contract v1
+# Four-case rubric evaluation
 
-This four-case dataset continues directly from the Demo 1 Agent Insights evidence. It is frozen for baseline v1, Model Router v2, trace-response student v3, and curated-response student v4 comparisons. Agent Optimizer can reuse it as bounded development input, but its internal rankings are not added to the v1-v4 comparison scorecard.
+> **How do we compare agent versions without moving the goalposts?**
+>
+> We use the same four requests, expected evidence, rubric dimensions, judge model, and pass threshold each time. Think of it as measuring every version with the same ruler.
 
-## Frozen inputs
+[![Baseline v1 measured with the four-case rubric evaluation](../../../instructions/img/Evaluation-Baseline-v1-Overview.png)](../../../instructions/img/Evaluation-Baseline-v1-Overview.png)
 
-- `dataset-v1.jsonl` is the original rubric-generation source retained for provenance.
-- `dataset-v2.jsonl` is the runnable Dev Pack holdout from fine-tuning with required task `name`, `query`, and `expected_behavior` fields. It remains unseen for the measured v1-v4 comparison.
-- `rubric-source.json` defines the approved quality dimensions, hard gates, pass threshold, and separate operational metrics.
+This dataset continues directly from the Insights evidence. Baseline v1, Model Router v2, trace-response student v3, and curated-response student v4 are all measured with the same ruler.
+
+## What stays the same
+
+- [`dataset-v1.jsonl`](dataset-v1.jsonl) is the original rubric-generation source retained for provenance.
+- [`dataset-v2.jsonl`](dataset-v2.jsonl) is the runnable holdout with required `name`, `query`, and `expected_behavior` fields.
+- [`rubric-source.json`](rubric-source.json) defines the reviewed quality dimensions, hard checks, pass threshold, and separate operational metrics.
 - The judge deployment for rubric evaluation remains `gpt-5.4-mini` unless the pinned remote evaluator records a different reviewed choice.
 - The reviewed evaluator v1 uses normalized pass threshold `0.5`, corresponding to midpoint score 3 on the rubric source's 1-5 scale.
+- [`comparison-scorecard.md`](comparison-scorecard.md) records quality, latency, and token results without combining them into one score.
+
+Versions v1-v4 never train on these four cases. Agent Optimizer later reuses them as a small development set, so its candidate ranking is not an unseen final test.
 
 ## Insights continuity
 
@@ -19,27 +28,29 @@ The contract directly measures the two observed v1 findings:
 
 It also prevents a related baseline behavior: naming CT rules that are not attributable to structured tool output.
 
-## Freeze rule
+## Changing the ruler? Start a new comparison
 
-After the remote rubric evaluator is reviewed and versioned, record its name, version, judge deployment, dataset name/version, and hashes here or in the agent's `.foundry` metadata. Do not change the dataset, expected behavior, rubric dimensions, or threshold between v1-v4. A change creates a new evaluation contract and requires rerunning every compared version.
+After the remote rubric evaluator is reviewed and versioned, record its name, version, judge deployment, dataset name/version, and hashes here or in the agent's `.foundry` metadata. If the dataset, expected evidence, rubric, judge, or threshold changes, rerun every version you want to compare.
 
-The lightweight path can give Agent Optimizer these same four rows to keep candidate generation bounded. Treat its ranking as a search signal only. Production use should optimize on a development split and promote only after a separate final holdout passes.
+Treat Agent Optimizer's ranking as a search signal only. Production use should optimize on a development split and promote only after a separate final holdout passes.
 
 ## Attendee setup
 
-From the repository root, validate locally first:
+From the repository root, use utility [S04](../../../src/scripts/README.md) to validate locally first:
 
 ```bash
-python src/scripts/setup_lightweight_evaluation.py
+.venv/bin/python src/scripts/setup_lightweight_evaluation.py
 ```
 
 Then register runnable dataset v2 and generate or reuse the retained rubric evaluator:
 
 ```bash
-python src/scripts/setup_lightweight_evaluation.py --apply
+.venv/bin/python src/scripts/setup_lightweight_evaluation.py --apply
 ```
 
-Apply mode never deletes datasets, evaluators, jobs, or agents. It reuses the frozen names when present and saves the returned evaluator definition under `src/agent/.foundry/evaluators/` for human review before baseline scoring.
+Apply mode never deletes datasets, evaluators, jobs, or agents. It reuses the pinned names when present and saves the returned evaluator definition under `src/agent/.foundry/evaluators/` for human review before baseline scoring.
+
+Confirm the service returned evaluator **v1** and stop if another version is selected. Live remote references are environment-specific; do not commit them before reviewing and sanitizing them with utility S06.
 
 ## Pinned remote contract
 
@@ -49,9 +60,8 @@ Apply mode never deletes datasets, evaluators, jobs, or agents. It reuses the fr
 - Rubric source SHA256: `f937a04d86ec75a1eb7f845266f5b23595dea22f3600a214078c6b13768b5995`
 - Judge: `gpt-5.4-mini`
 - Normalized threshold: `0.5`
-- Generation job: `evaluatorgen-brk330-contoso-travel-quality-v1-091df611`
 
-The exact remote references and service-returned definition are cached under `src/agent/.foundry/`. This pin applies unchanged to v1-v4 comparisons.
+Sanitized recorded references and the reviewed service definition are cached under `src/agent/.foundry/`. This pin applies unchanged to v1-v4 comparisons.
 
 ## Baseline v1 result
 
@@ -64,7 +74,7 @@ The complete retry run `evalrun_d518cfe6064d4d51ba6be97b4c211a60` scored all fou
 | INS-03 | 0.905 | Pass | Receipt classification, evidence, and reimbursable/non-reimbursable totals were exact. |
 | INS-04 | 0.400 | Fail | The agent correctly refused the impossible complete trip but weakly framed hotel and car options as independently compliant. |
 
-The baseline pass rate is 2/4 and its mean rubric score is 0.600. The earlier partial run remains operational evidence of judge throttling but is not combined with this result.
+The baseline pass rate is 2/4 and its mean rubric score is 0.600.
 
 Evaluator v1 marked the receipt-only dimension applicable to INS-01 even though that case contains no receipt task. Preserve and disclose this behavior for every v1-v4 comparison; changing applicability now would create a new evaluation contract.
 

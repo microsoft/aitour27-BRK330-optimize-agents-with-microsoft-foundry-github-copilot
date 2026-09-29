@@ -1,6 +1,6 @@
 # BRK330 delivery resources
 
-Presenter, re-delivery, and train-the-trainer materials for this session.
+> **How do I want to deliver this session?** Choose the recorded path for the most predictable delivery, or reproduce the demos live when you have rehearsed the environment and measured your own results.
 
 ## Core materials
 
@@ -8,34 +8,39 @@ Presenter, re-delivery, and train-the-trainer materials for this session.
 |---|---|---|
 | Delivery deck | Pending public URL | Required before final publication |
 | Session recording | Forthcoming | Add the reviewed hosted recording URL after production |
-| Attendee landing page | [Session README](../README.md) | Public starting point |
+| Attendee landing page | [README](../README.md) | Public starting point |
 | Attendee instructions | [Instructions](../instructions/README.md) | Complete cloud rebuild, optimization, validation, and cleanup path |
+
+## Choose a delivery path
+
+| Path | Best for | Start here |
+|---|---|---|
+| **A — Reviewed recordings** | Predictable delivery with no cloud wait time. Available after recordings are published. | Open the deck, review each recording, and rehearse the transitions. |
+| **B — Live reproduction** | Experienced presenters with Azure access and rehearsal time. | Follow the [`instructions/`](../instructions/README.md), then use the numbered [`infra/`](../infra/README.md) steps. |
+
+Until Path A is published, use the sanitized screenshots and measured scorecard to rehearse the story. Do not invent a live result to match a slide.
 
 ## Delivery checklist
 
-- Review the session README
-- Review the attendee instructions
-- Open the deck
-- Review the presenter guidance below
-- Review live demo reproducibility guidance
-- Validate any required environment or setup
+- [ ] Review the [session README](../README.md).
+- [ ] Choose Path A or Path B.
+- [ ] Open the deck and review the presenter notes below.
+- [ ] If using Path A, review every recording and rehearse transitions.
+- [ ] If using Path B, run the preflight and validate the environment before delivery.
+- [ ] Update deck values when your measured results differ from the recorded evidence.
 
 ## Session preparation
 
-- Review the attendee entry point from the root README.
-- Review the delivery deck.
-- Validate the required environment and setup.
+Complete the checklist above, then rehearse the run of show. The times below total 45 minutes.
 
-## Run of show
-
-| Segment | Purpose |
-|---|---|
-| Opening and challenge — 5 min | Establish why agent quality, latency, and cost must be measured separately. |
-| Make it work — 10 min | Run the travel concierge and use Insights to turn production-like traces into actionable findings. |
-| Make it better — 12 min | Freeze the evaluation contract and change only the model strategy with Model Router. |
-| Fine-tuning lesson — 3 min | Reference retained v3/v4 regressions to show why good data and human oversight matter. |
-| Make it scale — 10 min | Run Agent Optimizer, inspect its prompt-only candidate, and stop at the administrative promotion boundary. |
-| Playbook and close — 5 min | Reinforce one-lever experiments and human promote/reject/revise decisions. |
+| Segment | Time | Purpose |
+|---|---:|---|
+| Opening and challenge | 5 min | Establish why agent quality, latency, and cost must be measured separately. |
+| Make it work | 10 min | Run the travel concierge and use Insights to turn production-like traces into actionable findings. |
+| Make it better | 12 min | Use a multi-dimensional rubric evaluator, then change only the model strategy with Model Router. |
+| Fine-tuning lesson | 3 min | Reference retained v3/v4 regressions to show why good data and human oversight matter. |
+| Make it scale | 10 min | Run Agent Optimizer, inspect its prompt-only candidate, and stop at the administrative promotion boundary. |
+| Playbook and close | 5 min | Reinforce one-lever experiments and human promote/reject/revise decisions. |
 
 ## Presenter notes
 
@@ -51,28 +56,33 @@ Presenter, re-delivery, and train-the-trainer materials for this session.
 
 ## Demo reproducibility
 
-**Implementation status:** Complete; recordings and final PII review remain.
+**Implementation status:** Core implementation, screenshots, and public evidence review are complete. Deck and recording publication are deferred.
 
 The canonical live path uses the scripts and measured artifacts linked from the
 attendee instructions. The three edited demo targets remain 4 minutes for
 Insights, 6 minutes for evaluation and Model Router, and 5 minutes for Agent
 Optimizer. Cut cloud wait time; never fabricate results or force a winner.
 
-For reset, reroute to retained v2 with `infra/switch-agent-version.py`, start a
-new conversation, and verify the runtime banner before recording. For a clean
-rebuild, export `BRK330_SUBSCRIPTION` and `BRK330_LOCATION`, run
-`infra/teardown.sh` only with both confirmations, then run `infra/setup.sh`.
+For a demo reset, reroute to retained v2, start a new conversation, and verify the runtime banner:
 
-If preview access, quota, or cloud latency prevents a live segment, use the
-canonical reviewed recording and narrate the measured outcome. Preserve v1-v4
-and optimizer provenance; do not delete or recreate versions on stage.
+```bash
+azd env select "$BRK330_ENVIRONMENT"
+project_endpoint="$(azd env get-value FOUNDRY_PROJECT_ENDPOINT)"
+.venv/bin/python infra/switch-agent-version.py \
+  --version 2 \
+  --project-endpoint "$project_endpoint" \
+  --apply
+```
+
+For a clean rebuild, export `BRK330_SUBSCRIPTION` and `BRK330_LOCATION`, run numbered infrastructure [Step 10](../infra/README.md) only with both confirmations, then run [Step 03](../infra/README.md). Set `BRK330_ENVIRONMENT` to the new environment name printed by setup.
+
+After recordings are published, use the reviewed recording when preview access, quota, or cloud latency prevents a live segment. Until then, use the committed sanitized screenshots and [measured scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md). Preserve v1-v4 and optimizer provenance; do not delete or recreate versions on stage.
 
 ## Setup notes
 
-- Run `infra/preflight.sh` in the learner-selected subscription and region.
+- Run numbered infrastructure [Step 02](../infra/README.md) in the learner-selected subscription and region.
 - Keep Model Router v2 as the Agent Optimizer baseline.
 - Open a new session after endpoint routing changes.
-- Review screenshots for PII before committing or publishing them.
 - Complete the readiness checklist before recording and publication.
 
 ## Support

@@ -2,22 +2,19 @@
   "dataset": {
     "name": "brk330-lightweight-eval",
     "version": "2",
-    "id": "azureai://accounts/cog-x2uoqhfhq5q7g/projects/brk330-812406/data/brk330-lightweight-eval/versions/2",
+    "id": "azureai://accounts/<account>/projects/<project>/data/brk330-lightweight-eval/versions/2",
     "sha256": "5a6808f03ffce76dcf87366ff489793920324127c7d09e118c43f7249cff2699"
   },
   "evaluator": {
-    "id": "azureai://accounts/cog-x2uoqhfhq5q7g/projects/brk330-812406/evaluators/brk330-contoso-travel-quality/versions/1",
+    "id": "azureai://accounts/<account>/projects/<project>/evaluators/brk330-contoso-travel-quality/versions/1",
     "name": "brk330-contoso-travel-quality",
     "display_name": "Caldova Travel Quality",
     "metadata": {
-      "generation_job_id": "evaluatorgen-brk330-contoso-travel-quality-v1-091df611",
       "generation_status": "succeeded",
-      "generation_agent_source": "contoso-travel",
-      "operation_id": "brk330-rubric-f937a04d86ec75a1eb7f8452"
+      "generation_agent_source": "contoso-travel"
     },
     "description": "Frozen four-case quality rubric derived from v1 Agent Insights findings and Caldova policy.",
     "version": "1",
-    "created_by": "ninarasi (BAMI)",
     "created_at": "2026-09-28T02:15:06.8037932+00:00",
     "modified_at": "2026-09-28T02:15:27.6671547+00:00",
     "categories": [
@@ -137,7 +134,6 @@
         "context"
       ]
     },
-    "generation_job_id": "evaluatorgen-brk330-contoso-travel-quality-v1-091df611",
     "warnings": [
       "input_quality"
     ]

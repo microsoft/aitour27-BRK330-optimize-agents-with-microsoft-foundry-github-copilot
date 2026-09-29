@@ -1,6 +1,21 @@
 # Infrastructure
 
-Reproducible deployment and cleanup for an isolated BRK330 environment.
+> **Which script should I run next, and what will it change?**
+>
+> Think of this folder as the workshop floor: first check your tools, then inspect the Azure site, build the environment, verify it, change one lever, and clean up when finished.
+
+```text
+01 Local check
+	-> 02 Azure preflight
+	-> 03 Build v1
+	-> 04 Validate
+	-> 05 Model Router v2
+	-> 08 Agent Optimizer
+	-> 10 Teardown
+
+Optional references: 06 trace-trained student, 07 curated-label student,
+										 09 reviewed candidate promotion
+```
 
 ## Ownership
 
@@ -10,35 +25,47 @@ Reproducible deployment and cleanup for an isolated BRK330 environment.
 
 ## Commands
 
-| Command | Cloud side effects | Purpose |
-|---|---|---|
-| `bash infra/preflight.sh --help` | None | Check clients, authentication, subscription, region, and model availability. |
-| `bash infra/setup.sh --help` | Creates billable resources | Generate an isolated environment, provision, and deploy. |
-| `bash infra/deploy-model-router-v2.sh --help` | Creates/updates a billable model deployment and Hosted Agent v2 | Provision Model Router with quota headroom, deploy and activate immutable v2, refresh RBAC, and smoke-test. |
-| `bash infra/trace-finetune-v3.sh --help` | Read-only in harvest/status; billable in generate/submit/deploy/agent-v3 | Build a reviewed trace-derived SFT dataset, fine-tune/deploy `contoso-student`, and activate immutable v3 in resumable phases. |
-| `bash infra/curated-finetune-v4.sh --help` | Local-only in prepare; billable in submit/deploy/agent-v4 | Validate committed gold responses, fine-tune/deploy `contoso-curated-student`, and activate immutable v4 in resumable phases. |
-| `bash infra/optimize-v5.sh --help` | Billable optimizer submission; status is read-only | Submit/reuse three optimizer candidates from v2 and stop for human review before any apply/deploy action. |
-| `bash infra/deploy-optimizer-v5.sh --help` | Optional; creates immutable Hosted Agent v5 and changes endpoint routing | Post-session reference for deploying an authorized, reviewed local candidate through normal azd; not part of the live breakout. |
-| `bash infra/validate-local.sh` | None | Run fixture, syntax, manifest, Bicep, and test checks. |
-| `bash infra/validate-deployment.sh` | Read-only Azure queries | Verify the active Hosted Agent, web health, roles, and telemetry. |
-| `python infra/switch-agent-version.py --help` | Read-only unless `--apply` | Inspect or reroute the endpoint to a retained immutable version. |
-| `bash infra/teardown.sh --help` | Deletes generated environment | Guard, delete, purge, and verify cleanup. |
+Use the step number when referring to a script in slides, recordings, or issue discussions. Filenames remain unchanged because scripts call each other by name.
+
+| Step | Act | Script | Cloud side effects | Purpose |
+|---:|---|---|---|---|
+| 01 | Foundation | [`validate-local.sh`](validate-local.sh) | None | Run fixture, syntax, manifest, Bicep, and test checks. |
+| 02 | Foundation | [`preflight.sh`](preflight.sh) | None | Check clients, authentication, learner-selected subscription/region, model availability, and quota. |
+| 03 | Foundation | [`setup.sh`](setup.sh) | Creates billable resources | Build the isolated Foundry, monitoring, registry, web, and v1 agent environment. Deploys `gpt-5.4` capacity 200, `gpt-5.4-mini` capacity 200, and `gpt-4.1-mini` capacity 100. |
+| 04 | Foundation | [`validate-deployment.sh`](validate-deployment.sh) | Read-only Azure queries | Verify the active Hosted Agent, web health, roles, and telemetry. |
+| 05 | Make it better | [`deploy-model-router-v2.sh`](deploy-model-router-v2.sh) | Creates/updates a billable model deployment and Hosted Agent v2 | Provision Model Router with quota headroom, deploy and activate immutable v2, refresh RBAC, and smoke-test. |
+| 06 | Fine-tuning reference | [`trace-finetune-v3.sh`](trace-finetune-v3.sh) | Read-only in harvest/status; billable in generate/submit/deploy/agent-v3 | Build a reviewed trace-derived SFT dataset, fine-tune/deploy `contoso-student`, and activate immutable v3. |
+| 07 | Fine-tuning reference | [`curated-finetune-v4.sh`](curated-finetune-v4.sh) | Local-only in prepare; billable in submit/deploy/agent-v4 | Validate gold responses, fine-tune/deploy `contoso-curated-student`, and activate immutable v4. |
+| 08 | Make it scale | [`optimize-v5.sh`](optimize-v5.sh) | Billable optimizer submission; status is read-only | Submit/reuse three optimizer candidates from v2 and stop for human review before apply/deploy. |
+| 09 | Optional promotion | [`deploy-optimizer-v5.sh`](deploy-optimizer-v5.sh) | Creates immutable Hosted Agent v5 and changes endpoint routing | Post-session reference for deploying an authorized, reviewed local candidate through normal azd. |
+| 10 | Cleanup | [`teardown.sh`](teardown.sh) | Deletes generated environment | Guard, delete, purge, and verify cleanup. |
+
+Reusable utility: [`switch-agent-version.py`](switch-agent-version.py) (`U01`) inspects a retained immutable version and changes endpoint routing only when `--apply` is supplied. Internal helper [`deploy-supplemental.sh`](deploy-supplemental.sh) is called by the numbered deployment scripts and is not a learner step.
 
 Generated environments use `rg-aitour-brk330-NNNNNN`. Every destructive command refuses the protected prototype resource group `rg-brk330-concierge`.
 
+Set the learner-owned Azure target before steps 02 and 03. After setup prints the generated environment name, set `BRK330_ENVIRONMENT` for later stages:
+
+```bash
+export BRK330_SUBSCRIPTION="<subscription-name-or-id>"
+export BRK330_LOCATION="<azure-region>"
+export BRK330_ENVIRONMENT="brk330-NNNNNN"
+```
+
 ## Deployment order
 
-1. Dev-container post-create installs declared dependencies, the Foundry azd extension, and the user-level Application Insights Azure CLI extension used by deployment validation.
-2. Authenticate yourself with `az login --use-device-code` and `azd auth login`.
-3. Preflight checks live capability without creating resources.
-4. `setup.sh` provisions the Foundry project and models.
-5. It deploys the Hosted Agent so the provider creates its registry, monitoring, identity, and immutable version.
-6. It deploys monitoring/web resources and injects the App Insights connection.
-7. It creates the telemetry-enabled Hosted Agent version, then reapplies RBAC for that immutable version identity.
-8. It deploys the FastAPI image and runs the resource-group guard check.
-9. Run deployment validation and the curated scenarios.
-10. After accepting the frozen v1 evaluation, run `deploy-model-router-v2.sh` to add the first optimization lever without changing v1.
-11. Run teardown when finished to stop ongoing charges.
+1. Dev-container post-create installs declared dependencies and Foundry tooling.
+2. Authenticate with `az login --use-device-code` and `azd auth login`.
+3. Step 02 checks live capability without creating resources.
+4. Step 03 provisions the Foundry project, models, registry, and monitoring resources.
+5. It deploys supplemental monitoring, a web placeholder, and early RBAC assignments.
+6. It deploys or reuses the baseline v1 Hosted Agent.
+7. It reapplies RBAC that depends on the immutable agent identity.
+8. It deploys the FastAPI portal and reapplies the final supplemental configuration.
+9. Step 04 validates the deployment and curated scenarios.
+10. After accepting the v1 four-case rubric result, step 05 changes only the model strategy.
+11. Step 08 generates optimizer candidates from the retained v2 baseline.
+12. Step 10 removes the generated environment when the session is finished.
 
 ## Model Router stage
 
@@ -52,4 +79,8 @@ The script is resumable: environment metadata records v2 after a successful agen
 
 Every phase is resumable and refuses `rg-brk330-concierge`. The script never deletes jobs, deployments, agents, traces, or datasets.
 
-The curated-response stage keeps the v3 base model, method, seed, epochs, instruction hash, 20/4 split, deployment tier, and frozen evaluation unchanged. Only the response labels change, making training-data quality a controlled third optimization lever.
+The curated-response stage keeps the v3 base model, method, seed, epochs, instruction hash, 20/4 split, deployment tier, and four-case rubric evaluation unchanged. Only the response labels change, so we can see whether better examples improve the student.
+
+## Optional v5 promotion
+
+Step 09 requires the retained v1-v4 deployment history and the reviewed candidate files produced by Agent Optimizer. It is not part of the live breakout and cannot be run directly after only a fresh v1/v2 rebuild.
