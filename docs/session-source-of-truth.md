@@ -20,7 +20,7 @@ Contoso addresses these needs in three acts:
 2. **Make it better**
    Define what good means using Caldova's requirements and rubric. Establish a baseline on representative evidence, then hill-climb one optimization lever at a time.
 3. **Make it scale**
-   Use production evidence and trusted evaluators to automate candidate experimentation with Agent Optimizer. A human reviews and promotes the winner.
+   Use production evidence and trusted evaluators to automate candidate experimentation with Agent Optimizer. A human reviews the evidence and decides whether to promote, reject, or revise.
 
 The operating model underneath all three acts is:
 
@@ -48,31 +48,33 @@ Production is the beginning of the improvement loop, not its conclusion.
 - Define Caldova's approved rubric.
 - Establish a repeatable baseline.
 - Pull one hill-climb lever at a time.
-- Lever 1: replace the frontier deployment with Model Router, enabling dynamic multi-model routing by task.
-- Lever 2: distill harvested frontier responses into a smaller fine-tuned student model.
-- Lever 3: keep the student setup fixed but replace harvested labels with fixture/policy-reviewed gold responses.
+- Live lever: replace the frontier deployment with Model Router, enabling dynamic multi-model routing by task.
+- Brief reference: distill harvested frontier responses into a smaller fine-tuned student model, then repeat with fixture/policy-reviewed gold labels.
 - Measure each option against the same evidence and criteria.
 - Keep or reject each change based on quality, policy compliance, cost, and latency evidence.
+
+Do not run fine-tuning during the 45-minute breakout. Use the retained v3/v4 results as a short teachable moment: regressions happen, curated data can help without fully recovering quality, and human oversight protects the last eligible configuration.
 
 **Loop stages:** Evaluate, Optimize, and Validate.
 
 The outcome is not predetermined. A regression is evidence: reject the change, preserve the last accepted configuration, and pull another lever.
+
+The workflow is the durable takeaway, not any specific winning model or candidate. Within each hill-climb experiment, freeze the evidence, evaluator version, judge, threshold, instructions, and tools; change exactly one lever; then measure quality, policy, latency, tokens, and cost separately. If production evidence or evaluation criteria change, establish a new baseline instead of combining scores across contracts. Different data and evaluators can legitimately produce different outcomes, so a human owner must validate that the contract reflects real requirements and decide whether to promote, reject, or revise.
 
 ### Demo 3: Automate with Agent Optimizer
 
 **After slide 35: Make it scale**
 
 - Start from the best eligible v1-v4 configuration, agent artifacts, and trusted evaluators.
-- Use GitHub Copilot to run Agent Optimizer from code or CLI and generate approximately three candidates for immutable v5 promotion.
-- Evaluate and rank every candidate with the frozen evaluation contract.
+- Use GitHub Copilot to run Agent Optimizer from code or CLI and generate approximately three candidates for human review.
+- Let Agent Optimizer rank candidates with the bounded development contract.
 - Optimize across prompts, tools, skills, and model choice.
-- Independently validate the recommendation for policy, quality, cost, and latency regressions.
-- Record a human promote, reject, or hold decision.
-- Return the improved agent to production observation.
+- Inspect the highest-ranked prompt mutation and explain the administrative promotion boundary.
+- Stop before apply or deploy; production validation and promotion remain human-controlled follow-up work.
 
 **Loop stages:** Automate the full cycle and Repeat.
 
-Promotion remains human-controlled. Rejection is an equally valid result when validation exposes a regression.
+Promotion remains human-controlled. The live demo proves scalable experimentation without claiming deployment or a winner.
 
 ## Demo delivery contract
 
@@ -205,6 +207,10 @@ The last accepted Demo 2 configuration becomes Demo 3's immutable optimizer base
 - Curated-response v4 is a controlled third lever: same `gpt-4.1-mini`, 20/4 split, seed, epochs, instructions, deployment tier, and evaluator; only manually reviewed response labels differ. Select the best eligible v1-v4 result before Agent Optimizer.
 - Curated-response v4: 1/4 passed, mean quality `0.334`, P50 `5.016 s`, P95 `14.868 s`, 6,224 evaluated-agent tokens. Curated labels improved over v3 but did not clear quality or independent policy-attribution gates.
 - Final selection: Model Router v2 is the best eligible v1-v4 baseline. Reroute to v2 before Agent Optimizer and reserve v5 for an approved promotion.
+- Agent Optimizer operation `opt_86d7c7531b21417ab4581f1266ea4c24` generated three prompt candidates from retained v2. Candidate 2 ranked highest and changed only the system prompt, expanding it from 1,117 to 9,954 characters while retaining Model Router and adding no skills or tools.
+- The canonical 45-minute demo ends after showing the completed run and candidate prompt mutation. Optimizer rankings remain internal search signals and are not added to the v1-v4 comparison scorecard.
+- Promotion is intentionally not attempted. The Agent Optimizer service requires elevated platform permissions to deploy this Hosted Agent because reserved `AGENT_*` environment variables cross an administrative boundary.
+- Production follow-up would require authorized review, controlled deployment as a new immutable version, and independent quality, policy, latency, and cost gates. The breakout proves the optimization loop without forcing a winner.
 
 ## Demo 3 contract: Automate and repeat
 
@@ -219,15 +225,9 @@ The last accepted Demo 2 configuration becomes Demo 3's immutable optimizer base
 
 - Capture the last accepted Demo 2 configuration as the optimizer baseline.
 - Complete the optimizer run and preserve all provenance.
-- Independently test the recommended candidate with:
-   - The hero request.
-   - The policy-block request.
-   - The Insights seed regression set.
-   - The policy hard gate.
-   - Quality, cost, and latency review.
-- Record an explicit human promote, reject, or hold decision.
-- Promote only after approval; rejection retains the prior version.
-- Document and test rollback.
+- Review the highest-ranked candidate's prompt mutation, model, skills, and tools.
+- Explain that promotion requires an authorized owner and independent post-deployment gates.
+- Stop before apply or deploy; retain v2 as the active demo reference.
 - The final recording and transcript accurately show the real outcome.
 
 ## Evaluation contract

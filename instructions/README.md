@@ -203,7 +203,7 @@ The setup produces two intentionally different project data assets.
 
 [![Frozen four-case evaluation dataset in Foundry Data](img/Data-dataset.png)](img/Data-dataset.png)
 
-This attendee-owned dataset contains the four fixed `query` and `expected_behavior` rows. It is the holdout used unchanged to compare v1, Model Router v2, trace-response student v3, curated-response student v4, and Agent Optimizer v5. Do not edit or use these rows for fine-tuning after baseline scoring begins; any content change requires a new dataset version and rerunning every comparison.
+This attendee-owned dataset contains the four fixed `query` and `expected_behavior` rows. It is held out from fine-tuning and used unchanged to compare v1, Model Router v2, trace-response student v3, and curated-response student v4. Agent Optimizer later reuses these rows only for bounded candidate ranking. Do not edit or use these rows for fine-tuning after baseline scoring begins; any content change requires a new dataset version and rerunning every measured version.
 
 **Evaluator generation artifacts — service-managed provenance**
 
@@ -221,7 +221,7 @@ Foundry creates a separate read-only, version-aligned dataset containing the con
 
 The portal can display **Generated with input-quality warnings: The agent has no instructions**. Hosted Agent instructions are packaged with code and aren't exposed as prompt-agent instructions to rubric generation. This run mitigates that limitation by supplying the full baseline instruction file and Caldova policy through the explicit Prompt source, alongside the agent metadata/tool surface and frozen dataset. Review the dimensions rather than treating the warning alone as a failure.
 
-4. Pin the reviewed evaluator version, `gpt-5.4-mini` judge deployment, runnable dataset v2, hashes, and threshold. Reuse that exact contract for v1, Model Router v2, trace-response student v3, curated-response student v4, and Agent Optimizer v5.
+4. Pin the reviewed evaluator version, `gpt-5.4-mini` judge deployment, runnable dataset v2, hashes, and threshold. Reuse that exact comparison contract for v1, Model Router v2, trace-response student v3, and curated-response student v4.
 
 The reviewed contract is pinned in [`src/agent/.foundry/agent-metadata.yaml`](../src/agent/.foundry/agent-metadata.yaml): evaluator `brk330-contoso-travel-quality` v1, normalized threshold `0.5`, judge `gpt-5.4-mini`, and runnable dataset `brk330-lightweight-eval` v2.
 
@@ -388,7 +388,24 @@ Capture each opened result row as `Evaluation-Model-Router-v2-INS-01.png` throug
 
 Quality and hard-gate results determine eligibility. Record token usage and latency separately; do not hide a policy regression inside a composite cost/quality score.
 
-Fine-tuning uses a separate quality-filtered trace corpus defined in [`data/training/`](../data/training/README.md). Never train on the four frozen evaluation rows. This preserves a real holdout while leaving room for the student model and Agent Optimizer to improve response wording, concision, and tool efficiency.
+Keep the hill climb attributable. Within one experiment, freeze the dataset, evaluator version, judge, threshold, instructions, and tools, then change exactly one lever. V2 changes model strategy only; v3 changes the model strategy through distillation; v4 keeps the student setup fixed and changes response-label quality only; the reviewed Optimizer candidate changes the prompt only. Measure before deciding whether to keep the change.
+
+Different organizations will use different traces, datasets, evaluators, thresholds, and constraints, so they should expect different winners. That does not invalidate the workflow. When evidence or evaluation criteria change, establish a new baseline and begin a new controlled hill climb rather than combining incompatible scores. Human owners decide whether the evidence represents their real requirements and whether a candidate is safe to advance.
+
+### Fine-tuning teachable moment
+
+Reference the retained fine-tuned versions briefly; do not run training during the 45-minute breakout. V3 distilled reviewed v1 traces into a smaller `gpt-4.1-mini` student. It cut evaluated-agent tokens by 75.3% and reduced latency, but all four quality rows failed and its smoke trace misattributed policy. V4 changed only the training labels to human-reviewed gold responses. Quality improved from `0.270` to `0.334`, but three rows still failed.
+
+This is the lesson, not a detour into another live demo:
+
+- **Regression happens:** lower cost and latency do not compensate for lost policy or task quality.
+- **Good data matters:** curated labels helped, proving training-data quality changes outcomes.
+- **Human oversight is the gate:** preserve the regression, reject both students, and continue from the last eligible version, Model Router v2.
+
+Fine-tuning uses a separate quality-filtered trace corpus defined in [`data/training/`](../data/training/README.md). Never train on the four frozen evaluation rows. The detailed workflow remains below as optional reproducibility material.
+
+<details>
+<summary>Optional: reproduce the v3 and v4 fine-tuning experiments</summary>
 
 ### Build a trace-driven dataset for v3
 
@@ -570,6 +587,8 @@ Curated labels improved over v3: mean quality rose by `0.063`, one row crossed t
 
 Select Model Router v2 as the best eligible v1-v4 Agent Optimizer baseline. Preserve all four versions and both student training jobs unchanged, then reroute the endpoint to v2 before generating optimizer candidates.
 
+</details>
+
 ### Run Agent Optimizer from v2
 
 Reroute the default endpoint to retained v2 without rebuilding or deleting any version:
@@ -596,7 +615,37 @@ Inspect progress and results:
 bash infra/optimize-v5.sh status --environment brk330-812406
 ```
 
-Capture the operation ID, candidate IDs, quality scores, changed model/instructions/skills/tools, and recommendation. Review all three candidates before approving a local apply. A recommendation is not a promotion decision: rerun the frozen evaluation and independent policy/Insights gates before creating immutable v5.
+Capture the operation ID, candidate IDs, internal ranking scores, changed model/instructions/skills/tools, and recommendation. The Optimizer score is a search signal inside this operation, not another point on the v1-v4 comparison chart.
+
+For the recorded v2-based run, candidate 2 ranked highest. It changed only the system prompt, expanding it from 1,117 to 9,954 characters with stricter evidence, arithmetic, receipt, and itinerary guidance while retaining Model Router and adding no skills or tools. Open the candidate details and show the prompt mutation so learners can see exactly what Agent Optimizer proposed.
+
+Stop the live demo before promotion. Deploying the candidate through the Agent Optimizer service requires elevated platform permissions because the Hosted Agent reserves `AGENT_*` environment variables. The speaker account intentionally does not cross that administrative boundary during a 45-minute breakout.
+
+Close with the production decision rule: a recommendation is not a promotion. An authorized owner would review the generated prompt, apply it in a controlled environment, deploy a new immutable agent version, and rerun independent quality, policy, latency, and cost gates.
+
+The reusable outcome is the workflow, not candidate 2:
+
+1. Observe production-like behavior.
+2. Define trusted evidence and evaluators.
+3. Establish a baseline.
+4. Change one lever.
+5. Evaluate every dimension and inspect regressions.
+6. Let a human promote, reject, or revise the experiment.
+
+New data or evaluators can change the result, which is exactly why the contract must be explicit and promotion must remain human-controlled. This session proves the optimization loop without forcing a winner or introducing a second evaluation story.
+
+<details>
+<summary>Optional: promote the reviewed candidate from code</summary>
+
+This is a post-session reference, not part of the 45-minute breakout. Direct `azd ai agent optimize deploy` cannot deploy this Hosted Agent under the speaker account because the platform reserves `AGENT_*` environment variables. After an authorized owner reviews and locally applies the selected candidate, the repository demonstrates the supported normal-azd path:
+
+```bash
+bash infra/deploy-optimizer-v5.sh --environment brk330-812406
+```
+
+The script pins the reviewed candidate, deploys one immutable v5, refreshes RBAC, activates it temporarily, and runs a smoke request. It preserves v1-v4 and deletes nothing. Promotion is still incomplete until the owner runs the independent v5 recipe printed by the script and reviews policy, quality, latency, token, and cost gates. [`eval-optimizer-v5.yaml`](../src/agent/eval-optimizer-v5.yaml) preserves that optional evaluation configuration.
+
+</details>
 
 ## 7. Validate Azure
 

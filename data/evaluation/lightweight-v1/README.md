@@ -1,11 +1,11 @@
 # Lightweight evaluation contract v1
 
-This four-case dataset continues directly from the Demo 1 Agent Insights evidence. It is frozen for baseline v1, Model Router v2, trace-response student v3, curated-response student v4, and Agent Optimizer v5 comparisons.
+This four-case dataset continues directly from the Demo 1 Agent Insights evidence. It is frozen for baseline v1, Model Router v2, trace-response student v3, and curated-response student v4 comparisons. Agent Optimizer can reuse it as bounded development input, but its internal rankings are not added to the v1-v4 comparison scorecard.
 
 ## Frozen inputs
 
 - `dataset-v1.jsonl` is the original rubric-generation source retained for provenance.
-- `dataset-v2.jsonl` is the runnable Dev Pack holdout with required task `name`, `query`, and `expected_behavior` fields.
+- `dataset-v2.jsonl` is the runnable Dev Pack holdout from fine-tuning with required task `name`, `query`, and `expected_behavior` fields. It remains unseen for the measured v1-v4 comparison.
 - `rubric-source.json` defines the approved quality dimensions, hard gates, pass threshold, and separate operational metrics.
 - The judge deployment for rubric evaluation remains `gpt-5.4-mini` unless the pinned remote evaluator records a different reviewed choice.
 - The reviewed evaluator v1 uses normalized pass threshold `0.5`, corresponding to midpoint score 3 on the rubric source's 1-5 scale.
@@ -22,6 +22,8 @@ It also prevents a related baseline behavior: naming CT rules that are not attri
 ## Freeze rule
 
 After the remote rubric evaluator is reviewed and versioned, record its name, version, judge deployment, dataset name/version, and hashes here or in the agent's `.foundry` metadata. Do not change the dataset, expected behavior, rubric dimensions, or threshold between v1-v4. A change creates a new evaluation contract and requires rerunning every compared version.
+
+The lightweight path can give Agent Optimizer these same four rows to keep candidate generation bounded. Treat its ranking as a search signal only. Production use should optimize on a development split and promote only after a separate final holdout passes.
 
 ## Attendee setup
 

@@ -10,7 +10,6 @@ Use this scorecard for the frozen v1-v4 comparison. Quality, latency, and cost r
 | v2 | Model Router | `evalrun_8afcad0acc194c07a8948f38eed7b6e1` | 0.625 | 4/4 | 9.185 s | 65.496 s | 54,155 | 6,692 | 60,847 | Pending exact router meter |
 | v3 | Fine-tuned `gpt-4.1-mini` student | `evalrun_7e5acaacf6384e26be18848e6fd68c0b` | 0.270 | 0/4 | 6.873 s | 18.736 s | 4,950 | 2,347 | 7,297 | Pending price snapshot |
 | v4 | Curated-response fine-tuned student | `evalrun_31bae94024db445bb788397c3fc9aa59` | 0.334 | 1/4 | 5.016 s | 14.868 s | 4,950 | 1,274 | 6,224 | Pending price snapshot |
-| v5 | Promoted optimizer candidate | Pending | Pending | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
 
 ## Baseline v1 details
 
@@ -61,6 +60,9 @@ The v4 rubric judge used another 12,972 tokens. Compared with trace-response v3,
 ## V1-v4 selection decision
 
 V2 is the best eligible optimizer baseline. It is the only version that passed all four frozen rows without evaluator errors and did not have the student policy-attribution hard-gate regression. V3 proves that distillation can reduce latency and token usage, while v4 proves curated labels can recover some quality and further improve efficiency. Both students are rejected because operational savings cannot compensate for failed quality and policy gates. Retain all versions unchanged, reroute to v2, and reserve v5 for an approved Agent Optimizer promotion.
+
+
+The Agent Optimizer segment starts from v2 and ends after candidate generation and prompt review. Optimizer's internal ranking is deliberately kept separate from this scorecard; candidate promotion and post-deployment evaluation are outside the 45-minute breakout.
 
 ## Cost method
 

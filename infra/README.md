@@ -18,6 +18,7 @@ Reproducible deployment and cleanup for an isolated BRK330 environment.
 | `bash infra/trace-finetune-v3.sh --help` | Read-only in harvest/status; billable in generate/submit/deploy/agent-v3 | Build a reviewed trace-derived SFT dataset, fine-tune/deploy `contoso-student`, and activate immutable v3 in resumable phases. |
 | `bash infra/curated-finetune-v4.sh --help` | Local-only in prepare; billable in submit/deploy/agent-v4 | Validate committed gold responses, fine-tune/deploy `contoso-curated-student`, and activate immutable v4 in resumable phases. |
 | `bash infra/optimize-v5.sh --help` | Billable optimizer submission; status is read-only | Submit/reuse three optimizer candidates from v2 and stop for human review before any apply/deploy action. |
+| `bash infra/deploy-optimizer-v5.sh --help` | Optional; creates immutable Hosted Agent v5 and changes endpoint routing | Post-session reference for deploying an authorized, reviewed local candidate through normal azd; not part of the live breakout. |
 | `bash infra/validate-local.sh` | None | Run fixture, syntax, manifest, Bicep, and test checks. |
 | `bash infra/validate-deployment.sh` | Read-only Azure queries | Verify the active Hosted Agent, web health, roles, and telemetry. |
 | `python infra/switch-agent-version.py --help` | Read-only unless `--apply` | Inspect or reroute the endpoint to a retained immutable version. |

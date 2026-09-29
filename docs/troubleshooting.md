@@ -207,6 +207,20 @@ The extension can also warn that the environment is already configured and that 
 
 <br/>
 
+## Agent Optimizer targets the latest deployed version instead of the selected endpoint
+
+### Symptom
+
+The endpoint is routed to retained v2, but optimizer status reports `agent_version: "4"` and a baseline score that matches v4 rather than Model Router v2.
+
+### Cause and fix
+
+Endpoint rerouting changes traffic selection but does not rewrite azd's `AGENT_CONTOSO_TRAVEL_VERSION`, which still records the latest deployed immutable version. Optimizer resolves that azd value during submission even when `eval-model-router-v2.yaml` names v2.
+
+Cancel the incorrect non-terminal operation and remove only its ignored local operation-ID file. `infra/optimize-v5.sh` now temporarily pins the azd version to `2` during submission, then restores the prior azd value and the tracked v1 baseline metadata. Verify optimizer status reports `agent_version: "2"` before reviewing candidates.
+
+<br/>
+
 ## RBAC scope notes
 
 - Use **Foundry Agent Consumer** at project or agent scope for applications that only invoke an endpoint.

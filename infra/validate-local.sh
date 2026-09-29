@@ -68,10 +68,12 @@ deployments = {
 assert deployments["gpt-5.4"]["sku"]["capacity"] == 200
 assert deployments["gpt-5.4-mini"]["sku"]["capacity"] == 200
 assert deployments["gpt-4.1-mini"]["sku"]["capacity"] == 100
-assert (
-  manifest["services"]["contoso-travel"]["env"]["OPTIMIZATION_CANDIDATE_ID"]
-  == "${CONTOSO_CONFIGURATION}"
-)
+candidate_selector = manifest["services"]["contoso-travel"]["env"]["OPTIMIZATION_CANDIDATE_ID"]
+if candidate_selector != "${CONTOSO_CONFIGURATION}":
+  assert candidate_selector.startswith("cand_opt_")
+  candidate_metadata = Path("src/agent/.agent_configs") / candidate_selector / "metadata.yaml"
+  assert candidate_metadata.is_file()
+  assert yaml.safe_load(candidate_metadata.read_text(encoding="utf-8"))["model"] == "model-router"
 eval_config = yaml.safe_load(Path("src/agent/eval.yaml").read_text(encoding="utf-8"))
 assert eval_config["dataset"]["version"] == "2"
 assert eval_config["options"]["max_samples"] == 4
@@ -100,6 +102,14 @@ assert curated_eval["agent"]["model"] == "contoso-curated-student"
 assert curated_eval["dataset"] == eval_config["dataset"]
 assert curated_eval["evaluators"] == eval_config["evaluators"]
 assert curated_eval["options"] == eval_config["options"]
+optimizer_eval = yaml.safe_load(
+  Path("src/agent/eval-optimizer-v5.yaml").read_text(encoding="utf-8")
+)
+assert optimizer_eval["agent"]["version"] == "5"
+assert optimizer_eval["agent"]["model"] == "model-router"
+assert optimizer_eval["dataset"] == eval_config["dataset"]
+assert optimizer_eval["evaluators"] == eval_config["evaluators"]
+assert optimizer_eval["options"] == eval_config["options"]
 
 def jsonl(path):
   return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]

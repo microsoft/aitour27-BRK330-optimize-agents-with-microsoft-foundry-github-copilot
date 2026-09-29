@@ -61,6 +61,16 @@ case "$phase" in
       exit 7
     fi
     log="$state_dir/submit.log"
+    baseline_config="src/agent/.agent_configs/baseline/metadata.yaml"
+    baseline_backup="$state_dir/baseline-metadata.original.yaml"
+    recorded_version="$(azd env get-value AGENT_CONTOSO_TRAVEL_VERSION)"
+    cp "$baseline_config" "$baseline_backup"
+    restore_local_state() {
+      cp "$baseline_backup" "$baseline_config"
+      azd env set AGENT_CONTOSO_TRAVEL_VERSION "$recorded_version" >/dev/null
+    }
+    trap restore_local_state EXIT
+    azd env set AGENT_CONTOSO_TRAVEL_VERSION 2 >/dev/null
     pushd src/agent >/dev/null
     azd ai agent optimize \
       --agent contoso-travel \
@@ -68,6 +78,8 @@ case "$phase" in
       --no-wait \
       --no-prompt | tee "$repo_root/$log"
     popd >/dev/null
+    restore_local_state
+    trap - EXIT
     operation_id="$(grep -Eo 'opt_[A-Za-z0-9_-]+' "$log" | tail -1 || true)"
     [[ -n "$operation_id" ]] || { printf 'No optimizer operation ID returned; inspect %s.\n' "$log" >&2; exit 8; }
     printf '%s\n' "$operation_id" > "$operation_id_file"
