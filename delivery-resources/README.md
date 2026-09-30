@@ -6,8 +6,8 @@
 
 | Item | Link | Notes |
 |---|---|---|
-| Delivery deck | Pending public URL | Required before final publication |
-| Session recording | Forthcoming | Add the reviewed hosted recording URL after production |
+| Delivery deck | Avail 10.12.26  | Required before final publication |
+| Session recording | Coming soon | Add the reviewed hosted recording URL after production |
 | Attendee landing page | [README](../README.md) | Public starting point |
 | Attendee instructions | [Instructions](../instructions/README.md) | Complete cloud rebuild, optimization, validation, and cleanup path |
 
