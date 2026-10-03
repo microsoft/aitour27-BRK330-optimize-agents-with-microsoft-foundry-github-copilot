@@ -44,7 +44,7 @@ if sys.version_info < (3, 13):
     raise SystemExit(f"Python 3.13+ is required; found {sys.version.split()[0]}")
 PY
 
-if ! /usr/bin/python3 -m pip --version >/dev/null 2>&1; then
+if ! python3 -m pip --version >/dev/null 2>&1; then
     sudo -n apt-get update
     sudo -n apt-get install -y python3-pip
 fi
