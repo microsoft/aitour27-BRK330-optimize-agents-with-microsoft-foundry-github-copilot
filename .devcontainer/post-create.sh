@@ -49,7 +49,7 @@ if ! /usr/bin/python3 -m pip --version >/dev/null 2>&1; then
     sudo -n apt-get install -y python3-pip
 fi
 
-application_insights_extension_version='0.1.19'
+application_insights_extension_version='1.2.3'
 installed_application_insights_version="$(az extension show --name application-insights --query version -o tsv 2>/dev/null || true)"
 if [[ "$installed_application_insights_version" != "$application_insights_extension_version" ]]; then
     az extension add \
