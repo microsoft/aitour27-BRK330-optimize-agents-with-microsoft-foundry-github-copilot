@@ -77,7 +77,7 @@ Azure CLI `2.45.0` in this container runs on `/usr/bin/python3`, which initially
 
 ### Fix and automation
 
-`.devcontainer/post-create.sh` installs Debian `python3-pip` only when `/usr/bin/python3 -m pip` is unavailable, then installs `application-insights` version `0.1.19` idempotently.
+`.devcontainer/post-create.sh` refreshes only the signed Debian package sources and installs `python3-pip` when `/usr/bin/python3 -m pip` is unavailable, then installs `application-insights` version `0.1.19` idempotently. Limiting the package refresh prevents an unrelated third-party repository from blocking setup.
 
 The user-level extension is located at:
 

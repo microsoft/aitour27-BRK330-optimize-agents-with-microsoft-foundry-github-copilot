@@ -67,6 +67,15 @@ Before saving a screenshot, hide or crop tenant and subscription IDs, account an
 bash infra/validate-local.sh
 ```
 
+If you get an error: _Python environment not found at .venv/bin/python. Rebuild the container or run post-create._ - then run the post-create script manually first.
+
+```bash
+bash .devcontainer/post-create.sh
+bash infra/validate-local.sh
+```
+
+
+
 ### 3.2 Authenticate
 
 ```bash
