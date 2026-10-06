@@ -15,7 +15,7 @@ services:
                 version: "2026-03-05"
               name: gpt-5.4
               sku:
-                capacity: 200
+                capacity: 300
                 name: GlobalStandard
             - model:
                 format: OpenAI
@@ -23,8 +23,8 @@ services:
                 version: "2026-03-17"
               name: gpt-5.4-mini
               sku:
-                                name: GlobalStandard
-                                capacity: 150
+                capacity: 300
+                name: GlobalStandard
             - model:
                 format: OpenAI
                 name: gpt-4.1-mini
@@ -32,6 +32,22 @@ services:
               name: gpt-4.1-mini
               sku:
                 capacity: 100
+                name: GlobalStandard
+            - model:
+                format: OpenAI
+                name: model-router
+                version: "2025-11-18"
+              name: model-router
+              sku:
+                capacity: 300
+                name: GlobalStandard
+            - model:
+                format: OpenAI
+                name: gpt-5.6-sol
+                version: "2026-07-09"
+              name: insights-judge
+              sku:
+                capacity: 500
                 name: GlobalStandard
     contoso-travel:
         project: src/agent

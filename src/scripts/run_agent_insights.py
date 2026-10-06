@@ -7,13 +7,17 @@ import json
 import os
 import subprocess
 import sys
+import time
 import uuid
+from pathlib import Path
 from typing import Any
 
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import AgentInsightMonitorCreate, AgentInsightRunCreate
 from azure.core.exceptions import HttpResponseError
 from azure.identity import AzureCliCredential
+
+ACTIVE_STATUSES = {"queued", "not_started", "in_progress", "running"}
 
 
 def azd_value(name: str) -> str | None:
@@ -62,6 +66,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-endpoint")
     parser.add_argument("--agent-name", default="contoso-travel")
     parser.add_argument("--model-deployment")
+    parser.add_argument("--save", type=Path, help="Save findings (without IDs) to this JSON file.")
     return parser.parse_args()
 
 
@@ -125,9 +130,18 @@ def main() -> int:
 
         print_runs(operations, monitor.id)
         if not args.run:
+            if args.save:
+                save_findings(list(operations.list_insights(monitor.id, include_details=True)), args.save)
             return 0
 
         operation_id = str(uuid.uuid4())
+        active = next(
+            (run for run in operations.list_runs(monitor.id, limit=10, order="desc")
+             if str(as_dict(run).get("status")).lower() in ACTIVE_STATUSES),
+            None,
+        )
+        if active is not None:
+            return wait_for_active_run(operations, monitor.id, as_dict(active)["id"], args.save)
         poller = operations.begin_create_run(
             monitor.id,
             AgentInsightRunCreate(lookback_hours=args.lookback_hours),
@@ -160,7 +174,54 @@ def main() -> int:
                 f"- {insight.id}: severity={insight.severity} "
                 f"status={insight.status} traces={insight.trace_count} title={insight.title}"
             )
+        if args.save:
+            save_findings(insights, args.save)
         return 0
+
+
+def wait_for_active_run(operations: Any, monitor_id: str, run_id: str, save: Path | None) -> int:
+    """Only one run can be active per monitor, so wait for it rather than starting another."""
+    print(f"A run is already in progress ({run_id}); waiting for it instead of starting another.")
+    while True:
+        data = as_dict(operations.get_run(monitor_id, run_id))
+        status = str(data.get("status")).lower()
+        if status not in ACTIVE_STATUSES:
+            break
+        time.sleep(20)
+    print(f"Run status: {status}")
+    if status != "succeeded":
+        print(json.dumps(data, indent=2, default=str))
+        return 1
+    insights = list(operations.list_insights(monitor_id, include_details=True))
+    print(f"Insights available: {len(insights)}")
+    for insight in insights:
+        print(
+            f"- {insight.id}: severity={insight.severity} "
+            f"status={insight.status} traces={insight.trace_count} title={insight.title}"
+        )
+    if save:
+        save_findings(insights, save)
+    return 0
+
+
+def without_ids(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: without_ids(item)
+            for key, item in value.items()
+            if key != "id" and not key.endswith(("_id", "_ids")) and key not in {"linked_traces", "evidence", "created_at", "updated_at"}
+        }
+    if isinstance(value, list):
+        return [without_ids(item) for item in value]
+    return value
+
+
+def save_findings(insights: list[Any], path: Path) -> None:
+    """Keep the parts of each finding that describe the problem, without IDs."""
+    findings = [without_ids(as_dict(insight)) for insight in insights]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(findings, indent=2, default=str) + "\n", encoding="utf-8")
+    print(f"Saved {len(findings)} finding(s) for the scorecard draft: {path}")
 
 
 if __name__ == "__main__":

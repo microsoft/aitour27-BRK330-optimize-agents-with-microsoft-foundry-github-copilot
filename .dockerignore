@@ -7,7 +7,7 @@
 .venv/
 **/__pycache__/
 **/*.py[cod]
-data/evaluation/
+data/questions/
 delivery-resources/
 docs/
 img/

@@ -51,13 +51,29 @@ def test_transform_excludes_holdout_and_deduplicates_latest(tmp_path: Path) -> N
     assert review_template(candidates)[0]["accepted"] is False
 
 
+def test_transform_keeps_only_training_questions_and_prefills_review(tmp_path: Path) -> None:
+    raw = tmp_path / "raw.json"
+    holdout = tmp_path / "holdout.jsonl"
+    questions = tmp_path / "training.jsonl"
+    raw.write_text(json.dumps([_raw_row(1, "Training prompt"), _raw_row(2, "Exploring prompt")]), encoding="utf-8")
+    _write_jsonl(holdout, [{"query": "Testing prompt"}])
+    _write_jsonl(questions, [{"id": "TR-01", "category": "refusal", "split": "validation", "query": "Training prompt"}])
+
+    candidates = transform(raw, holdout, questions)
+    review = review_template(candidates)[0]
+
+    assert [row["question_id"] for row in candidates] == ["TR-01"]
+    assert review["category"] == "refusal"
+    assert review["split"] == "validation"
+
+
 def test_curate_enforces_review_gates_coverage_and_holdout_separation(tmp_path: Path) -> None:
     categories = {
-        "compliant_multi_tool_planning": 6,
-        "policy_refusal_and_remediation": 4,
-        "receipt_extraction_and_conversion": 4,
-        "accessibility_and_timing": 4,
-        "numeric_reconciliation": 2,
+        "compliant_planning": 6,
+        "refusal": 4,
+        "receipts": 4,
+        "accessibility": 4,
+        "numbers": 2,
     }
     candidates: list[dict] = []
     reviews: list[dict] = []
@@ -103,7 +119,7 @@ def test_curate_enforces_review_gates_coverage_and_holdout_separation(tmp_path: 
                 "trace_id": candidate["trace_id"],
                 "accepted": True,
                 "split": "validation",
-                "category": "compliant_multi_tool_planning",
+                "category": "compliant_planning",
                 "rubric_score": 0.8,
                 "hard_gates": {gate: True for gate in REQUIRED_GATES},
                 "review_reason": "Reviewed synthetic trace.",
@@ -124,10 +140,12 @@ def test_curate_enforces_review_gates_coverage_and_holdout_separation(tmp_path: 
                 "teacher_agent_version": "1",
                 "teacher_model": "gpt-5.4",
                 "student_base_model": "gpt-4.1-mini",
-                "evaluation_holdout": "holdout.jsonl",
+                "never_train_on": "holdout.jsonl",
                 "minimum_training_examples": 20,
                 "minimum_validation_examples": 4,
-                "coverage": categories,
+                "minimum_per_category": categories,
+                "required_checks": list(REQUIRED_GATES),
+                "minimum_review_score": 0.5,
             }
         ),
         encoding="utf-8",
@@ -146,3 +164,15 @@ def test_curate_enforces_review_gates_coverage_and_holdout_separation(tmp_path: 
     assert len(validation) == 4
     assert provenance["train_count"] == 20
     assert provenance["validation_count"] == 4
+    assert provenance["teacher_agent_version"] == "1"
+
+    _, _, overridden = curate(
+        candidates_path,
+        reviews_path,
+        holdout_path,
+        scope_path,
+        instructions_path,
+        teacher_version="4",
+        teacher_model="gpt-5.4",
+    )
+    assert overridden["teacher_agent_version"] == "4"

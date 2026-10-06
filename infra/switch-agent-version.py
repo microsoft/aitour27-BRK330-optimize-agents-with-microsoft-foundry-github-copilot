@@ -45,7 +45,8 @@ def active_version(details) -> str:
     endpoint = details.agent_endpoint
     if endpoint and endpoint.version_selector:
         for rule in endpoint.version_selector.version_selection_rules:
-            if getattr(rule, "traffic_percentage", 0) == 100:
+            # "@latest" is Foundry's "Always use latest" routing; report the real number it resolves to.
+            if getattr(rule, "traffic_percentage", 0) == 100 and rule.agent_version != "@latest":
                 return rule.agent_version
     return details.versions.latest.version
 

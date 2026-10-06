@@ -12,10 +12,11 @@
 
 You need agents to meet cost & quality targets, but model choices & costs keep shifting. Watch GitHub Copilot run a hill-climbing loop on a travel concierge built on Microsoft Foundry. Build a repeatable model optimization playbook for your AI agents.
 
-> **Storyline:** Caldova is a fictional pharmaceutical company whose travel program needs an AI concierge that can keep meeting quality, policy, latency, and cost targets as models and requirements change. Contoso Travel is the fictional provider building that concierge on Microsoft Foundry. In this breakout, we follow the AI engineer's optimization journey in three acts:
-> - **Make it work** with a Hosted Agent and Insights in Foundry
-> - **Make it better** with Rubric Evaluator and Model Router in Foundry
-> - **Make it scale** with Agent Optimizer and human-controlled promotion in Foundry
+> **Storyline:** Caldova is a fictional pharmaceutical company whose travel program needs an AI concierge that can keep meeting quality, policy, latency, and cost targets as models and requirements change. Contoso Travel is the fictional provider building that concierge on Microsoft Foundry. In this breakout, we follow the AI engineer's optimization journey in four acts:
+> - **Make it work** with GitHub Copilot, Foundry skills, and a Hosted Agent
+> - **Understand where it struggles** with traces and Insights in Foundry
+> - **Make it better** with a trace-based scorecard, Model Router, and fine-tuning
+> - **Make it scale** with Agent Optimizer, with a person deciding what goes live
 
 ### 🚀 Getting started
 
@@ -26,7 +27,7 @@ If you will be delivering this session, see the [`delivery-resources/`](delivery
 1. Fork this repository and open it in a supported Codespace or dev container.
 2. Authenticate with Azure CLI and Azure Developer CLI using the provided Azure
     subscription.
-3. Follow the complete [`instructions/`](instructions/README.md). Your presenter
+3. Follow the [instructions](instructions/README.md). Your presenter
     may have completed the environment setup before the guided session.
 
 #### On your own
@@ -34,8 +35,8 @@ If you will be delivering this session, see the [`delivery-resources/`](delivery
 1. Fork this repository and open it in a supported Codespace or dev container.
 2. Authenticate with Azure CLI and Azure Developer CLI using your own Azure
     subscription.
-3. Follow [`instructions/`](instructions/README.md) from the beginning to deploy
-    the isolated environment, replay the measured workflow, and clean up the
+3. Follow the [instructions](instructions/README.md) from the beginning to deploy
+    the isolated environment, run the four acts, and clean up the
     resources you create.
 
 ### 🎯 Learning outcomes

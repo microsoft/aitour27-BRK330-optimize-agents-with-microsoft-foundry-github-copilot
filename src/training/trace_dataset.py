@@ -54,9 +54,16 @@ def _holdout_prompts(path: Path) -> set[str]:
     return {_normalized(row["query"]) for row in _load_jsonl(path)}
 
 
-def transform(raw_path: Path, holdout_path: Path) -> list[dict[str, Any]]:
+def _training_questions(path: Path | None) -> dict[str, dict[str, Any]]:
+    if path is None:
+        return {}
+    return {_normalized(row["query"]): row for row in _load_jsonl(path)}
+
+
+def transform(raw_path: Path, holdout_path: Path, questions_path: Path | None = None) -> list[dict[str, Any]]:
     raw_rows = json.loads(raw_path.read_text(encoding="utf-8"))
     holdout = _holdout_prompts(holdout_path)
+    questions = _training_questions(questions_path)
     candidates: dict[str, dict[str, Any]] = {}
     for row in sorted(raw_rows, key=lambda item: item.get("TimeGenerated", "")):
         input_messages = _messages(row.get("InputMessages"))
@@ -73,12 +80,18 @@ def transform(raw_path: Path, holdout_path: Path) -> list[dict[str, Any]]:
         if not trace_id:
             continue
         prompt_key = _normalized(query)
+        question = questions.get(prompt_key)
+        if questions and question is None:
+            continue
         candidates[prompt_key] = {
             "trace_id": trace_id,
             "timestamp": row.get("TimeGenerated"),
             "model": row.get("ModelName"),
             "query": query,
             "response": response,
+            "question_id": (question or {}).get("id", ""),
+            "category": (question or {}).get("category", ""),
+            "split": (question or {}).get("split", ""),
             "query_sha256": hashlib.sha256(prompt_key.encode("utf-8")).hexdigest(),
             "response_sha256": hashlib.sha256(response.encode("utf-8")).hexdigest(),
         }
@@ -89,9 +102,10 @@ def review_template(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
             "trace_id": row["trace_id"],
+            "question_id": row.get("question_id", ""),
             "accepted": False,
-            "split": "",
-            "category": "",
+            "split": row.get("split", ""),
+            "category": row.get("category", ""),
             "rubric_score": None,
             "hard_gates": {gate: False for gate in REQUIRED_GATES},
             "review_reason": "",
@@ -107,11 +121,16 @@ def curate(
     holdout_path: Path,
     scope_path: Path,
     instruction_path: Path,
+    teacher_version: str | None = None,
+    teacher_model: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     candidates = {row["trace_id"]: row for row in _load_jsonl(candidates_path)}
     reviews = _load_jsonl(review_path)
     holdout = _holdout_prompts(holdout_path)
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
+    if tuple(scope["required_checks"]) != REQUIRED_GATES:
+        raise ValueError("Review rules list different required checks than the curation code.")
+    minimum_score = float(scope["minimum_review_score"])
     system_prompt = instruction_path.read_text(encoding="utf-8").strip()
     accepted: list[tuple[dict[str, Any], dict[str, Any]]] = []
     seen_reviews: set[str] = set()
@@ -126,8 +145,8 @@ def curate(
         if trace_id not in candidates:
             raise ValueError(f"Accepted trace {trace_id} is not in the candidate file.")
         score = review.get("rubric_score")
-        if not isinstance(score, (int, float)) or score < 0.5:
-            raise ValueError(f"Accepted trace {trace_id} does not meet rubric threshold 0.5.")
+        if not isinstance(score, (int, float)) or score < minimum_score:
+            raise ValueError(f"Accepted trace {trace_id} does not meet review score {minimum_score}.")
         gates = review.get("hard_gates") or {}
         failed = [gate for gate in REQUIRED_GATES if gates.get(gate) is not True]
         if failed:
@@ -136,7 +155,7 @@ def curate(
             raise ValueError(f"Accepted trace {trace_id} must select train or validation split.")
         candidate = candidates[trace_id]
         if _normalized(candidate["query"]) in holdout:
-            raise ValueError(f"Accepted trace {trace_id} overlaps the frozen evaluation holdout.")
+            raise ValueError(f"Accepted trace {trace_id} overlaps the testing questions.")
         accepted.append((candidate, review))
 
     prompts = [_normalized(candidate["query"]) for candidate, _ in accepted]
@@ -157,7 +176,7 @@ def curate(
     coverage = Counter(review["category"] for _, review in train_pairs)
     missing_coverage = {
         category: minimum - coverage[category]
-        for category, minimum in scope["coverage"].items()
+        for category, minimum in scope["minimum_per_category"].items()
         if coverage[category] < minimum
     }
     if missing_coverage:
@@ -192,10 +211,10 @@ def curate(
     provenance = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": "Application Insights AppGenAIContent",
-        "teacher_agent_version": scope["teacher_agent_version"],
-        "teacher_model": scope["teacher_model"],
+        "teacher_agent_version": teacher_version or scope["teacher_agent_version"],
+        "teacher_model": teacher_model or scope["teacher_model"],
         "student_base_model": scope["student_base_model"],
-        "evaluation_holdout": scope["evaluation_holdout"],
+        "never_train_on": scope["never_train_on"],
         "instruction_sha256": hashlib.sha256(system_prompt.encode("utf-8")).hexdigest(),
         "train_count": len(train_pairs),
         "validation_count": len(validation_pairs),
@@ -212,6 +231,7 @@ def main() -> None:
     transform_parser = subparsers.add_parser("transform")
     transform_parser.add_argument("--raw", type=Path, required=True)
     transform_parser.add_argument("--holdout", type=Path, required=True)
+    transform_parser.add_argument("--questions", type=Path, help="Keep only traces for these training questions.")
     transform_parser.add_argument("--candidates", type=Path, required=True)
     transform_parser.add_argument("--review", type=Path, required=True)
 
@@ -221,13 +241,15 @@ def main() -> None:
     curate_parser.add_argument("--holdout", type=Path, required=True)
     curate_parser.add_argument("--scope", type=Path, required=True)
     curate_parser.add_argument("--instructions", type=Path, required=True)
+    curate_parser.add_argument("--teacher-version", help="Agent version that wrote the answers (defaults to the review rules).")
+    curate_parser.add_argument("--teacher-model", help="Model behind the teacher version (defaults to the review rules).")
     curate_parser.add_argument("--train", type=Path, required=True)
     curate_parser.add_argument("--validation", type=Path, required=True)
     curate_parser.add_argument("--provenance", type=Path, required=True)
 
     args = parser.parse_args()
     if args.command == "transform":
-        candidates = transform(args.raw, args.holdout)
+        candidates = transform(args.raw, args.holdout, args.questions)
         _write_jsonl(args.candidates, candidates)
         _write_jsonl(args.review, review_template(candidates))
         print(f"Trace candidates: {len(candidates)}")
@@ -241,6 +263,8 @@ def main() -> None:
         args.holdout,
         args.scope,
         args.instructions,
+        args.teacher_version,
+        args.teacher_model,
     )
     _write_jsonl(args.train, train)
     _write_jsonl(args.validation, validation)
@@ -248,7 +272,7 @@ def main() -> None:
     args.provenance.write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
     print(f"Training examples: {len(train)}")
     print(f"Validation examples: {len(validation)}")
-    print("Frozen evaluation overlap: 0")
+    print("Testing-question overlap: 0")
     print(f"Provenance: {args.provenance}")
 
 

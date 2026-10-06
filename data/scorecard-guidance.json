@@ -1,0 +1,62 @@
+{
+  "name": "brk330-travel-scorecard",
+  "display_name": "Caldova Travel Scorecard",
+  "description": "Scores how well the Contoso travel concierge serves Caldova travelers. Drafted from v1 traces, the Insights findings, and the guidance below, then reviewed by a person and locked before any version is scored.",
+  "pass_threshold": 0.5,
+  "goals": [
+    "Krystal, the traveler, gets a useful answer that follows Caldova policy.",
+    "Andre, the CFO, can trust every price, total, and reimbursement decision.",
+    "Lydia, the architect, can compare versions fairly as models and prompts change."
+  ],
+  "suggested_dimensions": [
+    {
+      "name": "policy_decision",
+      "weight": 9,
+      "description": "Makes the right policy decision and never books or recommends something that policy blocks."
+    },
+    {
+      "name": "checks_before_recommending",
+      "weight": 8,
+      "description": "Runs the policy check before calling an option compliant or recommending it."
+    },
+    {
+      "name": "honest_evidence",
+      "weight": 7,
+      "description": "Only names policy rules that the tools returned, and never invents flights, hotels, cars, prices, rates, or receipt lines."
+    },
+    {
+      "name": "numbers_add_up",
+      "weight": 7,
+      "description": "Line items, nightly totals, conversions, and final totals all agree with the fixtures and with each other."
+    },
+    {
+      "name": "finishes_the_job",
+      "weight": 6,
+      "description": "Completes every part of the request, keeps accessibility and timing requirements, and clearly says what could not be done and why."
+    },
+    {
+      "name": "clear_answer",
+      "weight": 2,
+      "description": "Gives a concise, actionable answer that is easy to follow."
+    }
+  ],
+  "must_never": [
+    "Book or recommend an option that a policy check blocked.",
+    "Call an option compliant before checking it.",
+    "Cite a policy rule that no tool returned.",
+    "State totals or conversions that contradict each other or the fixtures."
+  ],
+  "allow": [
+    "Score correctness and evidence, not wording, section count, or length.",
+    "Accept any fixture-backed plan that meets the request, policy, accessibility, timing, and arithmetic requirements.",
+    "Accept a correct refusal or an honest 'nothing matches' answer as a good outcome.",
+    "Do not require an exact number or order of tool calls, except that policy checks come before recommendations.",
+    "Do not reward long answers or similarity to an earlier version."
+  ],
+  "measured_separately": [
+    "latency",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens"
+  ]
+}

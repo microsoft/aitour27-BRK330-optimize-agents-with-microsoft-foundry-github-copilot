@@ -23,7 +23,7 @@ The assignments follow the current [Microsoft Foundry RBAC guidance](https://lea
 
 - `infra/preflight.sh` checks presenter authentication, subscription, model catalog, and core prerequisites before resource creation.
 - `infra/deploy-supplemental.sh` resolves role IDs and deploys runtime assignments idempotently.
-- `infra/validate-deployment.sh` checks the agent, web health, web identity assignments, and trace ingestion.
+- `infra/03-check.sh` checks the five model deployments, the agent, web health, web identity assignments, and trace ingestion.
 - Fine-tuning and evaluation commands use the signed-in presenter identity and the scoped Foundry roles established by setup; preflight stops when required access is unavailable.
 
 Do not copy role GUIDs from the prototype. If a documented role cannot be resolved by name, setup stops rather than substituting a broader role silently.

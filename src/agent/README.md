@@ -6,8 +6,6 @@
 Request -> selected configuration -> model + deterministic tools -> response + trace
 ```
 
-[![Retained v1 and active Model Router v2 in Foundry](../../instructions/img/Model-Router-Agent-v2.png)](../../instructions/img/Model-Router-Agent-v2.png)
-
 ## Runtime
 
 - `main.py` loads the active immutable configuration with `azure.ai.agentserver.optimization.load_config`.
@@ -16,24 +14,17 @@ Request -> selected configuration -> model + deterministic tools -> response + t
 - `tools/` exposes deterministic catalog, receipt, policy, itinerary, and dry-run booking tools.
 - `fixtures/` is generated before packaging from the repository's canonical `data/fixtures/` and is not tracked.
 
-| Configuration | Version and use |
+| Configuration | Label and use |
 |---|---|
 | [`.agent_configs/baseline/`](.agent_configs/baseline/) | v1 with `gpt-5.4`. |
-| [`.agent_configs/model-router/`](.agent_configs/model-router/) | v2 with the same instructions and Model Router. |
-| [`.agent_configs/student/`](.agent_configs/student/) | Optional v3 fine-tuned student. |
-| [`.agent_configs/curated-student/`](.agent_configs/curated-student/) | Optional v4 curated-label student. |
-| [`.agent_configs/cand_opt_86d7c7531b21417ab4581f1266ea4c24_0002/`](.agent_configs/cand_opt_86d7c7531b21417ab4581f1266ea4c24_0002/) | Reviewed Agent Optimizer prompt candidate retained for inspection. |
+| [`.agent_configs/model-router/`](.agent_configs/model-router/) | v2: same instructions, Model Router picks the model. |
+| [`.agent_configs/student/`](.agent_configs/student/) | v2-alt: same instructions, fine-tuned `contoso-student`. |
+| `.agent_configs/<candidate-id>/` | v3: an optimizer candidate you downloaded with `infra/10-optimize.sh apply` and reviewed. |
 
-Agent entry points use stable reference IDs without renaming runtime files:
-
-| Ref | File | Purpose |
-|---:|---|---|
-| A01 | [`main.py`](main.py) | Hosted Agent runtime entry point. |
-| A02 | [`eval.yaml`](eval.yaml) | Baseline v1 evaluation and optimizer intent. |
-| A03 | [`eval-model-router-v2.yaml`](eval-model-router-v2.yaml) | Model Router v2 evaluation target. |
-| A04 | [`eval-student-v3.yaml`](eval-student-v3.yaml) | Trace-response student v3 evaluation target. |
-| A05 | [`eval-curated-student-v4.yaml`](eval-curated-student-v4.yaml) | Curated-response student v4 evaluation target. |
-| A06 | [`eval-optimizer-v5.yaml`](eval-optimizer-v5.yaml) | Optional post-session v5 evaluation target. |
+| File | Purpose |
+|---|---|
+| [`main.py`](main.py) | Hosted Agent runtime entry point. |
+| [`eval.yaml`](eval.yaml) | The one shared scoring setup: testing questions, `brk330-travel-scorecard`, and judge. Steps 07 and 10 copy it per version into ignored `.eval-*.yaml` files, changing only the version, model, and config (and, for the optimizer, the practice questions). |
 
 Required environment:
 
@@ -42,7 +33,7 @@ Required environment:
 | `FOUNDRY_PROJECT_ENDPOINT` | Foundry project endpoint used by `FoundryChatClient`. |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Consumed by the hosted runtime's built-in telemetry integration. |
 | `OPTIMIZATION_LOCAL_DIR` | Local optimization config directory; defaults to `.agent_configs`. |
-| `OPTIMIZATION_CANDIDATE_ID` | Named immutable config folder: `baseline` for v1, `model-router` for v2, or an explicitly reviewed applied candidate. |
+| `OPTIMIZATION_CANDIDATE_ID` | Config folder for this version: `baseline` (v1), `model-router` (v2), `student` (v2-alt), or a reviewed candidate ID (v3). |
 | `FOUNDRY_AGENT_VERSION` | Platform-provided immutable agent version when hosted. |
 
 azd supplies these values during deployment. Do not store project endpoints, connection strings, credentials, or tokens in repository files.
@@ -52,17 +43,16 @@ azd supplies these values during deployment. Do not store project endpoints, con
 From the repository root, run the internal local check directly when diagnosing code or fixture changes:
 
 ```bash
-bash infra/validate-local.sh
+bash infra/01-validate.sh
 ```
 
-For a fresh cloud deployment, use `bash infra/setup.sh`; it runs this check and Azure preflight automatically. Do not run this service against the protected prototype resource group.
+For a fresh cloud deployment, use `bash infra/02-setup.sh`; it runs this check and Azure preflight automatically. Do not run this service against the protected prototype resource group.
 
 ## Cloud smoke payload
 
-After `infra/setup.sh` completes, verify the deployed agent with the deterministic policy-block case:
+After `infra/02-setup.sh` completes, verify the deployed agent with the deterministic policy-block case:
 
 ```bash
-azd env select "$BRK330_ENVIRONMENT"
 (
 	cd src/agent
 	azd ai agent invoke \
@@ -76,4 +66,4 @@ Expected evidence:
 - the invocation completes without a platform error;
 - the agent refuses the bypass request;
 - the response attributes the hard gate to `CT-11`;
-- the active immutable agent version remains v1 for the baseline.
+- the portal is still using v1.

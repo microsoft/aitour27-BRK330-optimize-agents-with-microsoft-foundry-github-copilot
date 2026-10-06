@@ -1,84 +1,89 @@
 # Infrastructure
 
-> **Which script should I run next, and what will it change?**
->
-> Think of this folder as the workshop floor: first check your tools, then inspect the Azure site, build the environment, verify it, change one lever, and clean up when finished.
+> **Which script do I run next, and what will it change?** The scripts are numbered in the order you use them. Each one prints `--help`, tells you what to run next, and can be run again safely.
 
 ```text
-03 Build v1 (includes local validation and Azure preflight)
-	-> 04 Validate
-	-> 05 Model Router v2
-	-> 08 Agent Optimizer
-	-> 10 Teardown
-
-Optional references: 06 trace-trained student, 07 curated-label student,
-										 09 reviewed candidate promotion
+Make it work                01 validate -> 02 setup -> 03 check
+Understand where it struggles   04 run questions -> 05 insights
+Make it better              06 scorecard -> 07 score v1
+                            08 model router (v2)   -> 07 score v2
+                            09 fine-tune (v2-alt)  -> 07 score v2-alt
+Make it scale               10 optimize -> 11 promote (v3) -> 07 score v3 -> 07 compare
+Clean up                    12 teardown
 ```
 
-## Ownership
+## Scripts
 
-- The `microsoft.foundry` azd provider creates the Foundry account/project, model deployments, Hosted Agent build resources, Container Registry, Application Insights, and provider-managed identities/RBAC.
-- [`supplemental.bicep`](supplemental.bicep) reuses those resources and adds only the FastAPI Container Apps environment, web user-assigned identity, and missing least-privilege assignments.
-- See [`rbac-matrix.md`](rbac-matrix.md) for the capability-to-role contract.
+| Step | Script | Changes in Azure | What it does |
+|---:|---|---|---|
+| 01 | [`01-validate.sh`](01-validate.sh) | Nothing | Checks fixtures, the three question sets, the scorecard inputs, tests, and templates. Setup runs it for you. |
+| 02 | [`02-setup.sh`](02-setup.sh) | Creates billable resources | Signs you in if needed, proposes your subscription and `eastus2`, checks quota, then builds everything: five model deployments, Hosted Agent v1, monitoring, and the portal. |
+| 03 | [`03-check.sh`](03-check.sh) | Nothing (reads only) | Confirms the five models, the agent, the portal, permissions, and traces are all healthy. |
+| 04 | [`04-run-questions.sh`](04-run-questions.sh) | Billable model calls | Asks one version a whole question set (default: v1, exploring set, 3 times each) so its traces are ready to study. |
+| 05 | [`05-insights.sh`](05-insights.sh) | Billable analysis | Runs Agent Insights over recent traces with `insights-judge` and saves the findings. |
+| 06 | [`06-scorecard.sh`](06-scorecard.sh) | Uploads datasets; billable draft | Drafts the scorecard from v1's traces, the agent, the exploring questions, and the Insights findings. Reuses it if it exists. |
+| 07 | [`07-score.sh`](07-score.sh) | Billable scoring in `run`; reads only in `compare` | Scores one version on the 24 testing questions, or prints the comparison table. |
+| 08 | [`08-model-router.sh`](08-model-router.sh) | New agent version; `--mode quality` also adds a model deployment | Builds v2: same instructions, Model Router picks the model (Balanced). `--mode quality` builds v2-quality on a Quality-mode router. |
+| 09 | [`09-fine-tune.sh`](09-fine-tune.sh) | Billable job, model deployment, new agent version | Builds a smaller model taught from a teacher's reviewed answers: v2-alt from v1 (default), or v3-student with `--teacher-label v3`. |
+| 10 | [`10-optimize.sh`](10-optimize.sh) | Billable optimizer job | Lets Agent Optimizer propose three instruction changes from the version you pick, using practice questions only. |
+| 11 | [`11-promote.sh`](11-promote.sh) | New agent version; `go-live` switches the portal | Turns a reviewed candidate into v3, optionally runs v3's instructions on Model Router as v3-router (`router`), or switches the portal to the version you choose. |
+| 12 | [`12-teardown.sh`](12-teardown.sh) | Deletes the environment | Asks twice, then deletes and purges the generated resource group. |
 
-## Commands
+Helpers you do not run directly:
 
-Use the step number when referring to a script in slides, recordings, or issue discussions. Filenames remain unchanged because scripts call each other by name.
+- [`_common.sh`](_common.sh) holds the shared sign-in check, safety checks, and version labels.
+- [`preflight.sh`](preflight.sh) checks the region, model versions, and quota. Setup calls it.
+- [`deploy-supplemental.sh`](deploy-supplemental.sh) and [`supplemental.bicep`](supplemental.bicep) add the portal and the permissions the provider does not create.
+- [`switch-agent-version.py`](switch-agent-version.py) shows or changes which version the portal uses.
 
-| Step | Act | Script | Cloud side effects | Purpose |
-|---:|---|---|---|---|
-| — | Internal check | [`validate-local.sh`](validate-local.sh) | None | Run fixture, syntax, manifest, Bicep, and test checks. Setup calls this automatically. |
-| — | Internal check | [`preflight.sh`](preflight.sh) | None | Check clients, authentication, selected subscription/region, model availability, and quota. Setup calls this automatically. |
-| 03 | Foundation | [`setup.sh`](setup.sh) | Creates billable resources | Validate, authenticate, confirm the Azure target, run preflight, and build the isolated Foundry, monitoring, registry, web, and v1 agent environment. Deploys `gpt-5.4` capacity 200, `gpt-5.4-mini` capacity 150, and `gpt-4.1-mini` capacity 100. |
-| 04 | Foundation | [`validate-deployment.sh`](validate-deployment.sh) | Read-only Azure queries | Verify the active Hosted Agent, web health, roles, and telemetry. |
-| 05 | Make it better | [`deploy-model-router-v2.sh`](deploy-model-router-v2.sh) | Creates/updates a billable model deployment and Hosted Agent v2 | Provision Model Router with quota headroom, deploy and activate immutable v2, refresh RBAC, and smoke-test. |
-| 06 | Fine-tuning reference | [`trace-finetune-v3.sh`](trace-finetune-v3.sh) | Read-only in harvest/status; billable in generate/submit/deploy/agent-v3 | Build a reviewed trace-derived SFT dataset, fine-tune/deploy `contoso-student`, and activate immutable v3. |
-| 07 | Fine-tuning reference | [`curated-finetune-v4.sh`](curated-finetune-v4.sh) | Local-only in prepare; billable in submit/deploy/agent-v4 | Validate gold responses, fine-tune/deploy `contoso-curated-student`, and activate immutable v4. |
-| 08 | Make it scale | [`optimize-v5.sh`](optimize-v5.sh) | Billable optimizer submission; status is read-only | Submit/reuse three optimizer candidates from v2 and stop for human review before apply/deploy. |
-| 09 | Optional promotion | [`deploy-optimizer-v5.sh`](deploy-optimizer-v5.sh) | Creates immutable Hosted Agent v5 and changes endpoint routing | Post-session reference for deploying an authorized, reviewed local candidate through normal azd. |
-| 10 | Cleanup | [`teardown.sh`](teardown.sh) | Deletes generated environment | Guard, delete, purge, and verify cleanup. |
+## Version labels
 
-Reusable utility: [`switch-agent-version.py`](switch-agent-version.py) (`U01`) inspects a retained immutable version and changes endpoint routing only when `--apply` is supplied. Internal helper [`deploy-supplemental.sh`](deploy-supplemental.sh) is called by the numbered deployment scripts and is not a learner step.
+Every change creates a new, unchangeable agent version. The scripts remember which version is which in the azd environment, so you only need to remember the labels.
 
-Generated environments use `rg-aitour-brk330-NNNNNN`. Every destructive command refuses the protected prototype resource group `rg-brk330-concierge`.
+| Label | What changed | Built by | Model |
+|---|---|---|---|
+| v1 | Starting point | 02 | `gpt-5.4` |
+| v2 | Model choice | 08 | `model-router` (Balanced routing) |
+| v2-quality | Model choice, Quality routing | 08 `--mode quality` | `model-router-quality` (Quality routing, capacity 300) |
+| v2-alt | Smaller trained model | 09 | `contoso-student` (fine-tuned `gpt-4.1-mini`) |
+| v3 | Instructions, proposed by the optimizer and reviewed by you | 11 | The model of the version you optimized |
+| v3-router | v3's instructions on Model Router (optional) | 11 `router` | `model-router` (Balanced) |
+| v3-student | v3's instructions on a model fine-tuned from v3's answers (optional) | 09 `--teacher-label v3` | `contoso-student-v3` (fine-tuned `gpt-4.1-mini`) |
 
-Run setup without arguments to review and edit its proposed subscription and location before resource creation. Flags are available for automation. After setup prints the generated environment name, set `BRK330_ENVIRONMENT` for later stages:
+v2 and v2-alt both start from v1 and change one thing each. Only `go-live` (or `--activate`) changes what the portal uses.
+
+## Models and capacity
+
+Setup deploys every model the session needs, so nobody waits on a manual deployment later.
+
+| Deployment | Model | Capacity (thousand tokens per minute) | Used for |
+|---|---|---:|---|
+| `gpt-5.4` | `gpt-5.4` 2026-03-05 | 300 | v1, the optimizer's reasoning |
+| `gpt-5.4-mini` | `gpt-5.4-mini` 2026-03-17 | 300 | Scorecard judge |
+| `gpt-4.1-mini` | `gpt-4.1-mini` 2025-04-14 | 100 | Base for fine-tuning |
+| `model-router` | `model-router` 2025-11-18 | 300 | v2 |
+| `insights-judge` | `gpt-5.6-sol` 2026-07-09 | 500 | Agent Insights (reads every trace in the window, so it needs headroom) |
+
+The fine-tuned `contoso-student` is deployed by step 09 on Developer tier. Preflight refuses to start if any core model lacks the quota above.
+
+## Getting started
 
 ```bash
-bash infra/setup.sh \
-	--subscription "<subscription-name-or-id>" \
-	--location "<azure-region>" \
-	--yes
-export BRK330_ENVIRONMENT="brk330-NNNNNN"
+bash infra/02-setup.sh
 ```
 
-## Deployment order
+Press Enter to keep the proposed subscription and `eastus2`, then confirm. For automation:
 
-1. Dev-container post-create installs declared dependencies and Foundry tooling.
-2. Step 03 runs local validation, checks authentication, proposes the active subscription and `swedencentral`, and confirms the target before resource creation.
-3. It checks live capability without creating resources, then provisions the Foundry project and models.
-4. It deploys monitoring and early RBAC assignments without portal resources.
-5. It starts the Container Apps environment asynchronously and deploys or reuses baseline Hosted Agent v1 while that Azure operation runs.
-6. It waits for the portal infrastructure, reapplies identity-dependent RBAC, deploys FastAPI, and verifies the environment.
-7. Step 04 validates the deployment and curated scenarios.
-8. After accepting the v1 four-case rubric result, step 05 changes only the model strategy.
-9. Step 08 generates optimizer candidates from the retained v2 baseline.
-10. Step 10 removes the generated environment when the session is finished.
+```bash
+bash infra/02-setup.sh --subscription "<subscription-name-or-id>" --location eastus2 --yes
+```
 
-## Model Router stage
+Every later script uses the selected azd environment. Pass `--environment brk330-NNNNNN` if you work with more than one.
 
-Model Router is intentionally not part of the baseline `setup.sh` path. The stage script deploys `model-router` version `2025-11-18` as Global Standard capacity 200 through [`model-router.bicep`](model-router.bicep). Before deployment it requires enough unallocated quota for any additional capacity plus a 40-unit reserve.
+## Safety
 
-The script is resumable: environment metadata records v2 after a successful agent deploy, so a rerun reuses v2 instead of creating v3. It never deletes resources and refuses any resource group outside `rg-aitour-brk330-NNNNNN`.
+- Generated environments use `rg-aitour-brk330-NNNNNN`. Every script refuses other resource groups and always refuses `rg-brk330-concierge`.
+- Nothing deletes agent versions, jobs, datasets, or traces except step 12.
+- Private outputs (answers, traces, review sheets, job IDs, scores) stay under the ignored `.azure/<environment>/` folder.
 
-## Trace-driven fine-tuning stage
-
-[`trace-finetune-v3.sh`](trace-finetune-v3.sh) separates trace generation, harvest, human curation, training, model deployment, and agent deployment. Volatile trace content and training files remain under ignored `.azure/<environment>/training-v3/`; committed files contain only the training-only seed prompts, curation code, schemas, and instructions needed to reproduce the workflow.
-
-Every phase is resumable and refuses `rg-brk330-concierge`. The script never deletes jobs, deployments, agents, traces, or datasets.
-
-The curated-response stage keeps the v3 base model, method, seed, epochs, instruction hash, 20/4 split, deployment tier, and four-case rubric evaluation unchanged. Only the response labels change, so we can see whether better examples improve the student.
-
-## Optional v5 promotion
-
-Step 09 requires the retained v1-v4 deployment history and the reviewed candidate files produced by Agent Optimizer. It is not part of the live breakout and cannot be run directly after only a fresh v1/v2 rebuild.
+See [`rbac-matrix.md`](rbac-matrix.md) for who needs which role and why.

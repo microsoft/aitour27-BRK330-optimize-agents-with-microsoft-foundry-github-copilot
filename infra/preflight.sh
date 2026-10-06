@@ -130,34 +130,40 @@ required = {
     "version": "2026-03-05",
     "sku": "GlobalStandard",
     "quota": "OpenAI.GlobalStandard.gpt-5.4",
-    "minimum_remaining": 10,
+    "minimum_remaining": 300,
   },
   "gpt-5.4-mini": {
     "version": "2026-03-17",
     "sku": "GlobalStandard",
     "quota": "OpenAI.GlobalStandard.gpt-5.4-mini",
-    "minimum_remaining": 150,
+    "minimum_remaining": 300,
   },
-}
-advanced = {
-  "insights-judge": {
-    "catalog_name": "gpt-5.6-sol",
-    "version": "2026-07-09",
+  "gpt-4.1-mini": {
+    "version": "2025-04-14",
     "sku": "GlobalStandard",
-    "quota": "OpenAI.GlobalStandard.gpt-5.6-sol",
+    "quota": "OpenAI.GlobalStandard.gpt4.1-mini",
     "minimum_remaining": 100,
   },
   "model-router": {
     "version": "2025-11-18",
     "sku": "GlobalStandard",
     "quota": "OpenAI.GlobalStandard.ModelRouter",
-    "minimum_remaining": 240,
+    "minimum_remaining": 300,
   },
-  "gpt-4.1-mini-student": {
+  "insights-judge": {
+    "catalog_name": "gpt-5.6-sol",
+    "version": "2026-07-09",
+    "sku": "GlobalStandard",
+    "quota": "OpenAI.GlobalStandard.gpt-5.6-sol",
+    "minimum_remaining": 500,
+  },
+}
+advanced = {
+  "gpt-4.1-mini-fine-tuning": {
     "catalog_name": "gpt-4.1-mini",
     "version": "2025-04-14",
     "sku": "GlobalStandard",
-    "capability": "fineTune",
+    "capability": "globalFineTune",
     "quota": "OpenAI.GlobalStandard.gpt4.1-mini-finetune",
     "minimum_remaining": 10,
   },

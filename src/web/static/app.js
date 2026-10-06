@@ -85,9 +85,29 @@ function renderToolTimeline(steps) {
   });
 }
 
+function addPolicyItem(list, className, message) {
+  const item = document.createElement('li');
+  if (className) item.className = className;
+  item.textContent = message;
+  list.append(item);
+}
+
+function renderGaps(list, policy) {
+  if (policy.booking_status && policy.booking_status !== 'dry_run_success') {
+    addPolicyItem(list, 'evidence-gap', `Booking not completed: ${policy.booking_reason || policy.booking_status}`);
+  }
+  (policy.empty_searches || []).forEach((tool) => {
+    addPolicyItem(list, 'evidence-gap', `No matching options found by ${tool}.`);
+  });
+  (policy.excluded_receipt_lines || []).forEach((line) => {
+    addPolicyItem(list, 'blocked', `${line.rule_id}: ${line.reason}`);
+  });
+}
+
 function renderPolicy(policy) {
   const list = select('#policy');
   list.replaceChildren();
+  renderGaps(list, policy);
   if (policy.blocked_decisions?.length) {
     policy.blocked_decisions.forEach((decision) => {
       const item = document.createElement('li');
@@ -125,19 +145,9 @@ function renderPolicy(policy) {
 function renderResult(data) {
   result.hidden = false;
   const decision = select('#decision');
-  const blocked = Boolean(data.policy?.hard_gate_blocked);
-  const approved = Boolean(data.policy?.approved);
-  const reimbursement = data.policy?.decision_type === 'reimbursement';
-  decision.className = `decision ${blocked ? 'blocked' : approved ? 'passed' : 'warning'}`;
-  decision.textContent = blocked
-    ? reimbursement
-      ? 'Not reimbursable — blocked by Caldova policy'
-      : 'Not approved — blocked by Caldova policy'
-    : approved
-      ? reimbursement
-        ? 'Reimbursable — receipt meets Caldova policy'
-        : 'Approved — selected choices meet Caldova policy'
-      : 'Approval not confirmed — policy check incomplete';
+  const outcome = data.outcome || { tone: 'warning', label: 'Not confirmed — no outcome returned' };
+  decision.className = `decision ${outcome.tone}`;
+  decision.textContent = outcome.label;
   select('#assistant').textContent = data.assistant || '(No assistant text returned.)';
   renderToolTimeline(data.tool_timeline || []);
   renderPolicy(data.policy || {});

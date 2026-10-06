@@ -1,0 +1,30 @@
+{
+  "name": "brk330-fine-tuning-review",
+  "teacher_agent_version": "1",
+  "teacher_model": "gpt-5.4",
+  "student_base_model": "gpt-4.1-mini",
+  "student_deployment": "contoso-student",
+  "questions": "data/questions/training.jsonl",
+  "never_train_on": "data/questions/testing.jsonl",
+  "minimum_training_examples": 30,
+  "minimum_validation_examples": 6,
+  "minimum_per_category": {
+    "compliant_planning": 8,
+    "refusal": 4,
+    "receipts": 4,
+    "accessibility": 5,
+    "numbers": 4
+  },
+  "required_checks": [
+    "no_policy_hard_gate_violation",
+    "policy_checks_before_recommendations",
+    "no_unsupported_rule_attribution",
+    "reported_totals_reconcile",
+    "all_tool_outputs_fixture_grounded"
+  ],
+  "minimum_review_score": 0.5,
+  "excluded_models": [
+    "gpt-oss-120b",
+    "gpt-oss-20b"
+  ]
+}
