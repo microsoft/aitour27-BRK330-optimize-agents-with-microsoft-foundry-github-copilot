@@ -6,19 +6,21 @@ usage() {
   cat <<'EOF'
 Run read-only BRK330 Azure and toolchain readiness checks.
 
-Usage: infra/preflight.sh [--subscription NAME_OR_ID] [--location REGION] [--output FILE]
+Usage: infra/preflight.sh [--subscription NAME_OR_ID] [--location REGION] [--output FILE] [--verbose]
 
 Set BRK330_SUBSCRIPTION and BRK330_LOCATION before running. Command-line flags
 override those values when supplied.
 
 The command creates no Azure resources. It exits nonzero when a core prerequisite
-is missing and records optional advanced capability findings separately.
+is missing and records optional advanced capability findings separately. By
+default it prints only READY or NOT READY; --verbose prints the redacted report.
 EOF
 }
 
 subscription="${BRK330_SUBSCRIPTION:-}"
 location="${BRK330_LOCATION:-}"
 output=""
+verbose=false
 
 # -----------------------------------------------------------------------------
 # Resolve the learner-selected Azure target; explicit flags override environment values.
@@ -27,6 +29,7 @@ while [[ $# -gt 0 ]]; do
     --subscription) subscription="$2"; shift 2 ;;
     --location) location="$2"; shift 2 ;;
     --output) output="$2"; shift 2 ;;
+    --verbose) verbose=true; shift ;;
     --help|-h) usage; exit 0 ;;
     *) printf 'Unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
@@ -65,7 +68,7 @@ trap 'rm -f "$catalog_file" "$usage_file"' EXIT
 arm_base="https://management.azure.com/subscriptions/$subscription_id/providers/Microsoft.CognitiveServices/locations/$location"
 az rest --method get --url "$arm_base/models?api-version=2025-06-01" --query value -o json > "$catalog_file"
 az rest --method get --url "$arm_base/usages?api-version=2025-06-01" --query value -o json > "$usage_file"
-python3 - "$output" "$subscription_id" "$subscription_name" "$principal_id" "$location" "$catalog_file" "$usage_file" <<'PY'
+if python3 - "$output" "$subscription_id" "$subscription_name" "$principal_id" "$location" "$catalog_file" "$usage_file" "$verbose" <<'PY'
 import json
 import sys
 from datetime import datetime, timezone
@@ -133,7 +136,7 @@ required = {
     "version": "2026-03-17",
     "sku": "GlobalStandard",
     "quota": "OpenAI.GlobalStandard.gpt-5.4-mini",
-    "minimum_remaining": 200,
+    "minimum_remaining": 150,
   },
 }
 advanced = {
@@ -243,7 +246,8 @@ public_report = {
   "subscription_name": "<redacted>",
   "principal_id": "<redacted>",
 }
-print(json.dumps(public_report, indent=2))
+if sys.argv[8] == "true":
+  print(json.dumps(public_report, indent=2))
 
 # -----------------------------------------------------------------------------
 # Write the full private report only when the learner explicitly requests a file.
@@ -253,5 +257,13 @@ if sys.argv[1]:
 if missing:
   raise SystemExit(5)
 PY
-
-printf 'Preflight passed in %s.\n' "$location"
+then
+  printf 'Preflight: READY in %s.\n' "$location"
+else
+  status=$?
+  printf 'Preflight: NOT READY in %s.\n' "$location" >&2
+  if [[ -n "$output" && -s "$output" ]]; then
+    printf 'Details: %s\n' "$output" >&2
+  fi
+  exit "$status"
+fi

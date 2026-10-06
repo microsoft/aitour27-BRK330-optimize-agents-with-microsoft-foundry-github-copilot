@@ -5,18 +5,51 @@ usage() {
   cat <<'EOF'
 Run all non-cloud BRK330 validation checks.
 
-Usage: infra/validate-local.sh
+Usage: infra/validate-local.sh [--verbose]
 
 Requires the supported dev container and completed post-create setup. The command
 reads repository files, compiles code/templates, and runs tests. It creates no
-Azure resources and does not authenticate.
+Azure resources and does not authenticate. Successful check output is hidden by
+default; --verbose shows it.
 EOF
 }
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  usage
-  exit 0
-fi
+verbose=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verbose) verbose=true; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) printf 'Unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+validation_log="$(mktemp)"
+bicep_output_dir=""
+cleanup() {
+  rm -f "$validation_log"
+  [[ -z "$bicep_output_dir" ]] || rm -rf "$bicep_output_dir"
+}
+report_failure() {
+  status=$?
+  trap - ERR
+  printf 'Local validation: NOT READY.\n' >&2
+  exit "$status"
+}
+run_check() {
+  if [[ "$verbose" == true ]]; then
+    "$@"
+    return
+  fi
+  if "$@" >"$validation_log" 2>&1; then
+    return
+  else
+    status=$?
+  fi
+  cat "$validation_log" >&2
+  return "$status"
+}
+trap cleanup EXIT
+trap report_failure ERR
 
 # -----------------------------------------------------------------------------
 # Resolve the repository Python environment before running any checks.
@@ -30,19 +63,20 @@ else
 fi
 if [[ "$python_available" != true ]]; then
   printf 'Python environment not found at %s. Rebuild the container or run post-create.\n' "$python_bin" >&2
+  printf 'Local validation: NOT READY.\n' >&2
   exit 2
 fi
 
 # -----------------------------------------------------------------------------
 # Validate deterministic fixtures and the frozen local evaluation contract.
-"$python_bin" src/scripts/validate_fixtures.py
-"$python_bin" src/scripts/setup_lightweight_evaluation.py >/dev/null
+run_check "$python_bin" src/scripts/validate_fixtures.py
+run_check "$python_bin" src/scripts/setup_lightweight_evaluation.py
 
 # -----------------------------------------------------------------------------
 # Compile source, run focused agent/web tests, and parse browser JavaScript.
-"$python_bin" -m compileall -q src infra/switch-agent-version.py
-"$python_bin" -m pytest -q src/agent/tests src/web/tests
-node --check src/web/static/app.js
+run_check "$python_bin" -m compileall -q src infra/switch-agent-version.py
+run_check "$python_bin" -m pytest -q src/agent/tests src/web/tests
+run_check node --check src/web/static/app.js
 
 # -----------------------------------------------------------------------------
 # Parse standalone JSON configuration files.
@@ -79,7 +113,7 @@ deployments = {
   for deployment in manifest["services"]["ai-project"]["deployments"]
 }
 assert deployments["gpt-5.4"]["sku"]["capacity"] == 200
-assert deployments["gpt-5.4-mini"]["sku"]["capacity"] == 200
+assert deployments["gpt-5.4-mini"]["sku"]["capacity"] == 150
 assert deployments["gpt-4.1-mini"]["sku"]["capacity"] == 100
 candidate_selector = manifest["services"]["contoso-travel"]["env"]["OPTIMIZATION_CANDIDATE_ID"]
 assert candidate_selector == "${CONTOSO_CONFIGURATION}"
@@ -133,7 +167,6 @@ done
 # -----------------------------------------------------------------------------
 # Compile every Bicep template into a temporary directory.
 bicep_output_dir="$(mktemp -d)"
-trap 'rm -rf "$bicep_output_dir"' EXIT
 for template in infra/*.bicep; do
   output="$bicep_output_dir/$(basename "${template%.bicep}").json"
   if command -v az >/dev/null 2>&1; then
@@ -144,7 +177,8 @@ for template in infra/*.bicep; do
     /tmp/bicep build "$template" --outfile "$output" >/dev/null
   else
     printf 'Bicep CLI not found. Rebuild the dev container before retrying.\n' >&2
+    printf 'Local validation: NOT READY.\n' >&2
     exit 3
   fi
 done
-printf 'Local validation passed.\n'
+printf 'Local validation: READY.\n'

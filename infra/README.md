@@ -5,9 +5,7 @@
 > Think of this folder as the workshop floor: first check your tools, then inspect the Azure site, build the environment, verify it, change one lever, and clean up when finished.
 
 ```text
-01 Local check
-	-> 02 Azure preflight
-	-> 03 Build v1
+03 Build v1 (includes local validation and Azure preflight)
 	-> 04 Validate
 	-> 05 Model Router v2
 	-> 08 Agent Optimizer
@@ -29,9 +27,9 @@ Use the step number when referring to a script in slides, recordings, or issue d
 
 | Step | Act | Script | Cloud side effects | Purpose |
 |---:|---|---|---|---|
-| 01 | Foundation | [`validate-local.sh`](validate-local.sh) | None | Run fixture, syntax, manifest, Bicep, and test checks. |
-| 02 | Foundation | [`preflight.sh`](preflight.sh) | None | Check clients, authentication, learner-selected subscription/region, model availability, and quota. |
-| 03 | Foundation | [`setup.sh`](setup.sh) | Creates billable resources | Build the isolated Foundry, monitoring, registry, web, and v1 agent environment. Deploys `gpt-5.4` capacity 200, `gpt-5.4-mini` capacity 200, and `gpt-4.1-mini` capacity 100. |
+| — | Internal check | [`validate-local.sh`](validate-local.sh) | None | Run fixture, syntax, manifest, Bicep, and test checks. Setup calls this automatically. |
+| — | Internal check | [`preflight.sh`](preflight.sh) | None | Check clients, authentication, selected subscription/region, model availability, and quota. Setup calls this automatically. |
+| 03 | Foundation | [`setup.sh`](setup.sh) | Creates billable resources | Validate, authenticate, confirm the Azure target, run preflight, and build the isolated Foundry, monitoring, registry, web, and v1 agent environment. Deploys `gpt-5.4` capacity 200, `gpt-5.4-mini` capacity 150, and `gpt-4.1-mini` capacity 100. |
 | 04 | Foundation | [`validate-deployment.sh`](validate-deployment.sh) | Read-only Azure queries | Verify the active Hosted Agent, web health, roles, and telemetry. |
 | 05 | Make it better | [`deploy-model-router-v2.sh`](deploy-model-router-v2.sh) | Creates/updates a billable model deployment and Hosted Agent v2 | Provision Model Router with quota headroom, deploy and activate immutable v2, refresh RBAC, and smoke-test. |
 | 06 | Fine-tuning reference | [`trace-finetune-v3.sh`](trace-finetune-v3.sh) | Read-only in harvest/status; billable in generate/submit/deploy/agent-v3 | Build a reviewed trace-derived SFT dataset, fine-tune/deploy `contoso-student`, and activate immutable v3. |
@@ -44,28 +42,28 @@ Reusable utility: [`switch-agent-version.py`](switch-agent-version.py) (`U01`) i
 
 Generated environments use `rg-aitour-brk330-NNNNNN`. Every destructive command refuses the protected prototype resource group `rg-brk330-concierge`.
 
-Set the learner-owned Azure target before steps 02 and 03. After setup prints the generated environment name, set `BRK330_ENVIRONMENT` for later stages:
+Run setup without arguments to review and edit its proposed subscription and location before resource creation. Flags are available for automation. After setup prints the generated environment name, set `BRK330_ENVIRONMENT` for later stages:
 
 ```bash
-export BRK330_SUBSCRIPTION="<subscription-name-or-id>"
-export BRK330_LOCATION="<azure-region>"
+bash infra/setup.sh \
+	--subscription "<subscription-name-or-id>" \
+	--location "<azure-region>" \
+	--yes
 export BRK330_ENVIRONMENT="brk330-NNNNNN"
 ```
 
 ## Deployment order
 
 1. Dev-container post-create installs declared dependencies and Foundry tooling.
-2. Authenticate with `az login --use-device-code` and `azd auth login`.
-3. Step 02 checks live capability without creating resources.
-4. Step 03 provisions the Foundry project, models, registry, and monitoring resources.
-5. It deploys supplemental monitoring, a web placeholder, and early RBAC assignments.
-6. It deploys or reuses the baseline v1 Hosted Agent.
-7. It reapplies RBAC that depends on the immutable agent identity.
-8. It deploys the FastAPI portal and reapplies the final supplemental configuration.
-9. Step 04 validates the deployment and curated scenarios.
-10. After accepting the v1 four-case rubric result, step 05 changes only the model strategy.
-11. Step 08 generates optimizer candidates from the retained v2 baseline.
-12. Step 10 removes the generated environment when the session is finished.
+2. Step 03 runs local validation, checks authentication, proposes the active subscription and `swedencentral`, and confirms the target before resource creation.
+3. It checks live capability without creating resources, then provisions the Foundry project and models.
+4. It deploys monitoring and early RBAC assignments without portal resources.
+5. It starts the Container Apps environment asynchronously and deploys or reuses baseline Hosted Agent v1 while that Azure operation runs.
+6. It waits for the portal infrastructure, reapplies identity-dependent RBAC, deploys FastAPI, and verifies the environment.
+7. Step 04 validates the deployment and curated scenarios.
+8. After accepting the v1 four-case rubric result, step 05 changes only the model strategy.
+9. Step 08 generates optimizer candidates from the retained v2 baseline.
+10. Step 10 removes the generated environment when the session is finished.
 
 ## Model Router stage
 

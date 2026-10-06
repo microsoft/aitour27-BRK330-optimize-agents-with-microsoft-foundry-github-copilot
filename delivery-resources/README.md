@@ -74,13 +74,13 @@ project_endpoint="$(azd env get-value FOUNDRY_PROJECT_ENDPOINT)"
   --apply
 ```
 
-For a clean rebuild, export `BRK330_SUBSCRIPTION` and `BRK330_LOCATION`, run numbered infrastructure [Step 10](../infra/README.md) only with both confirmations, then run [Step 03](../infra/README.md). Set `BRK330_ENVIRONMENT` to the new environment name printed by setup.
+For a clean rebuild, run numbered infrastructure [Step 10](../infra/README.md) only with both confirmations, then run [Step 03](../infra/README.md). Review the proposed subscription and region before confirming setup, then set `BRK330_ENVIRONMENT` to the new environment name it prints.
 
 After recordings are published, use the reviewed recording when preview access, quota, or cloud latency prevents a live segment. Until then, use the committed sanitized screenshots and [measured scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md). Preserve v1-v4 and optimizer provenance; do not delete or recreate versions on stage.
 
 ## Setup notes
 
-- Run numbered infrastructure [Step 02](../infra/README.md) in the learner-selected subscription and region.
+- Run numbered infrastructure [Step 03](../infra/README.md) and confirm the learner-selected subscription and region.
 - Keep Model Router v2 as the Agent Optimizer baseline.
 - Open a new session after endpoint routing changes.
 - Complete the readiness checklist before recording and publication.

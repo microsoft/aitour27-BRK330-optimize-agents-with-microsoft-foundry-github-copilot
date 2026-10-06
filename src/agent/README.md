@@ -49,13 +49,13 @@ azd supplies these values during deployment. Do not store project endpoints, con
 
 ## Local checks
 
-From the repository root, run numbered infrastructure Step 01:
+From the repository root, run the internal local check directly when diagnosing code or fixture changes:
 
 ```bash
 bash infra/validate-local.sh
 ```
 
-Use the repository preflight and setup commands for authenticated local invocation and cloud deployment. Do not run this service against the protected prototype resource group.
+For a fresh cloud deployment, use `bash infra/setup.sh`; it runs this check and Azure preflight automatically. Do not run this service against the protected prototype resource group.
 
 ## Cloud smoke payload
 

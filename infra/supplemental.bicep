@@ -48,6 +48,9 @@ param webImage string = 'mcr.microsoft.com/k8se/quickstart:latest'
 @description('Configure the web app to pull from the private registry after RBAC exists.')
 param configureRegistry bool = false
 
+@description('Deploy the portal registry, identity, Container Apps environment, and web app.')
+param deployWebResources bool = true
+
 var suffix = toLower(uniqueString(subscription().id, resourceGroup().id, environmentName))
 var registryName = 'acrbrk330${suffix}'
 var placeholderImage = 'mcr.microsoft.com/k8se/quickstart:latest'
@@ -91,7 +94,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource registry 'Microsoft.ContainerRegistry/registries@2025-11-01' = {
+resource registry 'Microsoft.ContainerRegistry/registries@2025-11-01' = if (deployWebResources) {
   name: registryName
   location: location
   tags: tags
@@ -126,17 +129,17 @@ resource projectInsightsConnection 'Microsoft.CognitiveServices/accounts/project
   }
 }
 
-resource webIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource webIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (deployWebResources) {
   name: 'id-brk330-web-${suffix}'
   location: location
   tags: tags
 }
 
-resource webRegistryReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource webRegistryReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployWebResources) {
   scope: registry
-  name: guid(registry.id, webIdentity.id, acrPullRoleId)
+  name: guid(registry.id, webIdentity!.id, acrPullRoleId)
   properties: {
-    principalId: webIdentity.properties.principalId
+    principalId: webIdentity!.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', acrPullRoleId)
   }
@@ -152,21 +155,21 @@ resource projectFoundryUser 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-resource webAgentConsumer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource webAgentConsumer 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployWebResources) {
   scope: project
-  name: guid(project.id, webIdentity.id, foundryAgentConsumerRoleId)
+  name: guid(project.id, webIdentity!.id, foundryAgentConsumerRoleId)
   properties: {
-    principalId: webIdentity.properties.principalId
+    principalId: webIdentity!.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', foundryAgentConsumerRoleId)
   }
 }
 
-resource webFoundryUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource webFoundryUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployWebResources) {
   scope: foundry
-  name: guid(foundry.id, webIdentity.id, foundryUserRoleId)
+  name: guid(foundry.id, webIdentity!.id, foundryUserRoleId)
   properties: {
-    principalId: webIdentity.properties.principalId
+    principalId: webIdentity!.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', foundryUserRoleId)
   }
@@ -182,11 +185,11 @@ resource deploymentPrincipalProjectManager 'Microsoft.Authorization/roleAssignme
   }
 }
 
-resource webMetricsPublisher 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource webMetricsPublisher 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployWebResources) {
   scope: appInsights
-  name: guid(appInsights.id, webIdentity.id, monitoringMetricsPublisherRoleId)
+  name: guid(appInsights.id, webIdentity!.id, monitoringMetricsPublisherRoleId)
   properties: {
-    principalId: webIdentity.properties.principalId
+    principalId: webIdentity!.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', monitoringMetricsPublisherRoleId)
   }
@@ -242,7 +245,7 @@ resource hostedAgentMetricsPublisher 'Microsoft.Authorization/roleAssignments@20
   }
 }
 
-resource containerEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource containerEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = if (deployWebResources) {
   name: 'cae-brk330-${suffix}'
   location: location
   tags: tags
@@ -257,7 +260,7 @@ resource containerEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-resource web 'Microsoft.App/containerApps@2024-03-01' = {
+resource web 'Microsoft.App/containerApps@2024-03-01' = if (deployWebResources) {
   name: 'contoso-travel-web'
   location: location
   dependsOn: [
@@ -269,7 +272,7 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${webIdentity.id}': {}
+      '${webIdentity!.id}': {}
     }
   }
   properties: {
@@ -284,8 +287,8 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
       }
       registries: configureRegistry ? [
         {
-          server: registry.properties.loginServer
-          identity: webIdentity.id
+          server: registry!.properties.loginServer
+          identity: webIdentity!.id
         }
       ] : []
     }
@@ -299,7 +302,7 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
             memory: '1.0Gi'
           }
           env: [
-            { name: 'AZURE_CLIENT_ID', value: webIdentity.properties.clientId }
+            { name: 'AZURE_CLIENT_ID', value: webIdentity!.properties.clientId }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: 'https://${foundry.name}.services.ai.azure.com/api/projects/${project.name}' }
             { name: 'CONTOSO_AGENT_NAME', value: 'contoso-travel' }
@@ -318,11 +321,11 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.properties.ConnectionString
-output AZURE_CONTAINER_APPS_ENV_NAME string = containerEnvironment.name
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.properties.loginServer
-output AZURE_CONTAINER_REGISTRY_NAME string = registry.name
+output AZURE_CONTAINER_APPS_ENV_NAME string = deployWebResources ? containerEnvironment!.name : ''
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = deployWebResources ? registry!.properties.loginServer : ''
+output AZURE_CONTAINER_REGISTRY_NAME string = deployWebResources ? registry!.name : ''
 output AZURE_MONITOR_APP_INSIGHTS_NAME string = appInsights.name
 output AZURE_MONITOR_LOG_ANALYTICS_NAME string = logAnalytics.name
-output WEB_MANAGED_IDENTITY_CLIENT_ID string = webIdentity.properties.clientId
-output WEB_MANAGED_IDENTITY_RESOURCE_ID string = webIdentity.id
-output WEB_URL string = 'https://${web.properties.configuration.ingress.fqdn}'
+output WEB_MANAGED_IDENTITY_CLIENT_ID string = deployWebResources ? webIdentity!.properties.clientId : ''
+output WEB_MANAGED_IDENTITY_RESOURCE_ID string = deployWebResources ? webIdentity!.id : ''
+output WEB_URL string = deployWebResources ? 'https://${web!.properties.configuration.ingress.fqdn}' : ''

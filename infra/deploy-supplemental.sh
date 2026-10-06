@@ -3,23 +3,85 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Deploy the Container Apps web surface and its least-privilege RBAC.
+Deploy monitoring, least-privilege RBAC, and the Container Apps web surface.
 
-Usage: infra/deploy-supplemental.sh
+Usage: infra/deploy-supplemental.sh [--agent-only|--start-web|--finish-web]
 
 Inputs are read from the active azd environment. The script discovers the ACR,
 Application Insights, and Log Analytics resources created by the Foundry
-provider. It is idempotent and writes nonsecret outputs back to azd.
+provider. It is idempotent and writes nonsecret outputs back to azd. Agent-only
+mode omits portal resources. Start-web begins the full deployment asynchronously;
+finish-web waits for it and saves its outputs.
 EOF
 }
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  usage
-  exit 0
-fi
+mode="deploy"
+case "${1:-}" in
+  --agent-only) mode="agent-only" ;;
+  --start-web) mode="start-web" ;;
+  --finish-web) mode="finish-web" ;;
+  --help|-h) usage; exit 0 ;;
+  "") ;;
+  *) printf 'Unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+esac
 
 resource_group="$(azd env get-value AZURE_RESOURCE_GROUP)"
 environment_name="$(azd env get-value AZURE_ENV_NAME)"
+web_deployment_name="brk330-web-$environment_name"
+deployment_name="$web_deployment_name"
+if [[ "$mode" == "agent-only" ]]; then
+  deployment_name="brk330-agent-prerequisites-$environment_name"
+fi
+
+output_value() {
+  OUTPUTS="$outputs" python3 - "$1" <<'PY'
+import json
+import os
+import sys
+outputs = json.loads(os.environ["OUTPUTS"])
+requested = sys.argv[1].casefold()
+matching_key = next((key for key in outputs if key.casefold() == requested), None)
+if matching_key is None:
+  raise SystemExit(f"Deployment output {sys.argv[1]!r} was not returned")
+print(outputs[matching_key]["value"])
+PY
+}
+
+save_outputs() {
+  local keys=(
+    APPLICATIONINSIGHTS_CONNECTION_STRING
+    AZURE_MONITOR_APP_INSIGHTS_NAME
+    AZURE_MONITOR_LOG_ANALYTICS_NAME
+  )
+  if [[ "$1" == "web" ]]; then
+    keys+=(
+      AZURE_CONTAINER_APPS_ENV_NAME
+      AZURE_CONTAINER_REGISTRY_ENDPOINT
+      AZURE_CONTAINER_REGISTRY_NAME
+      WEB_MANAGED_IDENTITY_CLIENT_ID
+      WEB_MANAGED_IDENTITY_RESOURCE_ID
+      WEB_URL
+    )
+  fi
+  for key in "${keys[@]}"; do
+    azd env set "$key" "$(output_value "$key")" >/dev/null
+  done
+}
+
+if [[ "$mode" == "finish-web" ]]; then
+  az deployment group wait \
+    --resource-group "$resource_group" \
+    --name "$deployment_name" \
+    --created
+  outputs="$(az deployment group show \
+    --resource-group "$resource_group" \
+    --name "$deployment_name" \
+    --query properties.outputs -o json)"
+  save_outputs web
+  printf 'Supplemental web environment ready: %s\n' "$(output_value WEB_URL)"
+  exit 0
+fi
+
 location="$(azd env get-value AZURE_LOCATION)"
 foundry_account="$(azd env get-value AZURE_AI_ACCOUNT_NAME)"
 foundry_project="$(azd env get-value AZURE_AI_PROJECT_NAME)"
@@ -45,6 +107,10 @@ subscription_id="$(az account show --query id -o tsv)"
 web_resource_id="/subscriptions/$subscription_id/resourceGroups/$resource_group/providers/Microsoft.App/containerApps/contoso-travel-web"
 web_image="$(az rest --method get --url "https://management.azure.com$web_resource_id?api-version=2024-03-01" --query 'properties.template.containers[0].image' -o tsv 2>/dev/null || true)"
 configure_registry=false
+deploy_web_resources=true
+if [[ "$mode" == "agent-only" ]]; then
+  deploy_web_resources=false
+fi
 if [[ -n "$web_image" ]]; then
   configure_registry=true
 else
@@ -85,9 +151,9 @@ for value in "$acr_pull_role" "$agent_consumer_role" "$foundry_user_role" "$foun
   fi
 done
 
-outputs="$(az deployment group create \
+deployment_command=(az deployment group create
   --resource-group "$resource_group" \
-  --name "brk330-web-$environment_name" \
+  --name "$deployment_name" \
   --template-file infra/supplemental.bicep \
   --parameters \
     location="$location" \
@@ -106,24 +172,28 @@ outputs="$(az deployment group create \
     monitoringReaderRoleId="$monitoring_reader_role" \
     webImage="$web_image" \
     configureRegistry="$configure_registry" \
-  --query properties.outputs -o json)"
+    deployWebResources="$deploy_web_resources")
 
-output_value() {
-  OUTPUTS="$outputs" python3 - "$1" <<'PY'
-import json
-import os
-import sys
-outputs = json.loads(os.environ["OUTPUTS"])
-requested = sys.argv[1].casefold()
-matching_key = next((key for key in outputs if key.casefold() == requested), None)
-if matching_key is None:
-  raise SystemExit(f"Deployment output {sys.argv[1]!r} was not returned")
-print(outputs[matching_key]["value"])
-PY
-}
+if [[ "$mode" == "start-web" ]]; then
+  deployment_state="$(az deployment group show \
+    --resource-group "$resource_group" \
+    --name "$web_deployment_name" \
+    --query properties.provisioningState -o tsv 2>/dev/null || true)"
+  if [[ "$deployment_state" == "Running" || "$deployment_state" == "Accepted" || "$deployment_state" == "Succeeded" ]]; then
+    printf 'Supplemental web deployment already %s.\n' "${deployment_state,,}"
+    exit 0
+  fi
+  "${deployment_command[@]}" --no-wait >/dev/null
+  printf 'Supplemental web deployment started.\n'
+  exit 0
+fi
 
-for key in APPLICATIONINSIGHTS_CONNECTION_STRING AZURE_CONTAINER_APPS_ENV_NAME AZURE_CONTAINER_REGISTRY_ENDPOINT AZURE_CONTAINER_REGISTRY_NAME AZURE_MONITOR_APP_INSIGHTS_NAME AZURE_MONITOR_LOG_ANALYTICS_NAME WEB_MANAGED_IDENTITY_CLIENT_ID WEB_MANAGED_IDENTITY_RESOURCE_ID WEB_URL; do
-  azd env set "$key" "$(output_value "$key")"
-done
+outputs="$("${deployment_command[@]}" --query properties.outputs -o json)"
+if [[ "$mode" == "agent-only" ]]; then
+  save_outputs agent
+  printf 'Supplemental agent prerequisites ready.\n'
+  exit 0
+fi
 
+save_outputs web
 printf 'Supplemental web environment ready: %s\n' "$(output_value WEB_URL)"

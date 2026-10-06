@@ -5,23 +5,49 @@ usage() {
   cat <<'EOF'
 Run read-only checks against the active generated BRK330 environment.
 
-Usage: infra/validate-deployment.sh
+Usage: infra/validate-deployment.sh [--verbose]
 
 Validates resource-group safety, Hosted Agent details, web health, managed
 identity role assignments, and recent Application Insights traces. It creates,
-updates, and deletes nothing.
+updates, and deletes nothing. By default it prints only READY or NOT READY;
+--verbose shows resource, agent, health, and trace details.
 EOF
 }
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  usage
-  exit 0
-fi
+verbose=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verbose) verbose=true; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) printf 'Unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+report_failure() {
+  status=$?
+  trap - ERR
+  printf 'Deployment validation: NOT READY.\n' >&2
+  exit "$status"
+}
+not_ready() {
+  status="$1"
+  shift
+  printf '%s\n' "$*" >&2
+  printf 'Deployment validation: NOT READY.\n' >&2
+  exit "$status"
+}
+show_output() {
+  if [[ "$verbose" == true ]]; then
+    "$@"
+  else
+    "$@" >/dev/null
+  fi
+}
+trap report_failure ERR
 
 resource_group="$(azd env get-value AZURE_RESOURCE_GROUP)"
 if [[ "$resource_group" == "rg-brk330-concierge" || ! "$resource_group" =~ ^rg-aitour-brk330-[0-9]{6}$ ]]; then
-  printf 'Unsafe or protected resource group: %s\n' "$resource_group" >&2
-  exit 2
+  not_ready 2 "Unsafe or protected resource group: $resource_group"
 fi
 
 web_url="$(azd env get-value WEB_URL)"
@@ -34,18 +60,17 @@ foundry_account_id="/subscriptions/$subscription_id/resourceGroups/$resource_gro
 foundry_project_id="$foundry_account_id/projects/$foundry_project"
 app_insights_id="/subscriptions/$subscription_id/resourceGroups/$resource_group/providers/Microsoft.Insights/components/$app_insights"
 
-az group show --name "$resource_group" --query '{name:name,state:properties.provisioningState}' -o table
-azd ai agent show --output table
+show_output az group show --name "$resource_group" --query '{name:name,state:properties.provisioningState}' -o table
+show_output azd ai agent show --output table
 
 health_file="$(mktemp)"
 status="$(curl -sS -o "$health_file" -w '%{http_code}' "$web_url/api/health")"
 if [[ "$status" != "200" ]]; then
   cat "$health_file" >&2
   rm -f "$health_file"
-  printf 'Web health returned HTTP %s.\n' "$status" >&2
-  exit 3
+  not_ready 3 "Web health returned HTTP $status."
 fi
-python3 -m json.tool "$health_file"
+show_output python3 -m json.tool "$health_file"
 rm -f "$health_file"
 
 web_principal_id="$(az rest \
@@ -59,8 +84,7 @@ assignment_count="$(az rest \
   --query 'length(value)' \
   -o tsv)"
 if (( assignment_count < 2 )); then
-  printf 'Web identity has only %s role assignment(s); expected registry and agent access.\n' "$assignment_count" >&2
-  exit 4
+  not_ready 4 "Web identity has only $assignment_count role assignment(s); expected registry and agent access."
 fi
 
 project_principal_id="$(az rest \
@@ -93,16 +117,14 @@ project_foundry_role_count="$(jq \
     --arg scope "${foundry_account_id,,}" \
     '[.[] | select((.properties.roleDefinitionId | ascii_downcase | endswith($role_id | ascii_downcase)) and (.properties.scope | ascii_downcase) == $scope)] | length' <<<"$project_assignments")"
 if (( project_foundry_role_count != 1 )); then
-  printf 'Foundry project identity is missing Foundry User at account scope; Agent Insights cannot run reliably.\n' >&2
-  exit 5
+  not_ready 5 'Foundry project identity is missing Foundry User at account scope; Agent Insights cannot run reliably.'
 fi
 project_monitoring_role_count="$(jq \
     --arg role_id "$monitoring_reader_role_id" \
     --arg scope "${app_insights_id,,}" \
     '[.[] | select((.properties.roleDefinitionId | ascii_downcase | endswith($role_id | ascii_downcase)) and (.properties.scope | ascii_downcase) == $scope)] | length' <<<"$project_assignments")"
 if (( project_monitoring_role_count != 1 )); then
-  printf 'Foundry project identity is missing Monitoring Reader on Application Insights.\n' >&2
-  exit 6
+  not_ready 6 'Foundry project identity is missing Monitoring Reader on Application Insights.'
 fi
 
 presenter_principal_id="$(az ad signed-in-user show --query id -o tsv)"
@@ -116,22 +138,20 @@ presenter_manager_role_count="$(jq \
     --arg scope "${foundry_account_id,,}" \
     '[.[] | select((.properties.roleDefinitionId | ascii_downcase | endswith($role_id | ascii_downcase)) and (.properties.scope | ascii_downcase) == $scope)] | length' <<<"$presenter_assignments")"
 if (( presenter_manager_role_count != 1 )); then
-  printf 'Presenter is missing Foundry Project Manager at account scope, which Hosted Agent Insights requires.\n' >&2
-  exit 7
+  not_ready 7 'Presenter is missing Foundry Project Manager at account scope, which Hosted Agent Insights requires.'
 fi
 presenter_monitoring_role_count="$(jq \
     --arg role_id "$monitoring_reader_role_id" \
     --arg scope "${app_insights_id,,}" \
     '[.[] | select((.properties.roleDefinitionId | ascii_downcase | endswith($role_id | ascii_downcase)) and (.properties.scope | ascii_downcase) == $scope)] | length' <<<"$presenter_assignments")"
 if (( presenter_monitoring_role_count != 1 )); then
-  printf 'Presenter is missing Monitoring Reader on Application Insights.\n' >&2
-  exit 8
+  not_ready 8 'Presenter is missing Monitoring Reader on Application Insights.'
 fi
 
-az monitor app-insights query \
+show_output az monitor app-insights query \
   --app "$app_insights" \
   --resource-group "$resource_group" \
   --analytics-query 'union traces, requests, dependencies | where timestamp > ago(24h) | summarize count() by itemType | order by itemType asc' \
   -o table
 
-printf 'Deployment validation passed for %s.\n' "$resource_group"
+printf 'Deployment validation: READY for %s.\n' "$resource_group"

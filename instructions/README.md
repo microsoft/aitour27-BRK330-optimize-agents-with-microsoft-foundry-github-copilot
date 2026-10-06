@@ -43,8 +43,8 @@ Unless a code block explicitly changes directory, run every command from the rep
 
 | Path | What is already available | Where to start |
 |---|---|---|
-| **Guided session** | Your presenter may provide a deployed environment and its `brk330-NNNNNN` name. | Set `BRK330_ENVIRONMENT`, select it with azd, and begin at [3.5](#35-run-the-required-smoke-test). |
-| **Self-paced** | You provide an Azure subscription and supported region. | Begin at [3.1](#31-validate-locally) and build the environment from scratch. |
+| **Guided session** | Your presenter may provide a deployed environment and its `brk330-NNNNNN` name. | Set `BRK330_ENVIRONMENT`, select it with azd, and begin at [3.2](#32-run-the-required-smoke-test). |
+| **Self-paced** | You provide an Azure subscription and supported region. | Begin at [3.1](#31-run-setup) and build the environment from scratch. |
 
 For a provided environment:
 
@@ -61,54 +61,43 @@ Before saving a screenshot, hide or crop tenant and subscription IDs, account an
 
 ## 3. Foundation: prepare the environment
 
-### 3.1 Validate locally
-
-```bash
-bash infra/validate-local.sh
-```
-
-If you get an error: _Python environment not found at .venv/bin/python. Rebuild the container or run post-create._ - then run the post-create script manually first.
-
-```bash
-bash .devcontainer/post-create.sh
-bash infra/validate-local.sh
-```
-
-
-
-### 3.2 Authenticate
-
-```bash
-az login --use-device-code
-azd auth login
-```
-
-Authentication is intentionally interactive. Never place credentials in repository files or prompts.
-
-Select the subscription and region for this learner-owned environment. Use an Azure subscription name or ID and an Azure region name supported by the preflight model catalog:
-
-```bash
-export BRK330_SUBSCRIPTION="<subscription-name-or-id>"
-export BRK330_LOCATION="<azure-region>"
-```
-
-The scripts do not default to the presenter subscription or recording region. Keep these variables set in the terminal for setup and recovery commands. Command-line flags remain available as explicit overrides.
-
-### 3.3 Review preflight
-
-```bash
-bash infra/preflight.sh
-```
-
-The check is read-only. Resolve core failures before provisioning. Model Router, fine-tuning, and Agent Optimizer are advanced stages and can be unavailable without blocking this core deployment.
-
-### 3.4 Deploy
+### 3.1 Run setup
 
 ```bash
 bash infra/setup.sh
 ```
 
-Setup generates a random six-digit suffix, an azd environment named `brk330-NNNNNN`, and a resource group named `rg-aitour-brk330-NNNNNN`. It prints the web URL and exact teardown command. These resources incur Azure charges until removed.
+This is the only fresh-install command. Setup:
+
+1. Runs local validation and checks Azure CLI and Azure Developer CLI authentication, prompting for sign-in only when needed.
+2. Proposes the active Azure subscription and `swedencentral`; press Enter to keep either default or type a replacement.
+3. Shows the selected target and asks for confirmation before checking capacity or creating billable resources.
+4. Runs the read-only model, lifecycle, quota, and toolchain preflight.
+5. Generates a random six-digit suffix, an azd environment named `brk330-NNNNNN`, and a resource group named `rg-aitour-brk330-NNNNNN`.
+6. Provisions the Foundry project and models, then starts the slower Container Apps infrastructure while Hosted Agent v1 deploys independently.
+7. Finishes the portal, verifies the environment, and prints its web URL and exact teardown command.
+
+Successful commands are hidden behind short numbered status updates. Full command output is saved privately under `.azure/brk330-NNNNNN/setup.log`. If setup fails, it prints the last log lines and the recovery path.
+
+Authentication is intentionally interactive. Never place credentials in repository files or prompts. These resources incur Azure charges until removed.
+
+If setup reports _Python environment not found at .venv/bin/python. Rebuild the container or run post-create._, run the post-create script and retry the same setup command:
+
+```bash
+bash .devcontainer/post-create.sh
+bash infra/setup.sh
+```
+
+Command-line options remain available for automation and recovery:
+
+```bash
+bash infra/setup.sh \
+	--subscription "<subscription-name-or-id>" \
+	--location "<azure-region>" \
+	--yes
+```
+
+Model Router, fine-tuning, and Agent Optimizer are advanced stages and can be unavailable without blocking the core deployment.
 
 Set the generated environment name from setup output before running later optimization stages:
 
@@ -116,23 +105,13 @@ Set the generated environment name from setup output before running later optimi
 export BRK330_ENVIRONMENT="brk330-NNNNNN"
 ```
 
-Use `infra/setup.sh` as the only fresh-install entry point. Do not reproduce the deployment by running its individual `azd provision`, `azd deploy`, or supplemental Bicep commands manually. The script performs the supported sequence:
-
-1. Run the read-only model, lifecycle, and quota preflight.
-2. Generate a new random environment and resource-group suffix.
-3. Configure all required azd environment values before provisioning.
-4. Provision the Foundry account, project, and model deployments.
-5. Wait until the new Foundry project is available through the data plane.
-6. Deploy monitoring, the portal placeholder, and pre-agent RBAC.
-7. Deploy Hosted Agent v1 once, with telemetry already configured.
-8. Reapply Hosted Agent identity-dependent RBAC idempotently.
-9. Build and deploy the Travel Concierge Portal.
+Do not reproduce setup by running its individual validation, preflight, `azd provision`, `azd deploy`, or supplemental Bicep commands manually.
 
 If setup resumes after a transient infrastructure failure, it reuses an existing active `contoso-travel` version instead of creating another immutable version. If an existing version is not active, setup stops for diagnosis rather than changing the version history.
 
 Each rebuild must use a new random suffix. After teardown, Azure can retain the old Cognitive Services account name in a soft-deleted state. Reusing the deleted azd environment can therefore produce `FlagMustBeSetForRestore`; the fresh setup script avoids that state by generating new resource names rather than restoring or manually purging the old name.
 
-### 3.5 Run the required smoke test
+### 3.2 Run the required smoke test
 
 Do not continue to the baseline scenarios until both the Hosted Agent and portal checks pass.
 
