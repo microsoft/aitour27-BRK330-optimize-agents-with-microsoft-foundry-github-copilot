@@ -479,6 +479,7 @@ Your results will differ from run to run. Here's how to tell the story whatever 
 | v3 went up | "The optimizer found a better step, and we checked it before trusting it." |
 | v3 didn't beat what we had | "A higher practice score didn't hold on new questions. That's exactly why a person retests before going live." |
 | v3-router went down | "Two good ideas don't automatically stack. Instructions tuned for one model need retesting on another." |
+| v3-tools went up | "The traces showed the agent working around our tools. We fixed the tools, changed nothing else, and went up." |
 | The teacher's answers failed review | "Fine-tuning would have copied the teacher's workarounds. The review showed us the tools to fix first." |
 
 Every row is a good ending. The only bad ending is skipping the measurement.

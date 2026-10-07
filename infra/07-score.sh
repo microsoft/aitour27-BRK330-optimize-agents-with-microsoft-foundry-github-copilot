@@ -13,7 +13,8 @@ run      Scores one version on the 24 testing questions (default 3 repeats, so
          one noisy answer does not decide the result). Records each run in
          .azure/<environment>/scores/runs.jsonl. Billable.
 compare  Prints one table: mean score, change vs v1, pass rate, easy/medium/hard,
-         weakest area, speed, and tokens. Read-only.
+         weakest area, speed, and tokens. A second table shows each scorecard
+         dimension's average per version. Read-only.
 EOF
 }
 

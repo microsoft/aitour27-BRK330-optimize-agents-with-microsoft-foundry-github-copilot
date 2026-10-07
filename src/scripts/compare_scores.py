@@ -78,6 +78,7 @@ def summarize(label: str, version: str, items: list[dict[str, Any]], levels: dic
         "pass_rate": passed / len(scores) if scores else None,
         "levels": {level: statistics.mean(values) for level, values in by_level.items()},
         "weakest": (weakest[0], statistics.mean(weakest[1])) if weakest[0] else None,
+        "dimensions": {name: statistics.mean(values) for name, values in dimensions.items()},
         "p50": percentile(latencies, 0.5),
         "p95": percentile(latencies, 0.95),
         "tokens": statistics.mean(tokens) if tokens else None,
@@ -102,6 +103,17 @@ def table(rows: list[dict[str, Any]]) -> str:
             + " | ".join(fmt(row["levels"].get(level)) for level in ("easy", "medium", "hard"))
             + f" | {weakest} | {fmt(row['p50'], 1)} | {fmt(row['p95'], 1)} | {tokens} |"
         )
+    return "\n".join(lines)
+
+
+def dimension_table(rows: list[dict[str, Any]]) -> str:
+    names = sorted({name for row in rows for name in row["dimensions"]})
+    lines = [
+        "| Dimension (1-5) | " + " | ".join(row["label"] for row in rows) + " |",
+        "|---|" + "---:|" * len(rows),
+    ]
+    for name in names:
+        lines.append(f"| `{name}` | " + " | ".join(fmt(row["dimensions"].get(name)) for row in rows) + " |")
     return "\n".join(lines)
 
 
@@ -135,10 +147,10 @@ def main() -> int:
                 )
             rows.append(summarize(label, grouped[label][-1]["version"], items, levels))
 
-    output = table(rows)
+    output = table(rows) + "\n\n" + dimension_table(rows)
     print(output)
     print("\nQuality comes from the locked scorecard; speed and tokens are measured separately.")
-    print("A version is only an improvement if it keeps the policy decisions right. Check the weakest area.")
+    print("A version is only an improvement if it keeps the policy decisions right. Check the policy dimensions.")
     (folder / "summary.md").write_text(output + "\n", encoding="utf-8")
     return 0
 
