@@ -29,7 +29,7 @@ Your numbers and wording will differ. Agents, Insights, and judges vary from run
 | | 11c | Fine-tuning from v3 (v3-student) | **Stopped at review:** only about 25 of the 30 training answers needed passed. Most failures traced back to four gaps in our tools and data | ✅ ⏸️ |
 | | 11d | Fix the tools = v3-tools | **0.66 mean, 82% pass, hard 0.70.** First version to beat v1; policy decisions held. **Now live** | ✅ ▲ |
 | | 11e | Fine-tuning from v3-tools (v3-tools-student) | Review passed (36 training, 6 validation; 41 with tool calls). Training job submitted | ⏳ |
-| | — | Second Insights scan on v3 | Planned | ⏳ |
+| | 11f | 🔍 Insights again, on v3-tools | 36 traces, 5 new findings. **2 of v1's 6 gone**, 2 shrank, 1 sharper, 1 new pattern. Top finding: 42% → 25% of traces | ✅ |
 
 ### Final scorecard
 
@@ -111,6 +111,7 @@ flowchart LR
 11. **Good steps don't automatically stack.** v3's instructions were tuned on `gpt-5.4`. On Model Router they scored *below* both v3 and v2. Every time you change the model, climb again.
 12. **Traces show you what scores can't.** In v3-router, the hotel search returned the right hotel twice, and the agent said the tool had failed. In the fine-tuning review, the teacher kept working around our own tool bugs. The scorecard said *how much*; the traces said *why*.
 13. **Review what you teach.** Fine-tuning copies the teacher's habits, workarounds included. The review step stopped us from training a student to search for flights to `PAR` (our data only knew `CDG`) and to give up on simple totals.
+14. **Teach the tool calls, not just the answers, and in the format the service expects.** Our first training files kept only questions and final answers; a student trained on them would learn to *sound* checked without checking. Adding the tool calls then failed Azure's preprocessing twice, with "invalid schema" on every line, until we matched the Foundry fine-tuning repo's trace-to-SFT format. Check the format on a small job before waiting in the queue with the full one.
 
 **One-line takeaway:** *"Five steps down or sideways, then one clearly up, and every step told us where to climb next: first the instructions, then the tools."*
 
@@ -1185,7 +1186,7 @@ With better tools, the same teacher run tells a different story.
 
 `bash infra/09-fine-tune.sh submit` started job `ftjob-…` on `gpt-4.1-mini` (3 epochs). The first `status` showed **"Job enqueued. Waiting for jobs ahead to complete,"** with an estimated finish about **8 hours** out. Global Standard training shares capacity, so the queue can take longer than the training itself. **Submit the day before** if you want a student ready for the session.
 
-**The first job failed** after about 15 minutes in preprocessing: *"contains invalid schema"* on all 36 training lines. Every line, including the one with no tool calls, carried the same `tools` list, so the problem was the tool definitions. We had copied them straight from the agent's code, and they included extras the validator rejects (`title`, `default: null`, and `anyOf` with `null` for optional fields). Tool-call messages also carried `"content": null`. `curate` now writes plain schemas and leaves `content` out of tool-call messages, matching the [documented format](https://learn.microsoft.com/azure/foundry/openai/how-to/fine-tuning-functions). `submit` now starts a new job when the saved one failed. The resubmitted job passed preprocessing in about 4 minutes, with no schema errors.
+**The first job failed** after about 15 minutes in preprocessing: *"contains invalid schema"* on all 36 training lines. Every line, including the one with no tool calls, carried the same `tools` list, so the problem was the tool definitions. We had copied them straight from the agent's code, and they included extras the validator rejects (`title`, `default: null`, and `anyOf` with `null` for optional fields). Tool-call messages also carried `"content": null`. `curate` now writes plain schemas and leaves `content` out of tool-call messages, matching the [documented format](https://learn.microsoft.com/azure/foundry/openai/how-to/fine-tuning-functions). `submit` now starts a new job when the saved one failed. The resubmitted job **failed the same way.** The fix came from the Foundry team's [fine-tuning repo](https://github.com/microsoft-foundry/fine-tuning): its `transform_traces_jsonl.py` script, made for exactly this traces-to-SFT case, and its working tool-calling sample (ZavaRetailAgent). Compared with those, every one of our lines lacked the top-level `"parallel_tool_calls": true`, and two tool parameters (`submit_booking.itinerary` and `compliance_summary`) were free-form objects with no `properties`. `curate` now adds both. That third job **failed too.** A node-by-node comparison with the working sample finally showed the difference: **every object schema there has a `required` list, even an empty one.** Four of ours had none (two tools whose parameters are all optional, plus the two free-form objects). `curate` now adds `required: []` wherever it's missing.
 
 **Talk about it:**
 
@@ -1193,6 +1194,37 @@ With better tools, the same teacher run tells a different story.
 - "Every training example includes the tool calls. We're teaching the student to *check*, not just to sound like it checked."
 
 _Training in progress._
+
+#### Step 11f. Insights again: which problems went away?
+
+> 🔍 **Spotlight: Insights**, closing the loop
+
+The scorecard says *how much* v3-tools improved. Insights says *which problems went away*. We asked v3-tools the 36 exploring questions once (`bash infra/04-run-questions.sh --label v3-tools --repeats 1 --parallel 3`), then ran a one-hour scan (`bash infra/05-insights.sh --label v3-tools --lookback-hours 1`): **36 traces analyzed, 5 new findings**, saved to `findings-v3-tools.json`.
+
+Insights keeps v1's six findings listed as active; none was updated with v3-tools traces. So we compare the **new** findings, as a share of traces (36 now vs. 108 in Act 2):
+
+| v1 finding (share of 108) | On v3-tools (share of 36) | What changed |
+|---|---|---|
+| "Nothing blocked" treated as approval: 45 (**42%**) | "No-block policy results converted into approval": 9 (**25%**) | **Shrank, still the top issue.** The optimizer never added the rule "no decision isn't approval." |
+| Policy checks done ad hoc: 23 (21%) | "Invented identity prerequisites bypass option-level policy checks": 4 (11%) | **Shrank and changed shape.** It now asks for an employee ID instead of checking each option. |
+| Fabricated trip details: 5 (5%) | "Fabricated flight-search inputs, producing misleading no-inventory claims": 4 (11%) | **Still there, more specific.** The same `BOS → BOS` and `*` searches we rejected in the fine-tuning review. |
+| Receipt-line classification omitted: 11 (10%) | none | **Gone.** v3's instructions require a receipt layout. |
+| Invented ID requirements for city searches: 4 (4%) | none | **Gone.** v3's instructions say to search by city. |
+| Booking sent prose instead of policy evidence: 2 (2%) | none flagged | **Not flagged,** but HERO still came back "not booked," so don't call it fixed. |
+| *(new)* | "Partial results presented as complete or confirmed": 2 + 2 (11%) | **New:** partial answers that sound finished. |
+
+**What it means:**
+
+- **The loop closed.** Insights found six problems in Act 2; the optimizer fixed the instruction-shaped ones (receipts, city searches), and those findings didn't come back.
+- **The biggest problem is smaller, not solved.** "Nothing blocked means approved" fell from 42% to 25% of traces. That's the rule the optimizer missed and a person still needs to add.
+- **Insights and the fine-tuning review agree.** Insights flagged fabricated search inputs in 4 traces; our review rejected the same pattern (`BOS → BOS`, origin `*`) in the teacher's answers. Two independent checks, same finding.
+- **New findings are part of the climb.** "Partial results presented as complete" is the next thing to measure or fix.
+- **It cost far less than the first scan:** about 1.6M judge tokens for 36 traces, a fraction of round 1's. Keep re-scans small.
+
+**Talk about it:**
+
+- "In Act 2, Insights told us what was wrong. After two climbs, we asked again. Two problems are gone, the biggest one is down from 42% to 25%, and there's one new pattern to watch. That's what 'done' looks like for an agent: a shorter list, not an empty one."
+- "The top finding is still there because no step we took added the rule it needs. Insights tells us exactly which human edit to make next."
 
 ---
 
@@ -1220,7 +1252,7 @@ Use this as the close for this run. It follows [the README's punchline](README.m
 **What to do next, after the session:**
 
 - **Fine-tune from v3-tools** (`bash infra/09-fine-tune.sh generate --teacher-label v3-tools`) to bring that quality to a cheaper model.
-- **Run Insights again** on v3-tools (`bash infra/04-run-questions.sh --label v3-tools --repeats 1 --parallel 3`, then `bash infra/05-insights.sh --label v3-tools --lookback-hours 1`) to see which findings are gone.
+- **Run Insights again** on the next version to see which findings go away. On v3-tools (step 11f), two of v1's six were gone and the top one fell from 42% to 25% of traces.
 - **Add the missing rules by hand:** "no decision isn't approval", "pass the policy result into the booking", and "respect stated time windows". Then score that version the same way.
 - **If you want the router's savings,** put v3-tools on Model Router, or run the optimizer with Model Router as the target model, so the instructions are tuned for the model that will run them.
 
@@ -1252,5 +1284,5 @@ Use this as the close for this run. It follows [the README's punchline](README.m
 | The first `generate` stopped at question 43. Activating the virtual environment in the same terminal sent an interrupt to the running script. | Leave a running script's terminal alone; the numbered scripts call `.venv/bin/python` directly, so activation isn't needed. We reran `generate` in full so the review window held one clean run. |
 | After a Codespaces restart, `harvest` failed with a JSON error. The Azure CLI asked to reinstall its `log-analytics` extension, and the prompt landed in the saved trace file. | `harvest` now installs the extension without prompting. |
 | Training examples kept only the question and the final answer, dropping every tool call. | Examples now keep the whole turn and the agent's tool definitions. Missing call IDs and `multi_tool_use.parallel` wrappers are handled. |
-| The first fine-tuning job with tool calls failed in preprocessing: "contains invalid schema" on every line. The tool definitions came straight from the agent's code, with `title`, `default: null`, and nullable `anyOf`; tool-call messages had `"content": null`. | `curate` now writes plain JSON schemas and omits `content` on tool-call messages. `submit` starts a fresh job when the saved one failed. Rerun `curate`, then `submit`. |
+| The first fine-tuning job with tool calls failed in preprocessing: "contains invalid schema" on every line. The tool definitions came straight from the agent's code, with `title`, `default: null`, and nullable `anyOf`; tool-call messages had `"content": null`. | `curate` now writes plain JSON schemas and omits `content` on tool-call messages. `submit` starts a fresh job when the saved one failed. The second job failed too; matching the Foundry fine-tuning repo's trace-to-SFT format (`parallel_tool_calls: true`, `properties` and `required` on every object parameter, even when empty) fixed the schema. Rerun `curate`, then `submit`. |
 | Reviewing v3's answers showed four tool and data gaps: Paris flights coded `CDG`, no step-free filter, no price lookup by ID, and an incomplete `over_cap` flag. | Fixed in `src/agent/tools/` and `data/fixtures/`, with tests. New versions get the fixes; existing versions keep what they were deployed with. Build `v3-tools` with `bash infra/11-promote.sh tools`. |

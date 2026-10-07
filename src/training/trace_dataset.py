@@ -144,7 +144,20 @@ def agent_tool_schemas() -> list[dict[str, Any]]:
         sys.path.insert(0, agent_dir)
     from tools.definitions import ALL_TOOLS  # pyright: ignore[reportMissingImports]
 
-    return [_plain_schema(tool.to_json_schema_spec()) for tool in ALL_TOOLS]
+    return [_with_listed_properties(_plain_schema(tool.to_json_schema_spec())) for tool in ALL_TOOLS]
+
+
+def _with_listed_properties(schema: Any) -> Any:
+    """Give every object explicit `properties` and `required`, as in Azure's working tool-calling samples."""
+    if isinstance(schema, list):
+        return [_with_listed_properties(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    schema = {key: _with_listed_properties(value) for key, value in schema.items()}
+    if schema.get("type") == "object":
+        schema.setdefault("properties", {})
+        schema.setdefault("required", [])
+    return schema
 
 
 def _holdout_prompts(path: Path) -> set[str]:
@@ -306,6 +319,7 @@ def curate(
         row: dict[str, Any] = {"messages": [{"role": "system", "content": system_prompt}, *turn]}
         if tools:
             row["tools"] = tools
+            row["parallel_tool_calls"] = True
         return row
 
     def sft_rows(pairs: list[tuple[dict[str, Any], dict[str, Any]]]) -> list[dict[str, Any]]:

@@ -326,6 +326,8 @@ bash infra/07-score.sh run --label v2-alt    # or: --label v3-student
 
 The testing questions are never used for training; the curate step refuses to continue if one slips in. The student keeps its teacher's instructions and changes only the model, so it's one step from the teacher.
 
+> **Good to know: teaching a tool-using agent from its traces.** A student only learns to *use* tools if its training examples include the tool calls and their results, not just the final answers. `curate` builds every example that way, in the format Azure fine-tuning accepts for tool calling: the tool definitions on every row, `"parallel_tool_calls": true`, plain JSON schemas where every object has `properties` and `required` (even if empty), and no `content` on tool-call messages. If a job fails in preprocessing with **"contains invalid schema"** on every line, the problem is the shared parts of each row (the `tools` list and its schemas), not your examples. Compare your file with the Foundry team's [fine-tuning repo](https://github.com/microsoft-foundry/fine-tuning), which has a trace-to-SFT transform script and a working tool-calling sample. Preprocessing takes a few minutes once the job starts, so check `status` soon after `submit`, not hours later.
+
 **Step 9. Compare.**
 
 ```bash

@@ -324,6 +324,20 @@ def test_tool_schemas_use_the_plain_fine_tuning_format() -> None:
     assert '"title"' not in text and '"default"' not in text and '"anyOf"' not in text
     flights = next(s for s in agent_tool_schemas() if s["function"]["name"] == "search_flights")
     assert flights["function"]["parameters"]["properties"]["cabin"]["type"] == "string"
+    booking = next(s for s in agent_tool_schemas() if s["function"]["name"] == "submit_booking")
+    assert booking["function"]["parameters"]["properties"]["itinerary"]["properties"] == {}
+
+    def objects(node):
+        if isinstance(node, dict):
+            if node.get("type") == "object":
+                yield node
+            for value in node.values():
+                yield from objects(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from objects(value)
+
+    assert all("required" in node and "properties" in node for node in objects(agent_tool_schemas()))
 
 
 def test_tool_call_messages_have_no_null_content(tmp_path: Path) -> None:
