@@ -11,7 +11,7 @@ This guide takes the Contoso Travel concierge from "it works" to "we know it's b
 
 ## Start here: let GitHub Copilot lead you through it
 
-**The easiest way: use the AITOUR BRK330 Agent.** In GitHub Copilot Chat, open the agent picker and choose **AITOUR BRK330 Agent**, then type `start`. It's a lab guide built for this session ([`.github/agents/hill-climb-helper.agent.md`](../.github/agents/hill-climb-helper.agent.md)):
+**The easiest way: use the AI Tour 2027 demo agent.** In GitHub Copilot Chat, open the agent picker and choose **AI Tour 2027 demo agent**, then type `start`. It's a lab guide built for this session ([`.github/agents/hill-climb-helper.agent.md`](../.github/agents/hill-climb-helper.agent.md)):
 
 | Say | What happens |
 |---|---|
