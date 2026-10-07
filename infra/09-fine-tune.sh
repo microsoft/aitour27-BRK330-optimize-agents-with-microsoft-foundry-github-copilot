@@ -171,8 +171,17 @@ case "$phase" in
       exit 12
     }
     if [[ -s "$job_id_file" ]]; then
-      printf 'Reusing fine-tuning job %s.\n' "$(cat "$job_id_file")"
-      exit 0
+      previous_job="$(cat "$job_id_file")"
+      previous_status="$(azd ai finetuning jobs show \
+        --project-endpoint "$project_endpoint" --subscription "$subscription_id" \
+        --id "$previous_job" --output json 2>/dev/null | sed -n '/^[[:space:]]*{/,$p' \
+        | jq -r '.. | objects | .status? // empty' 2>/dev/null | head -1 | tr '[:upper:]' '[:lower:]')"
+      if [[ "$previous_status" != failed && "$previous_status" != cancelled ]]; then
+        printf 'Reusing fine-tuning job %s (%s).\n' "$previous_job" "${previous_status:-unknown}"
+        exit 0
+      fi
+      mv "$job_id_file" "$run_dir/job-id.$previous_job.$previous_status.txt"
+      printf 'Previous job %s %s; submitting a new one.\n' "$previous_job" "$previous_status"
     fi
     arm_location="https://management.azure.com/subscriptions/$subscription_id/providers/Microsoft.CognitiveServices/locations/$location"
     quota="$(az rest --method get --url "$arm_location/usages?api-version=2025-06-01" -o json | jq -c '.value[] | select(.name.value == "OpenAI.GlobalStandard.gpt4.1-mini-finetune")')"

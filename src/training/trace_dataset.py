@@ -83,7 +83,7 @@ def _chat_messages(conversation: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if role == "user":
             converted.append({"role": "user", "content": _message_text(message)})
         elif role == "assistant":
-            entry: dict[str, Any] = {"role": "assistant", "content": _message_text(message) or None}
+            entry: dict[str, Any] = {"role": "assistant"}
             calls = []
             for part in parts:
                 if part.get("type") != "tool_call":
@@ -101,8 +101,11 @@ def _chat_messages(conversation: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         }
                     )
             if calls:
+                # Fine-tuning rejects null content; tool-call turns carry only the calls.
                 entry["tool_calls"] = calls
-            if entry["content"] or calls:
+                converted.append(entry)
+            elif text := _message_text(message):
+                entry["content"] = text
                 converted.append(entry)
         elif role == "tool":
             for part in parts:
@@ -116,6 +119,24 @@ def _chat_messages(conversation: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return converted[last_user:]
 
 
+def _plain_schema(schema: Any) -> Any:
+    """Strip pydantic extras (title, default, nullable anyOf) that the fine-tuning validator rejects."""
+    if isinstance(schema, list):
+        return [_plain_schema(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    options = schema.get("anyOf")
+    if options:
+        concrete = [option for option in options if option.get("type") != "null"]
+        if len(concrete) == 1:
+            schema = {**{k: v for k, v in schema.items() if k != "anyOf"}, **concrete[0]}
+    return {
+        key: _plain_schema(value)
+        for key, value in schema.items()
+        if key not in ("title", "default") and not (key == "additionalProperties" and value is True)
+    }
+
+
 def agent_tool_schemas() -> list[dict[str, Any]]:
     """Return the hosted agent's tool definitions in the fine-tuning `tools` format."""
     agent_dir = str(Path(__file__).resolve().parents[1] / "agent")
@@ -123,7 +144,7 @@ def agent_tool_schemas() -> list[dict[str, Any]]:
         sys.path.insert(0, agent_dir)
     from tools.definitions import ALL_TOOLS  # pyright: ignore[reportMissingImports]
 
-    return [tool.to_json_schema_spec() for tool in ALL_TOOLS]
+    return [_plain_schema(tool.to_json_schema_spec()) for tool in ALL_TOOLS]
 
 
 def _holdout_prompts(path: Path) -> set[str]:
@@ -277,6 +298,10 @@ def curate(
         turn = candidate.get("messages") or [
             {"role": "user", "content": candidate["query"]},
             {"role": "assistant", "content": candidate["response"]},
+        ]
+        turn = [
+            {key: value for key, value in message.items() if not (key == "content" and message.get("tool_calls"))}
+            for message in turn
         ]
         row: dict[str, Any] = {"messages": [{"role": "system", "content": system_prompt}, *turn]}
         if tools:

@@ -316,3 +316,27 @@ def test_agent_tool_schemas_match_the_hosted_agent() -> None:
     names = {schema["function"]["name"] for schema in schemas}
     assert {"search_hotels", "check_travel_policy"} <= names
     assert all(schema["type"] == "function" and "parameters" in schema["function"] for schema in schemas)
+
+
+def test_tool_schemas_use_the_plain_fine_tuning_format() -> None:
+    text = json.dumps(agent_tool_schemas())
+
+    assert '"title"' not in text and '"default"' not in text and '"anyOf"' not in text
+    flights = next(s for s in agent_tool_schemas() if s["function"]["name"] == "search_flights")
+    assert flights["function"]["parameters"]["properties"]["cabin"]["type"] == "string"
+
+
+def test_tool_call_messages_have_no_null_content(tmp_path: Path) -> None:
+    user = {"role": "user", "parts": [{"type": "text", "content": "Find Berlin hotels."}]}
+    call = {"role": "assistant", "parts": [{"type": "tool_call", "name": "search_hotels", "arguments": {"city": "BER"}}]}
+    result = {"role": "tool", "parts": [{"type": "tool_call_response", "response": "[]"}]}
+    final = {"role": "assistant", "parts": [{"type": "text", "content": "No match."}]}
+    raw = tmp_path / "raw.json"
+    raw.write_text(json.dumps([{"TraceId": "t", "ModelName": "gpt-5.4", "TimeGenerated": "2026-10-06T00:00:01Z",
+                                "InputMessages": json.dumps([user, call, result]), "OutputMessages": json.dumps([final])}]))
+    _write_jsonl(tmp_path / "holdout.jsonl", [{"query": "Testing prompt"}])
+
+    [candidate] = transform(raw, tmp_path / "holdout.jsonl")
+
+    assert "content" not in candidate["messages"][1]
+    assert candidate["messages"][-1] == {"role": "assistant", "content": "No match."}
