@@ -25,6 +25,10 @@ This run also took steps the README marks as optional (v3-router, v3-tools, and 
 
 ## Summary at a glance
 
+[![Hill climbing AI agents with Microsoft Foundry: look before you leap (traces and Insights), measure every step (Rubric Evaluator, one change at a time), and keep climbing (Agent Optimizer proposes, you review, then go live)](img/HILL-CLIMB-01-overview.png)](img/HILL-CLIMB-01-overview.png)
+
+*This sketchnote was generated with an image model from a prompt written from these instructions.*
+
 ### The climb, step by step
 
 Seven versions, one question each time: **did this step go up?** Every version was scored the same way: 24 new testing questions, the same Rubric Evaluator scorecard, the same judge, three rounds.
