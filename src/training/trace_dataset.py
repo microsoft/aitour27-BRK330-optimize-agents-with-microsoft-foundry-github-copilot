@@ -104,7 +104,7 @@ def _chat_messages(conversation: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 # Fine-tuning rejects null content; tool-call turns carry only the calls.
                 entry["tool_calls"] = calls
                 converted.append(entry)
-            elif text := _message_text(message):
+            elif (text := _message_text(message)) and not pending:
                 entry["content"] = text
                 converted.append(entry)
         elif role == "tool":
@@ -117,6 +117,21 @@ def _chat_messages(conversation: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 converted.append({"role": "tool", "tool_call_id": call_id, "content": _as_text(part.get("response", ""))})
     last_user = max((index for index, row in enumerate(converted) if row["role"] == "user"), default=0)
     return converted[last_user:]
+
+
+def _results_follow_calls(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop assistant text sent while tool calls still await results; fine-tuning needs results right after calls."""
+    kept: list[dict[str, Any]] = []
+    pending: set[str] = set()
+    for message in messages:
+        if message["role"] == "assistant" and not message.get("tool_calls") and pending:
+            continue
+        if message.get("tool_calls"):
+            pending = {call["id"] for call in message["tool_calls"]}
+        elif message["role"] == "tool":
+            pending.discard(message.get("tool_call_id"))
+        kept.append(message)
+    return kept
 
 
 def _plain_schema(schema: Any) -> Any:
@@ -316,6 +331,7 @@ def curate(
             {key: value for key, value in message.items() if not (key == "content" and message.get("tool_calls"))}
             for message in turn
         ]
+        turn = _results_follow_calls(turn)
         row: dict[str, Any] = {"messages": [{"role": "system", "content": system_prompt}, *turn]}
         if tools:
             row["tools"] = tools

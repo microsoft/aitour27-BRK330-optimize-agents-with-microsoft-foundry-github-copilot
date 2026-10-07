@@ -354,3 +354,20 @@ def test_tool_call_messages_have_no_null_content(tmp_path: Path) -> None:
 
     assert "content" not in candidate["messages"][1]
     assert candidate["messages"][-1] == {"role": "assistant", "content": "No match."}
+
+
+def test_preamble_text_between_calls_and_results_is_dropped(tmp_path: Path) -> None:
+    user = {"role": "user", "parts": [{"type": "text", "content": "Plan London to Paris."}]}
+    call = {"role": "assistant", "parts": [{"type": "tool_call", "name": "search_flights", "arguments": {"origin": "LON"}}]}
+    preamble = {"role": "assistant", "parts": [{"type": "text", "content": "I'll check the options."}]}
+    result = {"role": "tool", "parts": [{"type": "tool_call_response", "response": "[]"}]}
+    final = {"role": "assistant", "parts": [{"type": "text", "content": "Done."}]}
+    raw = tmp_path / "raw.json"
+    raw.write_text(json.dumps([{"TraceId": "t", "ModelName": "gpt-5.4", "TimeGenerated": "2026-10-06T00:00:01Z",
+                                "InputMessages": json.dumps([user, call, preamble, result]),
+                                "OutputMessages": json.dumps([final])}]))
+    _write_jsonl(tmp_path / "holdout.jsonl", [{"query": "Testing prompt"}])
+
+    [candidate] = transform(raw, tmp_path / "holdout.jsonl")
+
+    assert [m["role"] for m in candidate["messages"]] == ["user", "assistant", "tool", "assistant"]
