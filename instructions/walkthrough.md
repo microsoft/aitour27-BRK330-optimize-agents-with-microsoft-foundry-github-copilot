@@ -27,7 +27,8 @@ Your numbers and wording will differ. Agents, Insights, and judges vary from run
 | | 9 | Compared all versions | v1 stays live through Act 3 | ✅ |
 | | 11b | v3's instructions on Model Router = v3-router | **0.54, 65% pass.** Hard 0.43, the lowest of any version; most tokens per answer (8,371) | ✅ ▼ |
 | | 11c | Fine-tuning from v3 (v3-student) | **Stopped at review:** only about 25 of the 30 training answers needed passed. Most failures traced back to four gaps in our tools and data | ✅ ⏸️ |
-| | 11d | Fix the tools = v3-tools | **0.66 mean, 82% pass, hard 0.70.** First version to beat v1; policy decisions held | ✅ ▲ |
+| | 11d | Fix the tools = v3-tools | **0.66 mean, 82% pass, hard 0.70.** First version to beat v1; policy decisions held. **Now live** | ✅ ▲ |
+| | 11e | Fine-tuning from v3-tools (v3-tools-student) | Review passed (36 training, 6 validation; 41 with tool calls). Training job submitted | ⏳ |
 | | — | Second Insights scan on v3 | Planned | ⏳ |
 
 ### Final scorecard
@@ -41,6 +42,59 @@ Same 24 testing questions, same scorecard, same judge, three rounds for every ve
 | Hard | 0.63 | 0.45 | 0.46 | 0.58 | 0.43 | **0.70** |
 | P95 | 18.9 s | 25.0 s | 49.5 s | **14.4 s** | 29.3 s | 15.1 s |
 | Cost per answer | ≈ $0.019 | **≈ $0.007** | ≈ $0.040 | ≈ +21% vs. v1 at list price; may be lower with caching | not measured; 8,371 tokens per answer | not measured; 7,288 tokens per answer on `gpt-5.4` (+52% vs. v1) |
+
+### The climb, step by step
+
+Every step we tried, in the order we tried it. The **solid line** is each version's mean score on the testing questions. The **flat line** is the best version so far, the one that would be live. It never goes down: a step down costs us a few hours, not our users.
+
+```mermaid
+xychart-beta
+    title "Hill climbing: mean score on the 24 testing questions"
+    x-axis ["v1 start", "v2 cheap router", "v2-quality pricey router", "v3 optimizer", "v3-router stacked", "v3-tools fixed tools"]
+    y-axis "Mean score (0-1)" 0.45 --> 0.70
+    line [0.63, 0.57, 0.50, 0.64, 0.54, 0.66]
+    line [0.63, 0.63, 0.63, 0.64, 0.64, 0.66]
+```
+
+| Step | Mean | Hard | What happened | What it taught us |
+|---|---:|---:|---|---|
+| **v1**, start | 0.63 | 0.63 | `gpt-5.4` with the original instructions. Insights found 6 patterns; the top one, "nothing blocked treated as approval", ran through 45 traces. | Where we stand, and where to look. |
+| **v2**, cheaper model ▼ | 0.57 | 0.45 | Model Router (Balanced) sent 77% of calls to a small model. About 65% cheaper, same quality on easy questions. | Cheap is safe for easy requests, not hard ones. |
+| **v2-quality**, pricier model ▼ | 0.50 | 0.46 | Quality routing sent every call to the most expensive model. Twice v1's cost, the lowest score. | More expensive isn't better. The weakness followed us across three models, so it wasn't the model. |
+| **v3**, new instructions ↔ | 0.64 | 0.58 | Agent Optimizer rewrote the instructions. +0.064 on practice questions, +0.01 on new ones; faster, better evidence, weaker policy checks. | Never grade on what you practiced on. Instructions helped, but not enough. |
+| **v3-router**, combine two levers ▼ | 0.54 | 0.43 | v3's instructions on Model Router. Below both v3 and v2. In one trace the tool returned the right hotel twice and the model said it failed. | Good steps don't automatically stack. Change the model, and you climb again. |
+| **v3-tools**, fix the tools ▲ | **0.66** | **0.70** | Reviewing v3's answers for fine-tuning showed it working around four tool and data bugs. We fixed only the tools. | The first step up. Traces found what no score pointed at. |
+
+The same climb as a map: which version each step started from.
+
+```mermaid
+flowchart LR
+    v1["v1 · 0.63<br/>start"]
+    v2["v2 · 0.57<br/>cheaper model ▼"]
+    v2q["v2-quality · 0.50<br/>pricier model ▼"]
+    v3["v3 · 0.64<br/>optimized instructions ↔"]
+    v3r["v3-router · 0.54<br/>instructions + router ▼"]
+    v3t["v3-tools · 0.66<br/>fixed tools ▲ live"]
+    v1 -- "Model Router" --> v2
+    v1 -- "Quality routing" --> v2q
+    v1 -- "Agent Optimizer" --> v3
+    v3 -- "Model Router" --> v3r
+    v3 -- "trace review: tool bugs" --> v3t
+    classDef up fill:#d4edda,stroke:#2e7d32,color:#1b5e20
+    classDef down fill:#f8d7da,stroke:#c62828,color:#7f1d1d
+    classDef side fill:#fff3cd,stroke:#b8860b,color:#5c4400
+    classDef start fill:#e3f2fd,stroke:#1565c0,color:#0d3c78
+    class v1 start
+    class v2,v2q,v3r down
+    class v3 side
+    class v3t up
+```
+
+**Talk about it:**
+
+- "This is what hill climbing really looks like. Down, down, sideways, down, then up. If you only remember one picture from today, make it this one."
+- "Look at the flat line. The live version never got worse, because every step was measured before anyone switched it on. Walking down cost us an afternoon, not our users."
+- "Each step down pointed to the next step. The models ruled out the model. The optimizer fixed the instructions it could. The traces found our tools. Then we went up."
 
 ### Key insights for hill climbing
 
@@ -1090,13 +1144,53 @@ Four fixes, each with a test (`.venv/bin/python -m pytest src/agent/tests -q`, 1
 - **The trade-off is tokens.** About 52% more than v1 on the same model, from longer instructions and more tool use. That's the cost question fine-tuning or the router can take on next, now with a better teacher.
 - **The trace analysis paid off.** No score pointed at the tools. Reading the teacher's traces did.
 
-**Verdict: up.** v3-tools is the best version so far, and the candidate to go live (`bash infra/11-promote.sh go-live --label v3-tools`) and to teach the student.
+**Verdict: up.** v3-tools is the best version so far. We put it live with `bash infra/11-promote.sh go-live --label v3-tools`; the portal and default endpoint now use version 6. It's also the new fine-tuning teacher.
 
 **Talk about it:**
 
 - "We changed only the tools, and hard questions went from 0.58 to 0.70. The agent wasn't failing at reasoning; it was failing because our tools spelled Paris two ways and couldn't look up a price."
 - "Nobody's scorecard said 'fix the tools.' Reading the traces did. That's why we look at traces, not just scores."
 - "This is the first step up after five tries. Every step down told us where to look next, and this one is real: same questions, same scorecard, three rounds."
+
+#### Step 11e. Fine-tune from v3-tools (v3-tools-student)
+
+With better tools, the same teacher run tells a different story.
+
+`bash infra/09-fine-tune.sh generate --teacher-label v3-tools` asked version 6 all 48 training questions: **48 of 48 answered** in about 16 minutes.
+
+| Category | v3 (old tools) | v3-tools (fixed tools) |
+|---|---|---|
+| Planning (14) | 5 checked, 5 partial | **8 checked, 1 partial** |
+| Accessibility (10) | 5 unconfirmed, 5 partial | 6 unconfirmed, **2 partial**, 1 blocked, 1 checked |
+| Numbers (8) | 3 checked, 2 partial; 3 gave up on totals | **8 unconfirmed**: answered from `lookup_fixtures`, 1.4 tool calls each (was 2.8) |
+| Refusal (8) | 3 blocked, 2 checked, 2 error, 1 unconfirmed | 3 checked, 2 blocked, 2 partial, 1 error |
+| Receipts (8) | 8 reimbursable | 8 reimbursable |
+
+"Unconfirmed" on the numbers questions is expected: they're arithmetic from looked-up prices, and the outcome label only tracks policy and receipt checks.
+
+**The review passed this time:**
+
+| | v3 teacher | **v3-tools teacher** | Needed |
+|---|---:|---:|---:|
+| Training answers accepted | about 25 | **36** | 30 |
+| Validation answers accepted | — | **6** | 6 |
+| Planning / Refusal / Receipts / Accessibility / Numbers | short on refusal and numbers | **12 / 4 / 7 / 7 / 6** | 8 / 4 / 4 / 5 / 4 |
+
+- **All five totals questions checked out against the fixtures** ($3,461, $921, $674, $1,064, $1,874). Under v3, three of them gave up.
+- **Step-free requests work:** TR-33, TR-36, and TR-39 found the step-free hotels with the new filter. Every `SEA → PAR` search returned flights.
+- **Six answers rejected**, each for a bad tool call the student shouldn't copy: searching `*` or `BOS → BOS`, the wrong return leg, `hotel_id: "HT-???"`, and one that asked for the cap instead of checking policy.
+- **Three refusals accepted at a lower score.** They decline correctly, but the policy tool didn't cite CT-11 for a blanket bypass without an employee. That's a policy-tool gap to look at next.
+
+`bash infra/09-fine-tune.sh curate` built the files: **36 training and 6 validation examples, 41 of them with tool calls, 0 overlap with the testing questions.** Every example now shows the student which tools to call and what they returned, not just the final answer.
+
+`bash infra/09-fine-tune.sh submit` started job `ftjob-…` on `gpt-4.1-mini` (3 epochs). The first `status` showed **"Job enqueued. Waiting for jobs ahead to complete,"** with an estimated finish about **8 hours** out. Global Standard training shares capacity, so the queue can take longer than the training itself. **Submit the day before** if you want a student ready for the session.
+
+**Talk about it:**
+
+- "Same 48 questions, same review rules. With the old tools, the teacher couldn't pass review. With fixed tools, it passed with room to spare. Fix what the traces show you, then teach."
+- "Every training example includes the tool calls. We're teaching the student to *check*, not just to sound like it checked."
+
+_Training in progress._
 
 ---
 
@@ -1113,7 +1207,7 @@ Use this as the close for this run. It follows [the README's punchline](README.m
 
 **For Krystal, Andre, and Lydia:**
 
-- **Krystal** gets a version that keeps the policy decisions she depends on and handles hard requests better than v1: v3-tools.
+- **Krystal** gets a version that keeps the policy decisions she depends on and handles hard requests better than v1: v3-tools, now live.
 - **Andre** has defensible numbers: Model Router can cut cost by about two-thirds on simple requests, premium routing doubled cost for worse results, and the better version costs about half again as many tokens. Every claim comes from the same scorecard.
 - **Lydia** has a process that caught four would-be regressions before they reached users, stopped a student from learning our bugs, and found the fix that finally went up.
 
