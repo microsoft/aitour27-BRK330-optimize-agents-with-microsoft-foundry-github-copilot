@@ -104,6 +104,8 @@ If you study with the exam questions, your grade means nothing. So the questions
 | **v3** | The instructions, suggested by Agent Optimizer and reviewed by you | Same as the version you optimized | `infra/11-promote.sh` |
 | **v3-router** (optional) | v3's instructions on Model Router: one change from v3 | `model-router` | `infra/11-promote.sh router` |
 | **v3-student** (optional) | v3's instructions on a small model fine-tuned from v3's answers: one change from v3 | `contoso-student-v3` | `infra/09-fine-tune.sh --teacher-label v3` |
+| **v3-tools** (optional) | v3's instructions and model with fixed tools and data: one change from v3 | Same as v3 | `infra/11-promote.sh tools` |
+| **v3-tools-student** (optional) | v3-tools on a small model fine-tuned from v3-tools' answers: one change from v3-tools | `contoso-student-v3-tools` | `infra/09-fine-tune.sh --teacher-label v3-tools` |
 
 v2 and v2-alt both start from v1 and change **one thing each**, so you can tell what made the difference. The portal keeps using v1 until **you** switch it.
 
@@ -291,6 +293,8 @@ This creates a second router deployment, `model-router-quality` (capacity 300), 
 This one has a few steps because a person has to approve what the model learns from.
 
 > **Pick the teacher first.** A student can only be as good as the answers it learns from. If v1's main weakness is in its instructions (as in our run, where booking evidence scored about 2/5 on every model), few of v1's hard answers will pass review, and the student learns mostly easy cases. In that case, do Act 4 first and use the improved **v3** as the teacher: add `--teacher-label v3` to `generate`, and the student becomes **v3-student** instead of v2-alt. Later phases remember the teacher.
+>
+> **Then check how the teacher used its tools.** The review sheet lists `tools_called` for every answer. If many answers fail for the same tool reason (an empty search that shouldn't be empty, a price the agent couldn't look up), fix the tools first, build **v3-tools** (Act 4, step 7), and teach from that: `--teacher-label v3-tools`. A student copies its teacher's workarounds along with its answers.
 
 ```bash
 bash infra/09-fine-tune.sh generate   # ask the teacher (v1 by default) the 48 training questions
@@ -421,6 +425,14 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
 
    If v3-router keeps v3's quality at a lower cost, that's the best of both levers: better instructions *and* a cheaper model mix.
 
+   The `router` command finishes by pointing the portal back at the live version. Run it once, in one terminal. If it stops early (for example, `DeploymentActive` because another deploy is still going), put the live version back before scoring:
+
+   ```bash
+   bash infra/11-promote.sh go-live --label v1
+   ```
+
+   The smoke test question doesn't give a departure date, so "no lead-time rule returned" is a normal answer there, not a failure.
+
 6. **Optional: check with Insights again.** The scorecard tells you *how much* better v3 is. Insights tells you *which problems went away*. Ask v3 the exploring questions once, then run a short Insights scan over just those traces:
 
    ```bash
@@ -429,6 +441,17 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
    ```
 
    Start the scan right after the questions finish, so the 1-hour window holds only v3's traces. Findings save to `findings-v3.json`, next to v1's. Compare the two lists: which findings disappeared, which shrank, which remain. One pass is enough here; Insights was the most expensive step in our run.
+
+7. **Optional: fix the tools, then teach (v3-tools).** Instructions can only do so much. If traces or the fine-tuning review show the agent working around a tool (an empty search for a city that has inventory, a total it can't compute because it can't look up a price), fix the tool or the data in `src/agent/tools/` or `data/fixtures/`, run the tests, then build v3 again with only the tools changed:
+
+   ```bash
+   .venv/bin/python -m pytest src/agent/tests -q
+   bash infra/11-promote.sh tools
+   bash infra/07-score.sh run --label v3-tools
+   bash infra/07-score.sh compare
+   ```
+
+   Versions already built keep the tools they were deployed with, so earlier scores stay valid. If v3-tools holds up, use it as the fine-tuning teacher (step 8 with `--teacher-label v3-tools`). The [walkthrough](walkthrough.md#round-2-the-teacher-review-found-our-tool-bugs) shows the four tool gaps our run found this way.
 
 > **Say this:** "This is the same climb, automated. The optimizer proposes the steps and tests them on practice questions. We check each one with the same altimeter, the testing questions, before we move. The optimizer does the trying. A person does the deciding."
 
@@ -455,6 +478,8 @@ Your results will differ from run to run. Here's how to tell the story whatever 
 | Both went down | "Two steps, both down. We stay on v1 and we *know* why. That's the fog clearing." |
 | v3 went up | "The optimizer found a better step, and we checked it before trusting it." |
 | v3 didn't beat what we had | "A higher practice score didn't hold on new questions. That's exactly why a person retests before going live." |
+| v3-router went down | "Two good ideas don't automatically stack. Instructions tuned for one model need retesting on another." |
+| The teacher's answers failed review | "Fine-tuning would have copied the teacher's workarounds. The review showed us the tools to fix first." |
 
 Every row is a good ending. The only bad ending is skipping the measurement.
 

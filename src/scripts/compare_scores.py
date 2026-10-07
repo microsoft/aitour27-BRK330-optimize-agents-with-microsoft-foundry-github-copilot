@@ -24,7 +24,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from src.scripts.questions import load  # noqa: E402
 
-LABEL_ORDER = ("v1", "v2", "v2-quality", "v2-alt", "v3", "v3-router", "v3-student")
+LABEL_ORDER = ("v1", "v2", "v2-quality", "v2-alt", "v3", "v3-router", "v3-student", "v3-tools", "v3-tools-student")
 
 
 def azd_value(name: str) -> str | None:

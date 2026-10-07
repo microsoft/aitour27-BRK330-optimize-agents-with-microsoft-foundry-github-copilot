@@ -6,7 +6,7 @@ usage() {
 Build a fine-tuned student: teach a smaller model (gpt-4.1-mini) from a teacher
 version's reviewed answers.
 
-Usage: bash infra/09-fine-tune.sh PHASE [--teacher-label v1|v3] [--activate] [--environment brk330-NNNNNN]
+Usage: bash infra/09-fine-tune.sh PHASE [--teacher-label v1|v3|v3-tools] [--activate] [--environment brk330-NNNNNN]
 
 Phases, in order:
   generate  Ask the teacher the 48 training questions (fresh conversation each time).
@@ -22,6 +22,7 @@ Pass it on generate; later phases remember it. The student keeps the teacher's
 instructions and changes only the model, so it's one step from the teacher:
   teacher v1 -> label v2-alt,     deployment contoso-student
   teacher v3 -> label v3-student, deployment contoso-student-v3
+  teacher v3-tools -> label v3-tools-student, deployment contoso-student-v3-tools
 
 Testing questions are never used for training. Everything private (answers,
 review decisions, training files, job IDs) stays under
@@ -67,7 +68,8 @@ teacher="${teacher_arg:-$(cat "$teacher_file" 2>/dev/null || echo v1)}"
 case "$teacher" in
   v1) student_label="v2-alt"; student_deployment="contoso-student" ;;
   v3) student_label="v3-student"; student_deployment="contoso-student-v3" ;;
-  *) fail 2 "Teacher must be v1 or v3; got $teacher." ;;
+  v3-tools) student_label="v3-tools-student"; student_deployment="contoso-student-v3-tools" ;;
+  *) fail 2 "Teacher must be v1, v3, or v3-tools; got $teacher." ;;
 esac
 if [[ -n "$teacher_arg" && -s "$teacher_file" && "$(cat "$teacher_file")" != "$teacher_arg" && "$phase" != generate ]]; then
   fail 2 "This fine-tune run uses teacher $(cat "$teacher_file"). Run generate --teacher-label $teacher_arg to start a new one."
@@ -80,7 +82,8 @@ teacher_config="$(env_value "BRK330_CONFIG_$teacher_key")"
 instruction_name="$(.venv/bin/python -c 'import sys, yaml; print(yaml.safe_load(open(sys.argv[1])).get("instruction_file", "instructions.md"))' "src/agent/.agent_configs/$teacher_config/metadata.yaml")"
 instruction_file="$(realpath "src/agent/.agent_configs/$teacher_config/$instruction_name")"
 student_config="student"
-[[ "$teacher" == v1 ]] || student_config="$teacher_config-student"
+# v3 and v3-tools share a config folder, so each student gets its own.
+[[ "$teacher" == v1 ]] || student_config="$teacher_config-$student_label"
 
 run_dir="$state_dir/$teacher"
 mkdir -p "$run_dir"
@@ -125,7 +128,8 @@ case "$phase" in
 | project TimeGenerated, TraceId, SpanId, ParentSpanId, AgentName, ModelName, RoleName, InputMessages, OutputMessages
 | order by TimeGenerated asc"
     printf 'KQL harvest query:\n%s\n' "$query"
-    az monitor log-analytics query \
+    # Install the log-analytics extension silently so its prompt never lands in the JSON output.
+    AZURE_EXTENSION_USE_DYNAMIC_INSTALL=yes_without_prompt az monitor log-analytics query \
       --workspace "$workspace_id" \
       --analytics-query "$query" \
       -o json > "$raw_file"

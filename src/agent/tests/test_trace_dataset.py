@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.training.trace_dataset import REQUIRED_GATES, curate, review_template, transform
+from src.training.trace_dataset import REQUIRED_GATES, agent_tool_schemas, curate, review_template, transform
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -65,6 +65,138 @@ def test_transform_keeps_only_training_questions_and_prefills_review(tmp_path: P
     assert [row["question_id"] for row in candidates] == ["TR-01"]
     assert review["category"] == "refusal"
     assert review["split"] == "validation"
+
+
+def test_transform_keeps_tool_calls_from_the_final_pass(tmp_path: Path) -> None:
+    query = "Is Retiro Business in Madrid within policy?"
+    user = {"role": "user", "parts": [{"type": "text", "content": query}]}
+    call = {
+        "role": "assistant",
+        "parts": [
+            {"type": "text", "content": "I'll look up Madrid hotels."},
+            {"type": "tool_call", "id": "call_1", "name": "search_hotels", "arguments": {"city": "MAD"}},
+        ],
+    }
+    result = {
+        "role": "tool",
+        "parts": [{"type": "tool_call_response", "id": "call_1", "response": '[{"id": "HT-016"}]'}],
+    }
+    final = {"role": "assistant", "parts": [{"type": "text", "content": "HT-016 totals $211 per night."}]}
+    common = {"TraceId": "trace-loop", "ModelName": "gpt-5.4-2026-03-05"}
+    raw = tmp_path / "raw.json"
+    holdout = tmp_path / "holdout.jsonl"
+    raw.write_text(
+        json.dumps(
+            [
+                {**common, "TimeGenerated": "2026-10-06T00:00:01Z",
+                 "InputMessages": json.dumps([user]), "OutputMessages": json.dumps([call])},
+                {**common, "TimeGenerated": "2026-10-06T00:00:02Z",
+                 "InputMessages": json.dumps([user, call, result]), "OutputMessages": json.dumps([final])},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_jsonl(holdout, [{"query": "Testing prompt"}])
+
+    [candidate] = transform(raw, holdout)
+
+    assert candidate["response"] == "HT-016 totals $211 per night."
+    assert candidate["tools_called"] == ["search_hotels"]
+    assert [message["role"] for message in candidate["messages"]] == ["user", "assistant", "tool", "assistant"]
+    assert candidate["messages"][1]["tool_calls"][0]["function"] == {
+        "name": "search_hotels",
+        "arguments": '{"city": "MAD"}',
+    }
+    assert candidate["messages"][2] == {"role": "tool", "tool_call_id": "call_1", "content": '[{"id": "HT-016"}]'}
+
+
+def test_transform_pairs_tool_results_without_ids_in_order(tmp_path: Path) -> None:
+    query = "Compare Seattle to Paris flights."
+    user = {"role": "user", "parts": [{"type": "text", "content": query}]}
+    calls = {
+        "role": "assistant",
+        "parts": [
+            {"type": "tool_call", "name": "search_flights", "arguments": {"origin": "SEA", "destination": "PAR"}},
+            {"type": "tool_call", "name": "check_travel_policy", "arguments": {"employee_id": "EMP-001"}},
+        ],
+    }
+    results = {
+        "role": "tool",
+        "parts": [
+            {"type": "tool_call_response", "response": "[]"},
+            {"type": "tool_call_response", "response": '{"decisions": []}'},
+            {"type": "tool_call_response", "response": "unmatched"},
+        ],
+    }
+    final = {"role": "assistant", "parts": [{"type": "text", "content": "No Paris flights matched."}]}
+    raw = tmp_path / "raw.json"
+    holdout = tmp_path / "holdout.jsonl"
+    raw.write_text(
+        json.dumps(
+            [
+                {"TraceId": "trace-noid", "ModelName": "gpt-5.4", "TimeGenerated": "2026-10-06T00:00:02Z",
+                 "InputMessages": json.dumps([user, calls, results]), "OutputMessages": json.dumps([final])},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_jsonl(holdout, [{"query": "Testing prompt"}])
+
+    [candidate] = transform(raw, holdout)
+
+    call_ids = [call["id"] for call in candidate["messages"][1]["tool_calls"]]
+    tool_rows = [message for message in candidate["messages"] if message["role"] == "tool"]
+    assert len(set(call_ids)) == 2
+    assert [row["tool_call_id"] for row in tool_rows] == call_ids
+    assert [row["content"] for row in tool_rows] == ["[]", '{"decisions": []}']
+
+
+def test_transform_unwraps_parallel_tool_calls(tmp_path: Path) -> None:
+    query = "Plan a Seattle to Berlin trip."
+    user = {"role": "user", "parts": [{"type": "text", "content": query}]}
+    wrapper = {
+        "role": "assistant",
+        "parts": [
+            {
+                "type": "tool_call",
+                "name": "multi_tool_use.parallel",
+                "arguments": json.dumps(
+                    {
+                        "tool_uses": [
+                            {"recipient_name": "functions.search_flights", "parameters": {"origin": "SEA", "destination": "CDG"}},
+                            {"recipient_name": "functions.search_hotels", "parameters": {"city": "BER"}},
+                        ]
+                    }
+                ),
+            }
+        ],
+    }
+    results = [
+        {"role": "tool", "parts": [{"type": "tool_call_response", "response": '[{"id": "FL-001"}]'}]},
+        {"role": "tool", "parts": [{"type": "tool_call_response", "response": '[{"id": "HT-005"}]'}]},
+    ]
+    final = {"role": "assistant", "parts": [{"type": "text", "content": "FL-001 and HT-005."}]}
+    raw = tmp_path / "raw.json"
+    holdout = tmp_path / "holdout.jsonl"
+    raw.write_text(
+        json.dumps(
+            [
+                {"TraceId": "trace-parallel", "ModelName": "gpt-5.4", "TimeGenerated": "2026-10-06T00:00:02Z",
+                 "InputMessages": json.dumps([user, wrapper, *results]), "OutputMessages": json.dumps([final])},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_jsonl(holdout, [{"query": "Testing prompt"}])
+
+    [candidate] = transform(raw, holdout)
+
+    calls = candidate["messages"][1]["tool_calls"]
+    assert [call["function"]["name"] for call in calls] == ["search_flights", "search_hotels"]
+    assert json.loads(calls[1]["function"]["arguments"]) == {"city": "BER"}
+    assert candidate["tools_called"] == ["search_flights", "search_hotels"]
+    tool_rows = [message for message in candidate["messages"] if message["role"] == "tool"]
+    assert [row["tool_call_id"] for row in tool_rows] == [call["id"] for call in calls]
 
 
 def test_curate_enforces_review_gates_coverage_and_holdout_separation(tmp_path: Path) -> None:
@@ -176,3 +308,11 @@ def test_curate_enforces_review_gates_coverage_and_holdout_separation(tmp_path: 
         teacher_model="gpt-5.4",
     )
     assert overridden["teacher_agent_version"] == "4"
+
+
+def test_agent_tool_schemas_match_the_hosted_agent() -> None:
+    schemas = agent_tool_schemas()
+
+    names = {schema["function"]["name"] for schema in schemas}
+    assert {"search_hotels", "check_travel_policy"} <= names
+    assert all(schema["type"] == "function" and "parameters" in schema["function"] for schema in schemas)

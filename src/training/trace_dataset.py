@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,6 +51,81 @@ def _messages(raw: str | None) -> list[dict[str, Any]]:
     return value
 
 
+def _as_text(value: Any) -> str:
+    return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
+
+
+def _has_tool_call(messages: list[dict[str, Any]]) -> bool:
+    return any(part.get("type") == "tool_call" for message in messages for part in message.get("parts", []))
+
+
+def _unwrap_parallel(part: dict[str, Any]) -> list[tuple[str, Any]]:
+    """Expand the model's `multi_tool_use.parallel` wrapper into the real tool calls it holds."""
+    if part.get("name") != "multi_tool_use.parallel":
+        return [(part["name"], part.get("arguments"))]
+    arguments = part.get("arguments") or {}
+    if isinstance(arguments, str):
+        arguments = json.loads(arguments)
+    return [
+        (use["recipient_name"].removeprefix("functions."), use.get("parameters", {}))
+        for use in arguments.get("tool_uses", [])
+    ]
+
+
+def _chat_messages(conversation: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Convert OpenTelemetry GenAI messages to fine-tuning chat messages, from the last user turn on."""
+    converted: list[dict[str, Any]] = []
+    pending: list[str] = []
+    issued = 0
+    for message in conversation:
+        role = message.get("role")
+        parts = message.get("parts", [])
+        if role == "user":
+            converted.append({"role": "user", "content": _message_text(message)})
+        elif role == "assistant":
+            entry: dict[str, Any] = {"role": "assistant", "content": _message_text(message) or None}
+            calls = []
+            for part in parts:
+                if part.get("type") != "tool_call":
+                    continue
+                for name, arguments in _unwrap_parallel(part):
+                    # Agent Framework doesn't always record call IDs; results then pair with calls in order.
+                    issued += 1
+                    call_id = part.get("id") if name == part.get("name") and part.get("id") else f"call_{issued}"
+                    pending.append(call_id)
+                    calls.append(
+                        {
+                            "id": call_id,
+                            "type": "function",
+                            "function": {"name": name, "arguments": _as_text(arguments or {})},
+                        }
+                    )
+            if calls:
+                entry["tool_calls"] = calls
+            if entry["content"] or calls:
+                converted.append(entry)
+        elif role == "tool":
+            for part in parts:
+                if part.get("type") != "tool_call_response" or not pending:
+                    continue
+                call_id = part.get("id")
+                call_id = call_id if call_id in pending else pending[0]
+                pending.remove(call_id)
+                converted.append({"role": "tool", "tool_call_id": call_id, "content": _as_text(part.get("response", ""))})
+    last_user = max((index for index, row in enumerate(converted) if row["role"] == "user"), default=0)
+    return converted[last_user:]
+
+
+def agent_tool_schemas() -> list[dict[str, Any]]:
+    """Return the hosted agent's tool definitions in the fine-tuning `tools` format."""
+    agent_dir = str(Path(__file__).resolve().parents[1] / "agent")
+    if agent_dir not in sys.path:
+        sys.path.insert(0, agent_dir)
+    from tools.definitions import ALL_TOOLS  # pyright: ignore[reportMissingImports]
+
+    return [tool.to_json_schema_spec() for tool in ALL_TOOLS]
+
+
 def _holdout_prompts(path: Path) -> set[str]:
     return {_normalized(row["query"]) for row in _load_jsonl(path)}
 
@@ -64,8 +140,18 @@ def transform(raw_path: Path, holdout_path: Path, questions_path: Path | None = 
     raw_rows = json.loads(raw_path.read_text(encoding="utf-8"))
     holdout = _holdout_prompts(holdout_path)
     questions = _training_questions(questions_path)
+    # Each tool-loop pass is its own row; keep the final pass, whose input holds the whole turn.
+    final_rows: dict[str, tuple[tuple[int, str], dict[str, Any]]] = {}
+    for row in raw_rows:
+        trace_id = str(row.get("TraceId") or "")
+        output_messages = _messages(row.get("OutputMessages"))
+        if not trace_id or _has_tool_call(output_messages):
+            continue
+        rank = (len(_messages(row.get("InputMessages"))), str(row.get("TimeGenerated", "")))
+        if trace_id not in final_rows or rank > final_rows[trace_id][0]:
+            final_rows[trace_id] = (rank, row)
     candidates: dict[str, dict[str, Any]] = {}
-    for row in sorted(raw_rows, key=lambda item: item.get("TimeGenerated", "")):
+    for _, row in sorted(final_rows.values(), key=lambda item: str(item[1].get("TimeGenerated", ""))):
         input_messages = _messages(row.get("InputMessages"))
         output_messages = _messages(row.get("OutputMessages"))
         users = [_message_text(message) for message in input_messages if message.get("role") == "user"]
@@ -76,19 +162,22 @@ def transform(raw_path: Path, holdout_path: Path, questions_path: Path | None = 
         response = next((text for text in reversed(assistants) if text), "")
         if not query or not response or _normalized(query) in holdout:
             continue
-        trace_id = str(row.get("TraceId") or "")
-        if not trace_id:
-            continue
+        trace_id = str(row.get("TraceId"))
         prompt_key = _normalized(query)
         question = questions.get(prompt_key)
         if questions and question is None:
             continue
+        messages = _chat_messages(input_messages + output_messages)
         candidates[prompt_key] = {
             "trace_id": trace_id,
             "timestamp": row.get("TimeGenerated"),
             "model": row.get("ModelName"),
             "query": query,
             "response": response,
+            "messages": messages,
+            "tools_called": [
+                call["function"]["name"] for message in messages for call in message.get("tool_calls", [])
+            ],
             "question_id": (question or {}).get("id", ""),
             "category": (question or {}).get("category", ""),
             "split": (question or {}).get("split", ""),
@@ -110,6 +199,7 @@ def review_template(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "hard_gates": {gate: False for gate in REQUIRED_GATES},
             "review_reason": "",
             "query_preview": row["query"][:160],
+            "tools_called": row.get("tools_called", []),
         }
         for row in candidates
     ]
@@ -123,6 +213,7 @@ def curate(
     instruction_path: Path,
     teacher_version: str | None = None,
     teacher_model: str | None = None,
+    tools: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     candidates = {row["trace_id"]: row for row in _load_jsonl(candidates_path)}
     reviews = _load_jsonl(review_path)
@@ -182,17 +273,18 @@ def curate(
     if missing_coverage:
         raise ValueError(f"Training coverage is incomplete: {missing_coverage}")
 
-    def sft_rows(pairs: list[tuple[dict[str, Any], dict[str, Any]]]) -> list[dict[str, Any]]:
-        return [
-            {
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": candidate["query"]},
-                    {"role": "assistant", "content": candidate["response"]},
-                ]
-            }
-            for candidate, _ in sorted(pairs, key=lambda pair: pair[0]["trace_id"])
+    def sft_row(candidate: dict[str, Any]) -> dict[str, Any]:
+        turn = candidate.get("messages") or [
+            {"role": "user", "content": candidate["query"]},
+            {"role": "assistant", "content": candidate["response"]},
         ]
+        row: dict[str, Any] = {"messages": [{"role": "system", "content": system_prompt}, *turn]}
+        if tools:
+            row["tools"] = tools
+        return row
+
+    def sft_rows(pairs: list[tuple[dict[str, Any], dict[str, Any]]]) -> list[dict[str, Any]]:
+        return [sft_row(candidate) for candidate, _ in sorted(pairs, key=lambda pair: pair[0]["trace_id"])]
 
     provenance_examples = [
         {
@@ -218,6 +310,7 @@ def curate(
         "instruction_sha256": hashlib.sha256(system_prompt.encode("utf-8")).hexdigest(),
         "train_count": len(train_pairs),
         "validation_count": len(validation_pairs),
+        "tool_call_examples": sum(1 for candidate, _ in accepted if candidate.get("tools_called")),
         "coverage": dict(sorted(coverage.items())),
         "examples": sorted(provenance_examples, key=lambda row: row["trace_id"]),
     }
@@ -265,6 +358,7 @@ def main() -> None:
         args.instructions,
         args.teacher_version,
         args.teacher_model,
+        agent_tool_schemas(),
     )
     _write_jsonl(args.train, train)
     _write_jsonl(args.validation, validation)
@@ -272,6 +366,7 @@ def main() -> None:
     args.provenance.write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
     print(f"Training examples: {len(train)}")
     print(f"Validation examples: {len(validation)}")
+    print(f"Examples with tool calls: {provenance['tool_call_examples']}")
     print("Testing-question overlap: 0")
     print(f"Provenance: {args.provenance}")
 

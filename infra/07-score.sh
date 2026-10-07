@@ -6,7 +6,7 @@ usage() {
 Score versions on the testing questions with the same scorecard, then compare.
 
 Usage:
-  bash infra/07-score.sh run --label v1|v2|v2-quality|v2-alt|v3|v3-router|v3-student [--repeats N] [--environment brk330-NNNNNN]
+  bash infra/07-score.sh run --label v1|v2|v2-quality|v2-alt|v3|v3-router|v3-student|v3-tools|v3-tools-student [--repeats N] [--environment brk330-NNNNNN]
   bash infra/07-score.sh compare [--environment brk330-NNNNNN]
 
 run      Scores one version on the 24 testing questions (default 3 repeats, so
@@ -42,7 +42,7 @@ if [[ "$phase" == "compare" ]]; then
   exit 0
 fi
 
-[[ -n "$label" ]] || fail 2 'Pass --label v1, v2, v2-quality, v2-alt, v3, v3-router, or v3-student.'
+[[ -n "$label" ]] || fail 2 'Pass --label v1, v2, v2-quality, v2-alt, v3, v3-router, v3-student, v3-tools, or v3-tools-student.'
 key="$(label_key "$label")"
 version="$(version_for "$label")"
 [[ -n "$version" ]] || fail 9 "$label has not been built yet in $environment_name."

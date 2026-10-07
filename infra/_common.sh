@@ -8,6 +8,8 @@
 #   v3      reviewed optimizer candidate (bash infra/11-promote.sh deploy)
 #   v3-router  v3's instructions on Model Router, Balanced (bash infra/11-promote.sh router)
 #   v3-student  v3's instructions on a model fine-tuned from v3's answers (bash infra/09-fine-tune.sh --teacher-label v3)
+#   v3-tools  v3's instructions and model with the fixed tools and data (bash infra/11-promote.sh tools)
+#   v3-tools-student  v3-tools on a model fine-tuned from v3-tools' answers (bash infra/09-fine-tune.sh --teacher-label v3-tools)
 # Each label maps to an immutable Hosted Agent version stored in the azd
 # environment as BRK330_VERSION_<LABEL>, with its model and config alongside.
 
@@ -65,7 +67,9 @@ label_key() {
     v3) printf 'V3' ;;
     v3-router) printf 'V3_ROUTER' ;;
     v3-student) printf 'V3_STUDENT' ;;
-    *) fail 2 "Unknown label $1. Use v1, v2, v2-quality, v2-alt, v3, v3-router, or v3-student." ;;
+    v3-tools) printf 'V3_TOOLS' ;;
+    v3-tools-student) printf 'V3_TOOLS_STUDENT' ;;
+    *) fail 2 "Unknown label $1. Use v1, v2, v2-quality, v2-alt, v3, v3-router, v3-student, v3-tools, or v3-tools-student." ;;
   esac
 }
 

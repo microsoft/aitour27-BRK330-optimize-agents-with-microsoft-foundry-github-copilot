@@ -25,25 +25,27 @@ Your numbers and wording will differ. Agents, Insights, and judges vary from run
 | | 10 | Reviewed and deployed candidate 1 as v3 | Fixed 4 of 6 findings plus the duplicate heading; missed 2 policy rules | ✅ |
 | | 10 | Scored v3 on the testing questions | **0.64 mean (+0.01), 75% pass.** Faster (P95 14.4 s), weaker policy checking | ✅ ↔ |
 | | 9 | Compared all versions | **v1 stays live** | ✅ |
-| | 11b | v3's instructions on Model Router | Planned | ⏳ |
+| | 11b | v3's instructions on Model Router = v3-router | **0.54, 65% pass.** Hard 0.43, the lowest of any version; most tokens per answer (8,371) | ✅ ▼ |
+| | 11c | Fine-tuning from v3 (v3-student) | **Stopped at review:** only about 25 of the 30 training answers needed passed. Most failures traced back to four gaps in our tools and data | ✅ ⏸️ |
+| | 11d | Fix the tools = v3-tools | Four fixes made and tested; deploy and score next | ⏳ |
 | | — | Second Insights scan on v3 | Planned | ⏳ |
 
 ### Final scorecard
 
 Same 24 testing questions, same scorecard, same judge, three rounds for every version.
 
-| | v1 | v2 | v2-quality | v3 |
-|---|---:|---:|---:|---:|
-| Mean | 0.63 | 0.57 | 0.50 | **0.64** |
-| Pass rate | **82%** | 65% | 54% | 75% |
-| Hard | **0.63** | 0.45 | 0.46 | 0.58 |
-| P95 | 18.9 s | 25.0 s | 49.5 s | **14.4 s** |
-| Cost per answer | ≈ $0.019 | **≈ $0.007** | ≈ $0.040 | ≈ +21% vs. v1 at list price; may be lower with caching |
+| | v1 | v2 | v2-quality | v3 | v3-router |
+|---|---:|---:|---:|---:|---:|
+| Mean | 0.63 | 0.57 | 0.50 | **0.64** | 0.54 |
+| Pass rate | **82%** | 65% | 54% | 75% | 65% |
+| Hard | **0.63** | 0.45 | 0.46 | 0.58 | 0.43 |
+| P95 | 18.9 s | 25.0 s | 49.5 s | **14.4 s** | 29.3 s |
+| Cost per answer | ≈ $0.019 | **≈ $0.007** | ≈ $0.040 | ≈ +21% vs. v1 at list price; may be lower with caching | not measured; 8,371 tokens per answer |
 
 ### Key insights for hill climbing
 
 1. **Measure before you move.** Every version got the same 24 testing questions, the same scorecard, and the same judge, three times. Without that, v2's cheaper bill or v3's practice gain could have gone live on a good-looking answer.
-2. **One change per step tells you *why*.** Model Router changed only the model; the optimizer changed only the instructions. Because the weakest area stayed at about 2/5 across three different models, we knew the problem was the **instructions, not the model**.
+2. **One change per step tells you *why*.** Model Router changed only the model; the optimizer changed only the instructions. Because the weakest area stayed at about 2/5 across three different models, we knew the problem **wasn't the model**. Round 2 showed the rest of the answer: part of it was the instructions, and part was **our tools**.
 3. **A step down is still progress.** v2 and v2-quality both went down, and they told us where not to go. The scorecard caught three would-be regressions.
 4. **Cheaper and faster only count if quality holds.** Model Router cut cost by about 65% but fell on hard requests. Optimizer candidate 2 got leaner by skipping booking evidence. The same rule caught both.
 5. **More expensive isn't better.** The priciest option, all `gpt-5.6-sol`, scored worst. A stronger general model doesn't mean better results for *your* agent's job.
@@ -52,8 +54,11 @@ Same 24 testing questions, same scorecard, same judge, three rounds for every ve
 8. **Run it more than once.** The same version varied by up to 7 passes between rounds (v2-quality: 16, 9, 14). One round can fool you.
 9. **The order of levers matters.** Fix what the evidence says is broken first (instructions), then pull the cost lever (router or fine-tuning). A student model is only as good as its teacher.
 10. **Automation proposes, people decide.** The optimizer found the easy, mechanical wins. A person still had to spot the overfitting, the missing policy rules, and the time-window gap, and decide to keep v1.
+11. **Good steps don't automatically stack.** v3's instructions were tuned on `gpt-5.4`. On Model Router they scored *below* both v3 and v2. Every time you change the model, climb again.
+12. **Traces show you what scores can't.** In v3-router, the hotel search returned the right hotel twice, and the agent said the tool had failed. In the fine-tuning review, the teacher kept working around our own tool bugs. The scorecard said *how much*; the traces said *why*.
+13. **Review what you teach.** Fine-tuning copies the teacher's habits, workarounds included. The review step stopped us from training a student to search for flights to `PAR` (our data only knew `CDG`) and to give up on simple totals.
 
-**One-line takeaway:** *"Three steps, none up, and we know exactly why. That's the playbook working."*
+**One-line takeaway:** *"Five steps, none clearly up, and each one told us exactly where to climb next: first the instructions, now the tools."*
 
 ---
 
@@ -481,7 +486,7 @@ That's roughly **2× v1** and **6× v2** per answer, for the lowest quality of t
 
 - **Our prediction was wrong, and that's the point of predicting.** We expected Quality mode to recover hard-question quality. It didn't (0.46 vs. v1's 0.63), and easy questions got worse (0.52 vs. 0.66).
 - **A stronger, pricier model isn't automatically better for *your* agent.** `gpt-5.6-sol` is a stronger general model, but v1's instructions were written and tested with `gpt-5.4`. The scorecard measures Caldova's policy behavior, not general intelligence, and on that, the most expensive option did worst.
-- **The weakest area didn't move. Not with any model.** `structured_booking_evidence` sits at about 2 out of 5 for `gpt-5.4`, for a luna/sol mix, and for all-sol. When the same weakness survives three different models, **the problem isn't the model. It's the instructions.** The agent was never clearly told to pass the policy tool's result into the booking step.
+- **The weakest area didn't move. Not with any model.** `structured_booking_evidence` sits at about 2 out of 5 for `gpt-5.4`, for a luna/sol mix, and for all-sol. When the same weakness survives three different models, **the problem isn't the model. It's the instructions.** The agent was never clearly told to pass the policy tool's result into the booking step. (Act 4's round 2 found the rest: some of it was our tools.)
 - **Cost and latency moved in the wrong direction.** 100% reasoning-model calls doubled v1's cost and pushed P95 to almost 50 seconds.
 - **Variance was highest here:** 16, 9, then 14 passed. A 7-question swing on the same version shows why we never judge from one round.
 
@@ -533,7 +538,7 @@ Model Router didn't beat v1 overall, but it delivered real value, and its bigges
 
 **Skipped in Act 3, on purpose.** After two model steps went down, the evidence pointed at the **instructions**, not the model: booking evidence scored about 2/5 on every model we tried. A student copies its teacher's reviewed answers, and few of v1's hard answers would pass review ("right policy decision", "totals add up"). A v1-taught student would mostly learn the easy cases, where Model Router already saves money. An earlier run of this session supports that: students taught from v1-style answers scored well below the baseline.
 
-**What we did instead:** improve the instructions first (Act 4), then fine-tune with the better version as the teacher. See [What to do next](#how-this-run-ends-the-story-in-one-page) at the end.
+**What we did instead:** improve the instructions first (Act 4), then fine-tune with the better version as the teacher. We tried exactly that in [round 2](#round-2-the-teacher-review-found-our-tool-bugs), and the review stopped us again, this time pointing at our tools.
 
 **Talk about it:**
 
@@ -549,53 +554,20 @@ Model Router didn't beat v1 overall, but it delivered real value, and its bigges
 | v2 | Model Router, Balanced | 0.57 | 65% | 0.45 | booking evidence (2.0) | 12.6 / 25.0 s | 5,969 | Down. About 65% cheaper, but weak on hard requests. |
 | v2-quality | Model Router, Quality (all `gpt-5.6-sol`) | 0.50 | 54% | 0.46 | booking evidence (2.2) | 16.2 / 49.5 s | 6,375 | Down. About 2× v1's cost. |
 | v3 | Optimizer's instructions (`gpt-5.4`) | **0.64** | 75% | 0.58 | clarification (1.9) | **9.0 / 14.4 s** | 6,612 | Sideways. Faster and better evidence, weaker policy checking. |
+| v3-router | v3's instructions on Model Router | 0.54 | 65% | 0.43 | booking evidence (1.9) | 14.1 / 29.3 s | 8,371 | Down. Below both v3 and v2. |
 
 **The climb, as it actually happened:**
 
 ```text
                        v3  0.64  (sideways: faster, better evidence, weaker policy checks)
-                      /
-   v1  0.63 ---------+---- v2  0.57  (down: cheaper, weak on hard requests)
-   (still live)       \
+                      /  \
+                     /    v3-router  0.54  (down: the two levers didn't stack)
+   v1  0.63 --------+---- v2  0.57  (down: cheaper, weak on hard requests)
+   (still live)      \
                        v2-quality  0.50  (down: most expensive, slowest)
 ```
 
-Three steps tried, none clearly up. **v1 stays live**, and we know far more than when we started.
-
----
-
-## How this run ends: the story in one page
-
-Use this as the close for this run. It follows [the README's punchline](README.md#close-the-punchline), with this run's numbers.
-
-**What we learned at each act:**
-
-1. **Make it work.** v1 found good options, but HERO wasn't booked and ACCESS skipped a policy check. The banner told the truth even when the reply sounded confident.
-2. **Understand where it struggles.** 108 answers and 🔍 **Insights** turned two anecdotes into six patterns. The top one, "nothing blocked treated as approval", showed up in 45 traces.
-3. **Make it better.** 📏 **Rubric Evaluator** turned those findings into a scorecard: every dimension traces back to a finding. 🔀 **Model Router** gave a clear answer: about 65% cheaper with no loss on easy requests, but weaker on hard, policy-heavy ones. Paying more for the strongest model made things *worse*. The weakness followed us across three models, so it wasn't the model.
-4. **Make it scale.** ⚙️ **Agent Optimizer** tried three instruction rewrites in an hour and fixed four of the six findings, plus a formatting quirk. On practice questions it scored +6 points; on new questions, +1, with a lower pass rate. We reviewed it, tested it, and kept v1 live.
-
-**For Krystal, Andre, and Lydia:**
-
-- **Krystal** still gets v1, because no version beat it on the policy decisions she depends on.
-- **Andre** has defensible numbers: Model Router can cut cost by about two-thirds on simple requests, and premium routing doubled cost for worse results. Every claim comes from the same scorecard.
-- **Lydia** has a process that caught three would-be regressions before they reached users, and points at exactly what to fix next.
-
-**The punchline:**
-
-> "We tried a cheaper model, a pricier model, and an automated rewrite. None of them beat v1, and we know exactly why. That's not a failed demo; that's the playbook working. Without measurement, any of these would have gone live on a good-looking answer. With it, every step up is real, and every step down teaches us where not to go. The next step is clear: add the two policy rules the optimizer missed, then let the router save money on top."
-
-**What to do next, after the session:**
-
-- **Add the missing rules by hand:** "no decision isn't approval", "pass the policy result into the booking", and "respect stated time windows". Then score that version the same way.
-- **Run v3's instructions on Model Router** (`bash infra/11-promote.sh router`) to see whether better instructions let the cheaper route hold quality.
-- **Run Insights again** on the next version (`bash infra/05-insights.sh --label v3 --lookback-hours 1`) to see which findings are gone.
-- **Fine-tune** once a version clearly beats v1, using it as the teacher (`--teacher-label`).
-
-**Talk about it:**
-
-- "Three steps, none up, and that's a result. The scorecard stopped three regressions from going live."
-- "Each Foundry feature did one job: Insights found the patterns, Rubric Evaluator measured them, Model Router showed where cheap is safe, and Agent Optimizer tried fixes at scale. A person decided at every step."
+Four steps tried, none clearly up. **v1 stays live**, and we know far more than when we started.
 
 ---
 
@@ -812,6 +784,11 @@ The page header shows the optimizer job ID. Crop it out if you publish the scree
 
 **Say this while pointing:** "One hour, three ideas, all automated. One clear winner on practice questions, two that barely moved. Candidate 3 is the cautionary tale: the most tokens for almost no gain. And see this big purple button? We're not pressing it. A person reads the changes, and the testing questions decide."
 
+**Talk about it:**
+
+- "Three candidates, one clear winner on practice questions. The optimizer stars it, but it doesn't deploy it. That's our call."
+- "Two of the three barely moved the needle. Automated search still mostly produces small or no gains. The value is that it tries many ideas cheaply, and we only keep the good one."
+
 **Our choice: candidate_1**, after reviewing its instructions against the Insights checklist above and the flight-time regression (0.88 → 0.22 on "EMP-001 can only fly after 8:00…").
 
 `bash infra/10-optimize.sh apply --candidate cand_opt_…_0001` downloaded it to `src/agent/.agent_configs/cand_opt_…_0001/`. Same model (`gpt-5.4`). The instructions grew from **1.1 KB to 6.5 KB**, about 6 times longer, which explains much of the extra token use.
@@ -955,11 +932,6 @@ If v3 beats v1's 0.63 mean with the policy dimensions holding, it's the first st
 - "It got faster and better at showing evidence, but slightly worse at checking policy before recommending. For Caldova, the policy check matters more, so v1 stays live."
 - "This is where a person adds value: the optimizer found the formatting wins, and we can see exactly which two or three rules it's still missing."
 
-**Talk about it:**
-
-- "Three candidates, one clear winner on practice questions. The optimizer stars it, but it doesn't deploy it. That's our call."
-- "Two of the three barely moved the needle. Automated search still mostly produces small or no gains. The value is that it tries many ideas cheaply, and we only keep the good one."
-
 ### Step 11b. Put the optimized instructions on Model Router (v3-router)
 
 > 🔀 **Spotlight: Model Router**, revisited
@@ -970,7 +942,160 @@ After v3 is built and scored, `bash infra/11-promote.sh router` runs v3's exact 
 
 **What we expect:** hard-question quality close to v3's, at roughly v2's cost per answer.
 
+**What happened:**
+
+| | Result |
+|---|---|
+| New version | **v3-router = contoso-travel version 5** (`model-router`, config `cand_opt_6a599dcc…_0001-router`) |
+| Deploy time | About 1 minute |
+| Live version | Still v1. We confirmed with `bash infra/11-promote.sh go-live --label v1` |
+| Smoke test (v3-router) | Called `check_travel_policy` for EMP-001, retried once after an empty first response, and reported no rule ID |
+| Smoke test (v1, after go-live) | Same tool call and the same honest "no rule returned"; 8.2 s, response headers in 489 ms |
+
+The smoke question has no departure date, so the policy tool has nothing to test against and returns no rule. Both versions said so instead of inventing a rule ID. That's the behavior we want.
+
+Two `router` runs overlapped by accident. The second one deployed the same code (no new version), then stopped with `DeploymentActive` because the first run's web-app deployment was still going. It never reached the step that points the portal back at v1, so we ran `go-live --label v1` by hand. Nothing else was affected.
+
+**Scores:** three rounds, **47 of 72 passed** (rounds 2 and 3: 15 and 17 of 24), then `bash infra/07-score.sh compare`:
+
+| | v3 (optimized, `gpt-5.4`) | v2 (original instructions, router) | **v3-router (both)** |
+|---|---:|---:|---:|
+| Mean | **0.64** | 0.57 | 0.54 |
+| Pass rate | **75%** | 65% | 65% |
+| Easy / Medium / Hard | 0.66 / 0.67 / **0.58** | 0.66 / 0.58 / 0.45 | 0.61 / 0.59 / **0.43** |
+| Weakest area | clarification (1.9) | booking evidence (2.0) | booking evidence (1.9) |
+| P50 / P95 | **9.0 s / 14.4 s** | 12.6 s / 25.0 s | 14.1 s / 29.3 s |
+| Tokens per answer | 6,612 | **5,969** | 8,371, the most of any version |
+
+**Our prediction was wrong again.** We expected v3's quality at v2's cost. We got lower quality than either, and the most tokens of any version.
+
+**Why, from the traces:**
+
+1. **The optimizer tuned the instructions on `gpt-5.4`.** Every practice score came from `gpt-5.4`, so candidate 1 fits that model, not the mix the router picks.
+2. **Longer instructions cost more on every call.** v3's instructions are 6 times longer than v1's, and the agent sends them with every pass through its tool loop. One answer takes 2 to 4 model calls, so the extra length adds up.
+3. **On hard questions, the router's picks didn't trust their own tool results.** One trace ("Is Retiro Business in Madrid within Caldova's hotel policy?") shows it plainly:
+
+   | Step | What happened |
+   |---|---|
+   | Tool call 1 | `search_hotels({"city": "MAD"})` returned **HT-016 Retiro Business, $195 + $16** |
+   | Tool call 2 | The same call again, the same correct result |
+   | Final answer | *"The inventory tool returned an error both times"*, so it couldn't check policy |
+
+   The tool worked both times. The model said it failed. That's a faithfulness failure, and it's invisible in the score; only the trace shows it.
+
+**Reading a trace like this:** the same question appears several times in one trace because each pass through the tool loop sends the full conversation again (the agent runs with `store: False`). Three passes means three model calls, and Model Router chooses the model for each one separately.
+
+**Verdict: down. Keep v1.** Each lever was tuned for a specific model. Change the model, and you have to climb again.
+
+**Talk about it:**
+
+- "Better instructions plus a cheaper router should have been the best of both. It was the worst of both. Good steps don't automatically stack."
+- "Look at this trace: the tool returned the right hotel twice, and the agent said the tool failed. The scorecard showed quality dropped. The trace showed why."
+
+### Round 2: the teacher review found our tool bugs
+
+> **Fine-tuning, from v3.** The plan: teach `gpt-4.1-mini` from v3's reviewed answers (`--teacher-label v3`), aiming for v3's quality at a fraction of the cost.
+
+#### Step 11c. Ask the teacher, collect its answers
+
+`bash infra/09-fine-tune.sh generate --teacher-label v3` asked v3 (version 4) all 48 training questions: **48 of 48 answered** in about 17 minutes. (The first try was cut off at question 43 when a command was typed into the running terminal. We reran it in full, so the review window holds one clean run.)
+
+| Category | Outcomes |
+|---|---|
+| Planning (14) | 5 checked, 5 partial, 2 blocked, 1 unconfirmed, 1 not booked |
+| Refusal (8) | 3 blocked, 2 checked, 2 error, 1 unconfirmed |
+| Receipts (8) | 8 reimbursable |
+| Accessibility (10) | 5 unconfirmed, 5 partial |
+| Numbers (8) | 3 checked, 2 unconfirmed, 2 partial, 1 blocked |
+
+`bash infra/09-fine-tune.sh harvest` then built the review sheet. Getting there exposed three gaps in how we turned traces into training examples, all fixed and tested:
+
+| Gap | Why it mattered | Fix |
+|---|---|---|
+| Training examples kept only the question and the final answer | The student would see answers full of rule IDs and prices, but never the tool calls that fetched them, so it would learn to *sound* checked without checking | Each example now keeps the whole turn: tool calls, tool results, and the final answer, plus the agent's tool definitions |
+| Tool results often had no call ID | The first harvest stopped with `KeyError: 'id'` | Results are paired with their calls in order |
+| `gpt-5.4` sometimes wraps parallel calls in `multi_tool_use.parallel` | The student would learn to call a tool that doesn't exist | The wrapper is unpacked into the real calls (`search_flights`, `search_hotels`, …) |
+
+#### What the review found
+
+The review sheet now lists `tools_called` for every answer. Reading all 48 answers against the data showed most failures came from **our tools and data**, not from v3:
+
+| Gap | What v3 did | Answers affected |
+|---|---|---|
+| **Paris flights use an airport code.** Flights listed Paris as `CDG`; every other city (and every Paris hotel and car) uses a city code like `PAR`. | Searched `SEA → PAR`, got nothing, and reported "no Seattle to Paris flights." There are 16. | 8 (TR-01, 02, 06, 07, 08, 12, 21, 45) |
+| **No step-free filter.** Hotel search had only `wheelchair`. | Used `wheelchair` for "step-free" requests, got nothing, and said nothing matched. Four step-free hotels exist. | 4 (TR-33, 36, 38, 39) |
+| **No price lookup by ID.** Given `FL-004`, the agent could only search by route. | Gave up honestly: "no pricing data was returned." | 3 (TR-41, 44, 46), plus a partial total in TR-48 |
+| **A misleading `over_cap` flag in the hotel data.** Only 3 hotels had it, though more are over their city's cap. | Trusted the flag and called HT-002 ($368) within the Paris cap of $320. | TR-42, and likely T-03 in testing (Union Square Inn, $341; v3 scored 0.51 there, down from v1's 0.88) |
+
+With those answers rejected, only about **25 of the 30 training answers** needed passed review, and the numbers category had 1 or 2 of the 4 it needs. We could have lowered the bar. We didn't: a student trained on these answers would learn to search the wrong city code and to give up on simple totals.
+
+**This is the second time the review said "not good enough to teach":** v1 in Act 3, v3 now. Each time it pointed at the next thing to fix.
+
+**Talk about it:**
+
+- "Fine-tuning copies your teacher's habits, including its workarounds for your bugs. The review step is where you catch that."
+- "The agent wasn't wrong to say 'no Paris flights.' Our data spelled Paris two different ways. No instruction can fix that."
+- "Insights found the behavior, the scorecard measured it, the optimizer tuned the instructions, and reviewing the teacher's answers found the real limit: our tools."
+
+#### Step 11d. Fix the tools (v3-tools)
+
+Four fixes, each with a test (`.venv/bin/python -m pytest src/agent/tests -q`, 19 passed):
+
+| Fix | Where |
+|---|---|
+| Flight, hotel, and car searches accept a city code, an airport code, or a city name (`PAR`, `CDG`, or `Paris`) | `src/agent/tools/search.py` |
+| `search_hotels` has a `step_free` filter. Step-free still never counts as wheelchair-accessible, which T-08 and T-23 test | `src/agent/tools/search.py`, `definitions.py` |
+| New `lookup_fixtures` tool returns prices by ID; hotels include the nightly total with taxes and fees | `src/agent/tools/search.py`, `definitions.py` |
+| `over_cap` removed from the hotel data, so the policy tool is the only source of truth for caps | `data/fixtures/catalogs/hotels.json` |
+
+**Versions already built are unaffected.** Each version packages the tools and data it was deployed with, so every score above stays valid. Only new deploys get the fixes.
+
+**Next:** build **v3-tools**, v3's instructions and model with only the tools changed, then score it:
+
+```bash
+bash infra/11-promote.sh tools
+bash infra/07-score.sh run --label v3-tools
+bash infra/07-score.sh compare
+```
+
+**What we expect:** a better T-03 (the cap now comes only from the policy tool), and otherwise close to v3. Most tool gaps hit training questions, not testing ones. If v3-tools holds up, it becomes the teacher: `bash infra/09-fine-tune.sh generate --teacher-label v3-tools`, then harvest, review, and train as before, with far more answers expected to pass.
+
 _Not run yet._
+
+---
+
+## How this run ends: the story in one page
+
+Use this as the close for this run. It follows [the README's punchline](README.md#close-the-punchline), with this run's numbers.
+
+**What we learned at each act:**
+
+1. **Make it work.** v1 found good options, but HERO wasn't booked and ACCESS skipped a policy check. The banner told the truth even when the reply sounded confident.
+2. **Understand where it struggles.** 108 answers and 🔍 **Insights** turned two anecdotes into six patterns. The top one, "nothing blocked treated as approval", showed up in 45 traces.
+3. **Make it better.** 📏 **Rubric Evaluator** turned those findings into a scorecard: every dimension traces back to a finding. 🔀 **Model Router** gave a clear answer: about 65% cheaper with no loss on easy requests, but weaker on hard, policy-heavy ones. Paying more for the strongest model made things *worse*. The weakness followed us across three models, so it wasn't the model.
+4. **Make it scale.** ⚙️ **Agent Optimizer** tried three instruction rewrites in an hour and fixed four of the six findings, plus a formatting quirk. On practice questions it scored +6 points; on new questions, +1, with a lower pass rate. Putting those instructions on Model Router scored lower still. Then reviewing v3's answers for fine-tuning showed the agent working around four bugs in our own tools.
+
+**For Krystal, Andre, and Lydia:**
+
+- **Krystal** still gets v1, because no version beat it on the policy decisions she depends on.
+- **Andre** has defensible numbers: Model Router can cut cost by about two-thirds on simple requests, and premium routing doubled cost for worse results. Every claim comes from the same scorecard.
+- **Lydia** has a process that caught four would-be regressions before they reached users, and a review step that stopped a student from learning our bugs.
+
+**The punchline:**
+
+> "We tried a cheaper model, a pricier model, an automated rewrite, and the rewrite on the cheaper model. None of them beat v1, and we know exactly why. When we went to teach a smaller model, the review showed the agent working around bugs in our own tools. That's not a failed demo; that's the playbook working. Every step down told us where to climb next: first the instructions, now the tools."
+
+**What to do next, after the session:**
+
+- **Build and score v3-tools** (`bash infra/11-promote.sh tools`), then fine-tune from it if it holds up (`--teacher-label v3-tools`).
+- **Add the missing rules by hand:** "no decision isn't approval", "pass the policy result into the booking", and "respect stated time windows". Then score that version the same way.
+- **Run Insights again** on the next version (`bash infra/05-insights.sh --label v3 --lookback-hours 1`) to see which findings are gone.
+- **If you want the router's savings,** run the optimizer with Model Router as the target model, so the instructions are tuned for the model that will run them.
+
+**Talk about it:**
+
+- "Five steps, none clearly up, and that's a result. The scorecard stopped four regressions from going live, and the review stopped a bad student."
+- "Each Foundry feature did one job: Insights found the patterns, Rubric Evaluator measured them, Model Router showed where cheap is safe, and Agent Optimizer tried fixes at scale. Traces showed why. A person decided at every step."
 
 ---
 
@@ -990,4 +1115,9 @@ _Not run yet._
 | `bash infra/10-optimize.sh status` returned `{"id": "", "status": ""}` even though the job was running. Passing `--project-endpoint` to `azd ai agent optimize status` returns an empty result. | Status now lets azd find the project itself, shows a readable summary, saves the full JSON to `status.json`, and supports `--watch`. |
 | The optimizer practiced on all 36 exploring questions instead of the 12 practice rows. It ignores `max_samples`. | `submit` now writes a practice-only file (12 rows) and registers it as its own dataset, `brk330-practice`. The testing questions were never used either way. |
 | `status` ended with `-s: command not found` and "Candidate files did not arrive in .agent_configs//". The script was edited while it was running, and bash reads scripts as it goes. Nothing was applied. | Don't edit a numbered script while it's running. Rerunning the command worked. |
+| Two `bash infra/11-promote.sh router` runs overlapped. The second failed with `DeploymentActive` on the web-app deployment and stopped before switching the portal back to v1. | Run each numbered script once, in one terminal. If a deploy stops early, run `bash infra/11-promote.sh go-live --label v1` before scoring. Added to the instructions. |
 | `azd ai agent optimize apply` also **overwrote v1's `baseline/instructions.md`** with the candidate's text. The cloud versions weren't affected (they can't be changed), but any later deploy using `baseline` would have used the wrong instructions. | Restored the baseline from git. `apply` now snapshots `.agent_configs/` first and puts back any existing folder it changed; the candidate keeps its own folder. Optimizer folders named after the job are ignored by git. |
+| The first `generate` stopped at question 43. Activating the virtual environment in the same terminal sent an interrupt to the running script. | Leave a running script's terminal alone; the numbered scripts call `.venv/bin/python` directly, so activation isn't needed. We reran `generate` in full so the review window held one clean run. |
+| After a Codespaces restart, `harvest` failed with a JSON error. The Azure CLI asked to reinstall its `log-analytics` extension, and the prompt landed in the saved trace file. | `harvest` now installs the extension without prompting. |
+| Training examples kept only the question and the final answer, dropping every tool call. | Examples now keep the whole turn and the agent's tool definitions. Missing call IDs and `multi_tool_use.parallel` wrappers are handled. |
+| Reviewing v3's answers showed four tool and data gaps: Paris flights coded `CDG`, no step-free filter, no price lookup by ID, and an incomplete `over_cap` flag. | Fixed in `src/agent/tools/` and `data/fixtures/`, with tests. New versions get the fixes; existing versions keep what they were deployed with. Build `v3-tools` with `bash infra/11-promote.sh tools`. |
