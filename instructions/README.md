@@ -4,11 +4,41 @@
 
 This guide takes the Contoso Travel concierge from "it works" to "we know it's better, and we can keep making it better." Every step uses real Microsoft Foundry resources, so the results you see are your own.
 
-> [!TIP]
-> **Let GitHub Copilot walk you through it.** Ask: *"Walk me through instructions/README.md one step at a time. Explain each command before I run it and wait for my result."* You stay in control of anything that creates, changes, or deletes cloud resources.
-
 > [!NOTE]
-> **Want to see what a real run looked like?** [walkthrough.md](walkthrough.md) follows the same steps and shows the results, numbers, and talking points from a full run in East US 2.
+> **Want to see what a real run looked like?** [Learning journey 1](walkthrough-journey-1.md) records a full run in East US 2: the results, numbers, and talking points, plus the bugs that run found and fixed. Your run starts with those fixes in place, so your numbers will differ.
+
+---
+
+## Start here: let GitHub Copilot lead you through it
+
+**The easiest way: use the AITOUR BRK330 Agent.** In GitHub Copilot Chat, open the agent picker and choose **AITOUR BRK330 Agent**, then type `start`. It's a lab guide built for this session ([`.github/agents/hill-climb-helper.agent.md`](../.github/agents/hill-climb-helper.agent.md)):
+
+| Say | What happens |
+|---|---|
+| `start` | It sets up a record of your run in `instructions/walkthrough-<timestamp>.md`. |
+| `what's next` | It checks your progress and gives you the next command, what it does, and what a good result looks like. |
+| `explain this` | It explains what the step you just finished achieved, and where you are on the hill. |
+| `fix this` | It works out why a step failed and proposes a fix. It applies the fix only if you reply **yes** to that one action, and it never deletes resources, changes the live version, or touches git. |
+| Paste output, or `DONE` | It records the result in your walkthrough file and moves you on. Screenshots work too. |
+| `FEEDBACK: …` | It saves your note to `instructions/feedback.md` for future runs. It never treats feedback as a command. |
+
+The helper **never runs lab steps for you**. It gives you each command and waits for your result, so you stay in control of everything that touches the cloud. The one exception is `fix this`, and only for the single action you approve.
+
+**Prefer the default Copilot agent?** Paste this prompt instead:
+
+```text
+Walk me through instructions/README.md one step at a time, starting at "Before you start."
+For each step:
+1. Tell me what the step does and why it matters for hill climbing, in two or three sentences.
+2. Give me the exact command to run.
+3. Wait for me to run it and paste the result.
+4. Explain the result in plain words: what went well, what to watch, and what it means for the next step.
+Don't run commands that create, change, or delete cloud resources yourself. I'll run those.
+```
+
+Along the way, look for **💬 Ask Copilot** boxes. They're optional prompts that help you understand what a step produced: a summary, a comparison, or the story to tell. Replace `<env>` with your environment name (`brk330-NNNNNN`).
+
+---
 
 ## Four Foundry features take center stage
 
@@ -22,6 +52,8 @@ The whole session is built around four Microsoft Foundry features. Name them out
 | ⚙️ **Agent Optimizer** | 4 | Proposes instruction changes and tries them on practice questions. You review and decide. | Foundry → contoso-travel → **Optimize** |
 
 They build on each other: **Insights** tells you *what* goes wrong, **Rubric Evaluator** turns that into *how to measure it*, **Model Router** is the first change you measure, and **Agent Optimizer** automates trying more changes. Fine-tuning (v2-alt) is a supporting comparison, not a hero.
+
+---
 
 ## The story in one minute
 
@@ -67,7 +99,11 @@ Map it to the acts:
 | 1. Make it work | Get on the hill: a working v1. |
 | 2. Understand where it struggles | Look around: which directions look promising? |
 | 3. Make it better | Build the altimeter (the Rubric Evaluator scorecard), measure v1, take two single steps (v2, v2-alt), and keep the one that goes up. |
-| 4. Make it scale | Let the optimizer take steps for you, then check each one with the same altimeter before you move.
+| 4. Make it scale | Let the optimizer take steps for you, then check each one with the same altimeter before you move. |
+
+> **Expect to walk down before you walk up.** In our first run, four steps went down or sideways before the fifth went up. That's normal. Each step down tells you where not to go, and points to the next thing to try. [Learning journey 1's climb chart](walkthrough-journey-1.md#the-climb-step-by-step) shows it.
+
+---
 
 ## Words we use
 
@@ -76,12 +112,15 @@ Map it to the acts:
 | **Version** | Every change creates a new, unchangeable copy of the agent. Old versions stay available, so you can always switch back. |
 | **Label** | A friendly name for a version: **v1**, **v2**, **v2-alt**, **v3**. The scripts remember which version number each label points to. |
 | **Trace** | A step-by-step record of one answer: which tools the agent called, what came back, how long it took, how many tokens it used. |
+| **Tools** | The functions the agent calls to look things up: search flights, hotels, and cars, look up prices, check policy, read receipts, and prepare a dry-run booking. |
 | **Insights** | A Foundry feature that reads many traces and groups repeated problems into findings in plain language. |
 | **Scorecard** | Our name for the **Rubric Evaluator** we build in Act 3: a checklist of weighted dimensions (for example, "right policy decision" and "numbers add up") used to grade every answer. Foundry drafts it from v1's traces; you review it. |
 | **Judge** | The model the Rubric Evaluator uses to apply the scorecard to each answer (`gpt-5.4-mini`). |
 | **Model Router** | One deployment that picks a suitable model for each request. |
-| **Fine-tuning** | Teaching a smaller model by showing it good examples, here reviewed v1 answers. |
+| **Fine-tuning** | Teaching a smaller, cheaper model (the **student**) by showing it reviewed answers from a better version (the **teacher**). |
 | **Agent Optimizer** | A Foundry feature that tries several instruction changes and reports how each did on practice questions. |
+
+---
 
 ## Three sets of questions
 
@@ -92,6 +131,8 @@ If you study with the exam questions, your grade means nothing. So the questions
 | **Exploring** | 36 (12 easy, 12 medium, 12 hard) | Learn how v1 behaves. The first 12 are **practice** questions, including the four portal scenarios. | Act 2, the scorecard draft, and the optimizer's practice |
 | **Training** | 48 | Collect good v1 answers to teach the smaller model. | Act 3, fine-tuning |
 | **Testing** | 24 (8 easy, 8 medium, 8 hard) | Grade every version. New cities and receipts that appear nowhere else. | Act 3 and Act 4 scoring only |
+
+---
 
 ## The versions you'll build
 
@@ -128,10 +169,12 @@ contoso-travel (the agent)
 - **Other versions stay reachable from code.** Any active version can be called directly by number without changing what the portal uses. That's how every script here works: questions, scoring, and smoke tests all call `azd ai agent invoke --version N`, so you can test v2 while the portal keeps serving v1.
 - **Switching back is instant.** Nothing is rebuilt; only the active-version setting changes. Start a new portal conversation after a switch.
 
+---
+
 ## Before you start
 
 - An Azure subscription with billing, and permission to create resources and assign roles.
-- Quota in **East US 2** for the five models setup deploys (preflight checks this for you; see [`infra/README.md`](../infra/README.md#models-and-capacity)).
+- Quota in **East US 2** for the five models setup deploys. Setup checks this before creating anything; see [`infra/README.md`](../infra/README.md#models-and-capacity). Quota is often shared with other teams, so check close to your run. The tightest one is usually `gpt-5.6-sol` for the Insights judge, which needs 500.
 - Agent Optimizer preview access for Act 4.
 - This repo open in GitHub Codespaces or the dev container.
 
@@ -140,16 +183,20 @@ Run every command from the repository root. Everything these scripts make (answe
 > [!IMPORTANT]
 > These steps create resources that cost money until you delete them. Step 12 cleans everything up.
 
+---
+
 ## What to do ahead of time
 
 Most steps involve waiting on the cloud. Do them the day before so the session is all about the story.
 
 | When | Steps | Result |
 |---|---|---|
-| **The day before** | 01 → 09 | v1, v2, and v2-alt built; traces, Insights findings, scorecard, and scores ready |
+| **The day before** | 01 → 09 | v1, v2, and v2-alt built; traces, Insights findings, scorecard, and scores ready. Submit fine-tuning early: in our run the job waited about an hour for GPUs before a 16-minute training. |
 | **A few hours before** | 10 `submit` | Optimizer candidates waiting for review |
 | **On stage** | Portal, Foundry, `bash infra/07-score.sh compare`, `bash infra/10-optimize.sh status`, `bash infra/11-promote.sh` | You show and explain; nothing long-running |
 | **After** | 12 | Everything deleted |
+
+> **Tip:** run each numbered script once, in one terminal, and leave that terminal alone until it finishes. Typing in it (even activating a virtual environment) can stop the script. The scripts don't need the virtual environment activated.
 
 ---
 
@@ -157,7 +204,7 @@ Most steps involve waiting on the cloud. Do them the day before so the session i
 
 ### Before the session
 
-**Step 1. Build everything.**
+#### Step 1. Build everything
 
 ```bash
 bash infra/02-setup.sh
@@ -172,13 +219,15 @@ Setup checks the repo first (it runs `infra/01-validate.sh` for you), signs you 
 
 When it finishes, it prints the portal URL and the environment name (`brk330-NNNNNN`). If it stops partway, it prints a resume command that reuses the same environment.
 
-**Step 2. Check that everything is healthy.**
+#### Step 2. Check that everything is healthy
 
 ```bash
 bash infra/03-check.sh
 ```
 
 You want `Deployment validation: READY`. Add `--verbose` to see the details: models, agent, portal health, permissions, and recent traces.
+
+> 💬 **Ask Copilot (optional):** *"Here's the output of `bash infra/03-check.sh --verbose`: [paste]. In plain words, what did setup create, and does anything need attention before I start?"*
 
 ### During the session
 
@@ -191,6 +240,8 @@ Open the portal and run the four sample scenarios. The banner at the top of each
 | **HERO** | Plans a full Paris trip within policy and passes the policy result to the dry-run booking. | Often **Not booked — the booking step did not go through.** The plan looks great, but the booking was missing its policy proof. |
 | **ACCESS** | Finds the wheelchair-accessible hotel and hand-control car, and says no flight leaves after 8:00. | Often **Partly done — nothing matched some of the requirements.** Check whether the reply says that clearly or glosses over it. |
 
+> 💬 **Ask Copilot (optional):** *"Here's the banner and the reply from the HERO scenario: [paste]. Where do the banner and the reply disagree, and what does that suggest about how v1 handles policy?"*
+
 > **Say this:** "It works. We're on the hill. But does it work *every* time, and do we know *why* when it doesn't? One run can't tell us. Let's ask it a lot of questions."
 
 ---
@@ -201,7 +252,7 @@ Open the portal and run the four sample scenarios. The banner at the top of each
 
 ### Before the session
 
-**Step 3. Ask v1 the exploring questions, three times each.**
+#### Step 3. Ask v1 the exploring questions, three times each
 
 ```bash
 bash infra/04-run-questions.sh
@@ -213,7 +264,9 @@ Want a quick try first? Add `--limit 4 --repeats 1`.
 
 Short on prep time? Use `--repeats 2`. Each question still gets more than one answer, which is enough for Insights and the scorecard, and the run is a third shorter. You can also add `--parallel 3` to ask three questions at once; it finishes much sooner, and timings get a little noisier because answers share model capacity. Expect roughly 20 seconds per answer one at a time, so the default 108 answers (36 × 3) take a while; start it and come back.
 
-**Step 4. Let Insights read the traces.**
+> 💬 **Ask Copilot (optional):** *"Summarize `.azure/<env>/questions/exploring-v1-*.md`. How do time, tokens, and tool calls change from easy to hard questions, and which outcomes stand out?"*
+
+#### Step 4. Let Insights read the traces
 
 Wait a few minutes for the traces to arrive, then run:
 
@@ -223,10 +276,12 @@ bash infra/05-insights.sh
 
 This starts one Insights run over the last 3 hours of traces, using the `insights-judge` model that setup already deployed. It prints the findings and saves them (without any IDs) so the next step can use them. If your questions ran longer ago, add `--lookback-hours 6`.
 
+> 💬 **Ask Copilot (optional):** *"Read `.azure/<env>/insights/findings.json`. Explain each finding in one plain sentence, ranked by how many traces it covers. Which look like instruction problems, and which look like tool or data problems?"*
+
 ### During the session
 
 1. In Foundry, open **contoso-travel → Traces**. Pick one HERO trace and walk through it: the tool calls, the policy check, the booking attempt, and what came back.
-2. Open **Insights**. Read the findings aloud and point out how many traces each one covers. The [walkthrough](walkthrough.md#step-4-let-insights-read-the-traces) shows six findings from a full run, led by "absence of a policy block was misinterpreted as affirmative authorization" across 45 traces.
+2. Open **Insights**. Read the findings aloud and point out how many traces each one covers. The [walkthrough](walkthrough-journey-1.md#step-4-let-insights-read-the-traces) shows six findings from a full run, led by "absence of a policy block was misinterpreted as affirmative authorization" across 45 traces.
 
    Your wording may differ. Report what *your* run found.
 3. Show the summary from step 3 (`.azure/<env>/questions/exploring-v1-*.md`): how speed and tokens grow from easy to hard questions.
@@ -243,7 +298,7 @@ This starts one Insights run over the last 3 hours of traces, using the `insight
 
 ### Before the session
 
-**Step 5. Build the scorecard with Rubric Evaluator.**
+#### Step 5. Build the scorecard with Rubric Evaluator
 
 ```bash
 bash infra/06-scorecard.sh
@@ -260,7 +315,9 @@ The draft is saved under `.azure/<env>/scorecard/`. **Read it.** Each line shoul
 
 In Foundry you'll see **"Generated with input-quality warnings: The agent has no instructions."** That's expected. Rubric Evaluator can't read a hosted agent's instructions because they're packaged with its code, so the script passes the instructions and policy in the prompt source instead. If the dimensions are Caldova-specific, the warning is cosmetic; don't regenerate to get rid of it.
 
-**Step 6. Score v1.**
+> 💬 **Ask Copilot (optional):** *"Read the scorecard draft in `.azure/<env>/scorecard/` and `.azure/<env>/insights/findings.json`. For each dimension, which finding or guidance did it come from? Is anything Caldova cares about missing?"*
+
+#### Step 6. Score v1
 
 ```bash
 bash infra/07-score.sh run --label v1
@@ -268,7 +325,9 @@ bash infra/07-score.sh run --label v1
 
 This grades v1 on the **24 testing questions**, three times, with the Rubric Evaluator scorecard and the `gpt-5.4-mini` judge. v1 has never seen these questions; they use cities and receipts that appear nowhere else.
 
-**Step 7. Build and score v2 with Model Router.**
+> 💬 **Ask Copilot (optional):** *"Here's the output of `bash infra/07-score.sh compare`: [paste]. Where does v1 stand, what's its weakest dimension, and how much did the pass count change between rounds?"*
+
+#### Step 7. Build and score v2 with Model Router
 
 ```bash
 bash infra/08-model-router.sh
@@ -277,7 +336,9 @@ bash infra/07-score.sh run --label v2
 
 Same instructions, same tools. The only change is that Model Router picks the model for each request. The portal stays on v1.
 
-**Step 7b (optional). Try Model Router in Quality mode.**
+> 💬 **Ask Copilot (optional):** *"Compare v1 and v2 in this `compare` output: [paste]. Did this step go up or down, on which question levels, and what does that say about where a cheaper model is safe?"*
+
+#### Step 7b (optional). Try Model Router in Quality mode
 
 The default **Balanced** mode picks the cheapest model that's close in quality. If v2 is cheaper but scores worse on hard questions, try **Quality** mode, which picks the strongest model for each prompt:
 
@@ -286,9 +347,9 @@ bash infra/08-model-router.sh --mode quality
 bash infra/07-score.sh run --label v2-quality
 ```
 
-This creates a second router deployment, `model-router-quality` (capacity 300), and one agent version that uses it, labeled **v2-quality**. It's still one change from v1: only the model choice. See [walkthrough step 7](walkthrough.md#step-7-build-and-score-v2-with-model-router) for why we tried it.
+This creates a second router deployment, `model-router-quality` (capacity 300), and one agent version that uses it, labeled **v2-quality**. It's still one change from v1: only the model choice. See [walkthrough step 7](walkthrough-journey-1.md#step-7-build-and-score-v2-with-model-router) for why we tried it.
 
-**Step 8. Build and score v2-alt, the fine-tuned smaller model.**
+#### Step 8. Build and score v2-alt, the fine-tuned smaller model
 
 This one has a few steps because a person has to approve what the model learns from.
 
@@ -313,6 +374,8 @@ Now **review**. Open `.azure/<env>/fine-tune/<teacher>/traces.review.jsonl`. Cat
 - tick all five checks in `hard_gates` (right policy decision, checked before recommending, no made-up rule citations, totals add up, everything came from the tools);
 - write a short `review_reason`.
 
+> 💬 **Ask Copilot (optional, and very useful here):** *"Read `.azure/<env>/fine-tune/<teacher>/traces.candidates.jsonl`. For each answer, check its tool calls and results against `data/fixtures/`: empty searches that shouldn't be empty, totals that don't add up, policy checks skipped before a recommendation. Suggest accept or reject with a one-line reason, and tell me if any category falls short of the minimums in `data/fine-tuning-review.json`. Don't edit the review file until I approve."*
+
 You need at least 30 training and 6 validation answers, spread across all five categories. If the teacher got a question wrong, leave it out; teaching a mistake makes the student worse. Then:
 
 ```bash
@@ -326,15 +389,19 @@ bash infra/07-score.sh run --label v2-alt    # or: --label v3-student
 
 The testing questions are never used for training; the curate step refuses to continue if one slips in. The student keeps its teacher's instructions and changes only the model, so it's one step from the teacher.
 
-> **Good to know: teaching a tool-using agent from its traces.** A student only learns to *use* tools if its training examples include the tool calls and their results, not just the final answers. `curate` builds every example that way, in the format Azure fine-tuning accepts for tool calling: the tool definitions on every row, `"parallel_tool_calls": true`, plain JSON schemas where every object has `properties` and `required` (even if empty), no `content` on tool-call messages, and tool results placed right after the call that asked for them. If a job fails in preprocessing with **"contains invalid schema"** on every line, the problem is the shared parts of each row (the `tools` list and its schemas), not your examples. Compare your file with the Foundry team's [fine-tuning repo](https://github.com/microsoft-foundry/fine-tuning), which has a trace-to-SFT transform script and a working tool-calling sample. Preprocessing takes a few minutes once the job starts, so check `status` soon after `submit`, not hours later.
+> **The student's deployment lasts about a day.** `deploy` uses the Developer tier: no hourly hosting fee, but it's removed after about 24 hours and has no speed guarantee. Run `deploy`, `agent`, and scoring in one sitting, compare the student on quality rather than speed, and don't put it live as is.
 
-**Step 9. Compare.**
+> **Good to know: teaching a tool-using agent from its traces.** A student only learns to *use* tools if its training examples include the tool calls and their results, not just the final answers. `curate` builds every example that way, in the format Azure fine-tuning accepts for tool calling: the tool definitions on every row, `"parallel_tool_calls": true`, plain JSON schemas where every object has `properties` and `required` (even if empty), no `content` on tool-call messages, and tool results placed right after the call that asked for them. If a job fails in preprocessing with **"contains invalid schema"** on every line, the problem is the shared parts of each row (the `tools` list and its schemas), not your examples. Compare your file with the Foundry team's [fine-tuning repo](https://github.com/microsoft-foundry/fine-tuning), which has a script for turning traces into training data and a working tool-calling sample. Preprocessing takes a few minutes once the job starts, so check `status` soon after `submit`, not hours later.
+
+#### Step 9. Compare
 
 ```bash
 bash infra/07-score.sh compare
 ```
 
-You get one table with each version's average score, its change from v1, the pass rate, scores for easy, medium, and hard questions, its weakest area, speed (typical and slowest), and average tokens.
+You get two tables. The first shows each version's average score, its change from v1, the pass rate, scores for easy, medium, and hard questions, its weakest area, speed (typical and slowest), and average tokens. The second shows every scorecard dimension for every version, so you can check that the policy decisions held.
+
+> 💬 **Ask Copilot (optional):** *"Turn this `compare` output into a hill-climbing story: [paste]. For each version, did it go up, down, or sideways from the one it started from, and what did that step teach us? Did the policy dimensions hold?"*
 
 ### During the session
 
@@ -365,9 +432,9 @@ You get one table with each version's average score, its change from v1, the pas
 
 ### Before the session
 
-**Step 10. Let Agent Optimizer try instruction changes.**
+#### Step 10. Let Agent Optimizer try instruction changes
 
-Start from the best-scoring version in Act 3. In our run that was v1 (see the [walkthrough](walkthrough.md#step-10-let-agent-optimizer-try-instruction-changes)):
+Start from the best-scoring version in Act 3. In our run that was v1 (see the [walkthrough](walkthrough-journey-1.md#step-10-let-agent-optimizer-try-instruction-changes)):
 
 ```bash
 bash infra/10-optimize.sh submit --from-label v1
@@ -382,6 +449,8 @@ bash infra/10-optimize.sh status --watch    # keep checking until it finishes
 
 The job runs in Foundry, so you can close the terminal and come back. You'll also find it in Foundry under **contoso-travel → Optimize**.
 
+> 💬 **Ask Copilot (optional):** *"Here's the output of `bash infra/10-optimize.sh status`: [paste]. Compare the candidates with the baseline: which one gained most, what did each cost in tokens and time, and is any gain small enough to be noise?"*
+
 ### During the session
 
 1. Show the optimizer job in Foundry, or the `status` output: three candidates, each with a practice score.
@@ -390,7 +459,7 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
    >
    > - **A practice score isn't proof.** The star is based on the practice questions. We want the candidate scored on the 24 testing questions, alongside v1 and v2, before anyone decides.
    > - **Nothing should go live by accident.** Our scripts deploy the candidate as a labeled version (v3) and keep the portal on whatever version it was using.
-   > - **A plain `azd deploy` would run the old instructions.** In this repo, each version picks its config folder from `CONTOSO_CONFIGURATION`, which is still `baseline`. A plain `azd deploy` would create a new version with v1's instructions and rebuild the portal too. `bash infra/11-promote.sh deploy` sets the right config just for that deploy, then sets it back.
+   > - **A plain `azd deploy` would use the wrong instructions.** Each version reads its instructions from a config folder. A plain `azd deploy` would still point at v1's folder and rebuild the portal too. `bash infra/11-promote.sh deploy` points at the candidate's folder for that one deploy, then switches back.
    >
    > We still use the same `optimize apply` command to download the candidate's files. Only the deploy step is different. Foundry still tracks it: the optimizer job page shows **"Promoted: v<N>"** and links the new version back to the run. In Foundry, "promoted" means *became a version*, not *went live*.
 
@@ -400,7 +469,9 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
    bash infra/10-optimize.sh apply --candidate <candidate-id>
    ```
 
-   Open `src/agent/.agent_configs/<candidate-id>/instructions.md` next to `src/agent/.agent_configs/baseline/instructions.md` and talk through what changed. Ask out loud: does this make sense for Caldova? Would I sign off on this? A good check: **which Insights findings does this change address?** (The walkthrough has a [checklist](walkthrough.md#which-insights-findings-the-optimizer-can-address).)
+   Open `src/agent/.agent_configs/<candidate-id>/instructions.md` next to `src/agent/.agent_configs/baseline/instructions.md` and talk through what changed. Ask out loud: does this make sense for Caldova? Would I sign off on this? A good check: **which Insights findings does this change address?** (The walkthrough has a [checklist](walkthrough-journey-1.md#which-insights-findings-the-optimizer-can-address).)
+
+   > 💬 **Ask Copilot (optional):** *"Compare `src/agent/.agent_configs/<candidate-id>/instructions.md` with `src/agent/.agent_configs/baseline/instructions.md`. List what changed, which findings in `.azure/<env>/insights/findings.json` each change addresses, which findings are still open, and whether any examples were copied from the practice questions."*
 3. Turn it into **v3** and retest it on the testing questions:
 
    ```bash
@@ -417,6 +488,8 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
 
    If not, keep what you have. That's the system working, not failing.
 
+   > 💬 **Ask Copilot (optional):** *"Compare v3 with the version it started from in this `compare` output: [paste]. Compare the practice gain from the optimizer with the testing gain. Did the policy dimensions hold? Should v3 go live?"*
+
 5. **Optional: put the improved instructions back on Model Router (v3-router).** If Model Router was cheaper but weaker in Act 3, the weakness may have been the instructions, not the router. Now that v3 has better instructions, try them on Model Router. It's one change from v3, the model:
 
    ```bash
@@ -427,10 +500,10 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
 
    If v3-router keeps v3's quality at a lower cost, that's the best of both levers: better instructions *and* a cheaper model mix.
 
-   The `router` command finishes by pointing the portal back at the live version. Run it once, in one terminal. If it stops early (for example, `DeploymentActive` because another deploy is still going), put the live version back before scoring:
+   The `router` command finishes by pointing the portal back at the version that was live before. Run it once, in one terminal. If it stops early (for example, with `DeploymentActive` because another deploy is still running), put the live version back yourself before scoring:
 
    ```bash
-   bash infra/11-promote.sh go-live --label v1
+   bash infra/11-promote.sh go-live --label <the label that was live>
    ```
 
    The smoke test question doesn't give a departure date, so "no lead-time rule returned" is a normal answer there, not a failure.
@@ -444,6 +517,10 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
 
    Start the scan right after the questions finish, so the 1-hour window holds only v3's traces. Findings save to `findings-v3.json`, next to v1's. Compare the two lists: which findings disappeared, which shrank, which remain. One pass is enough here; Insights was the most expensive step in our run.
 
+   Insights keeps the old findings listed and adds new ones, so compare the **new** findings, as a share of traces (36 now against 108 before).
+
+   > 💬 **Ask Copilot (optional):** *"Compare `.azure/<env>/insights/findings-v3.json` with `findings.json` by share of traces. Which findings are gone, which shrank, which are still there, and which are new? Which remaining ones need an instruction change, and which need a code or tool change?"*
+
 7. **Optional: fix the tools, then teach (v3-tools).** Instructions can only do so much. If traces or the fine-tuning review show the agent working around a tool (an empty search for a city that has inventory, a total it can't compute because it can't look up a price), fix the tool or the data in `src/agent/tools/` or `data/fixtures/`, run the tests, then build v3 again with only the tools changed:
 
    ```bash
@@ -453,7 +530,9 @@ The job runs in Foundry, so you can close the terminal and come back. You'll als
    bash infra/07-score.sh compare
    ```
 
-   Versions already built keep the tools they were deployed with, so earlier scores stay valid. If v3-tools holds up, use it as the fine-tuning teacher (step 8 with `--teacher-label v3-tools`). The [walkthrough](walkthrough.md#round-2-the-teacher-review-found-our-tool-bugs) shows the four tool gaps our run found this way.
+   Versions already built keep the tools they were deployed with, so earlier scores stay valid. If v3-tools holds up, use it as the fine-tuning teacher (step 8 with `--teacher-label v3-tools`). The [walkthrough](walkthrough-journey-1.md#round-2-the-teacher-review-found-our-tool-bugs) shows the four tool gaps our run found this way.
+
+   > 💬 **Ask Copilot (optional):** *"Look through `.azure/<env>/questions/` for answers where a search came back empty or a total couldn't be worked out. Check each against `data/fixtures/`: is the agent wrong, or is a tool or the data missing something?"*
 
 > **Say this:** "This is the same climb, automated. The optimizer proposes the steps and tests them on practice questions. We check each one with the same altimeter, the testing questions, before we move. The optimizer does the trying. A person does the deciding."
 
@@ -486,6 +565,8 @@ Your results will differ from run to run. Here's how to tell the story whatever 
 
 Every row is a good ending. The only bad ending is skipping the measurement.
 
+> 💬 **Ask Copilot (optional):** *"Using my final `compare` output [paste] and the Insights findings in `.azure/<env>/insights/`, draft a two-minute closing for Krystal, Andre, and Lydia. Tell the climb in order: where we started, each step and what it taught us, and where we ended up."*
+
 ---
 
 ## Clean up
@@ -495,6 +576,8 @@ bash infra/12-teardown.sh
 ```
 
 It shows the resource group and asks you to type its full name, then asks once more before it deletes and purges everything.
+
+---
 
 ## If something goes wrong
 
@@ -506,8 +589,13 @@ It shows the resource group and asks you to type its full name, then asks once m
 | A step says a label "has not been built yet" | Run the step that builds it (see [The versions you'll build](#the-versions-youll-build)). |
 | Rate-limit errors while asking questions | Wait a minute and rerun; each run saves its own time window, so partial runs don't get mixed in. |
 | The portal shows the wrong version | `bash infra/11-promote.sh go-live --label <label>`, then start a new conversation. |
+| Fine-tuning fails with "contains invalid schema" | See the "Good to know" note in step 8. |
+
+> 💬 **Ask Copilot (optional):** *"This command failed: [paste the command and output]. What went wrong, and what's the safest next step? Check `docs/troubleshooting.md` first."*
 
 More detail is in [`docs/troubleshooting.md`](../docs/troubleshooting.md).
+
+---
 
 ## Where things live
 

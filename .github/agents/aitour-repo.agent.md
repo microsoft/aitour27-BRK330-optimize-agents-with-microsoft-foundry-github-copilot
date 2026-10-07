@@ -210,7 +210,7 @@ Ordering principle: run all read-only validation first. Only make destructive ed
    ```
 
 7. **Remove the `.github` folder, including my own instructions.** Tell the user, in these exact terms: "Now removing the `.github` folder, including my own instructions. This is the last step of Finalize." Then remove:
-   - `.github/agents/` (entire folder)
+   - `.github/agents/aitour-repo.agent.md` (this file). **Keep `.github/agents/hill-climb-helper.agent.md`**: it's the learner's lab guide, part of the session itself.
    - `.github/tests/` (entire folder)
    - `.github/copilot-instructions.md`
    - `.github/AGENT-WORKFLOW.md`

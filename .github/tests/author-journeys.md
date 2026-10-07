@@ -138,8 +138,9 @@ Expected result:
 - If checks fail, the agent reports the failure in plain language and proposes
   fixes.
 - Once checks pass, the agent removes template-only tooling:
-  `.github/agents/`, `.github/tests/`,
+  `.github/agents/aitour-repo.agent.md`, `.github/tests/`,
   `.github/copilot-instructions.md`, `.github/AGENT-WORKFLOW.md`.
+  It keeps `.github/agents/hill-climb-helper.agent.md`, the learner's lab guide.
 - The final repo is customer-ready.
 
 ## Communication style

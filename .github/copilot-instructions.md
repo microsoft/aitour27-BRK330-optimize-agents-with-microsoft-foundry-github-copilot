@@ -39,7 +39,7 @@ Plus:
 - Confirm which unused folders to remove.
 - Verify the repo is ready to publish by running through an inline checklist (placeholders, required README sections, delivery deck URL, relative link targets).
 - If any fail: report in plain language, propose fixes, ask permission to apply, then re-check.
-- Once all pass: remove template-only tooling (`.github/agents/`, `.github/tests/`, `.github/copilot-instructions.md`, `.github/AGENT-WORKFLOW.md`). Remove `.github/` if empty.
+- Once all pass: remove template-only tooling (`.github/agents/aitour-repo.agent.md`, `.github/tests/`, `.github/copilot-instructions.md`, `.github/AGENT-WORKFLOW.md`). Keep `.github/agents/hill-climb-helper.agent.md`: it's part of the session, not the template. Remove `.github/` only if it's empty.
 - Report the repo as ready to publish.
 
 ## Folder purposes

@@ -1,12 +1,102 @@
-# Walkthrough: what a real run looked like
+# Learning journey 1: what our first full run looked like
 
-This page follows [README.md](README.md) step by step and records what happened in a full run on **October 6, 2026** in **East US 2**. Run the command in the README, then come here to compare your results and pick up talking points.
+This page records the first full run of [README.md](README.md), on **October 6–7, 2026** in **East US 2**. It's kept as a historical record: the scores, the traces, the talking points, and the bugs we found and fixed along the way. Use it to tell whether your run is *in the right shape*, not to match it exactly. Agents, Insights, and judges vary from run to run.
 
-Your numbers and wording will differ. Agents, Insights, and judges vary from run to run. Use this page to tell whether your run is *in the right shape*, not to match it exactly.
+> [!NOTE]
+> **Your run starts where this one ended.** The fixes below are already in the repo, so a fresh run won't hit these problems, and your v1 will likely score higher than ours. That's expected. The method is the same; only the starting point moved.
 
-> Each step has three parts: **What we saw**, **What it means**, and **Talk about it**, which gives you lines you can use on stage.
+**What this run found and fixed:**
+
+| Area | What we found | What's in the repo now |
+|---|---|---|
+| Running questions | Answers were recorded as errors (the agent replies as an event stream) | The question runner reads the final event; `--parallel` added |
+| Going live | New versions went live on deploy (the endpoint used "always latest") | Scripts pin the live version and put it back after every deploy |
+| Insights | The first scan was rate-limited at judge capacity 200 | The Insights judge deploys at 500 |
+| Agent Optimizer | It practiced on all 36 exploring questions, and `apply` overwrote v1's instructions | A 12-question practice set; `apply` keeps the baseline safe |
+| Tools and data | Paris flights coded `CDG` only, no step-free filter, no price lookup, an incomplete `over_cap` flag | Searches accept city or airport codes; a `step_free` filter and a `lookup_fixtures` tool; caps come only from the policy tool |
+| Fine-tuning | Training data dropped tool calls, then failed Azure's format check four times | Examples keep tool calls in the format Azure accepts (see README step 8) |
+| Comparing versions | Only the weakest dimension was shown | `compare` prints every dimension for every version |
+
+This run also took steps the README marks as optional (v3-router, v3-tools, and fine-tuning from v3-tools), so its order differs a little. Each step has three parts: **What we saw**, **What it means**, and **Talk about it**, with lines you can use on stage.
+
+> 💬 **Ask Copilot (optional):** *"Compare my results for step [N], [paste output], with the same step in instructions/walkthrough-journey-1.md. Remember that my run has the fixes listed at the top. Is my run in the right shape? What's different, and does it change the story I should tell?"*
+
+---
 
 ## Summary at a glance
+
+### The climb, step by step
+
+Seven versions, one question each time: **did this step go up?** Every version was scored the same way: 24 new testing questions, the same Rubric Evaluator scorecard, the same judge, three rounds.
+
+| # | Version | Started from | The one change | Feature | Mean | Hard | Policy held? | Result | Live after this step |
+|---:|---|---|---|---|---:|---:|:---:|:---:|---|
+| 0 | **v1** | — | Starting point: `gpt-5.4` | 🔍 Insights, 📏 Rubric Evaluator | 0.63 | 0.63 | — | start | v1 |
+| 1 | v2 | v1 | Model: Model Router, Balanced | 🔀 Model Router | 0.57 | 0.45 | ❌ | ▼ | v1 |
+| 2 | v2-quality | v1 | Model: Model Router, Quality | 🔀 Model Router | 0.50 | 0.46 | ❌ | ▼ | v1 |
+| 3 | v3 | v1 | Instructions, rewritten by the optimizer | ⚙️ Agent Optimizer | 0.64 | 0.58 | ❌ (−0.26 on policy checks) | ↔ | v1 |
+| 4 | v3-router | v3 | Model: Model Router, Balanced | 🔀 Model Router | 0.54 | 0.43 | ❌ | ▼ | v1 |
+| 5 | **v3-tools** | v3 | Tools and data, fixed after reading traces | traces | **0.66** | **0.70** | ✅ | **▲** | **v3-tools** |
+| 6 | v3-tools-student | v3-tools | Model: fine-tuned `gpt-4.1-mini` | fine-tuning | 0.54 | 0.56 | ❌ | ▼ | v3-tools |
+| — | Insights again | v3-tools | Re-scan: which problems went away? | 🔍 Insights | | | | 2 of 6 gone; top one 42% → 25% | v3-tools |
+
+The **solid line** is each step's mean score. The **flat line** is the version that was live after each step. It never goes down, because nothing went live until it was measured.
+
+```mermaid
+xychart-beta
+    title "Hill climbing: mean score on the 24 testing questions"
+    x-axis ["v1", "v2", "v2-quality", "v3", "v3-router", "v3-tools", "student"]
+    y-axis "Mean score (0-1)" 0.45 --> 0.70
+    line [0.63, 0.57, 0.50, 0.64, 0.54, 0.66, 0.54]
+    line [0.63, 0.63, 0.63, 0.63, 0.63, 0.66, 0.66]
+```
+
+The same climb as a map: where each step started, which lever it pulled, and how it went.
+
+```mermaid
+flowchart LR
+    v1(["v1 · 0.63<br/>start"])
+    v2["v2 · 0.57<br/>▼ cheaper, weak on hard"]
+    v2q["v2-quality · 0.50<br/>▼ pricier, worse"]
+    v3["v3 · 0.64<br/>↔ policy checks slipped"]
+    v3r["v3-router · 0.54<br/>▼ levers didn't stack"]
+    v3t(["v3-tools · 0.66<br/>▲ first step up · LIVE"])
+    v3s["student · 0.54<br/>▼ too few examples"]
+    v1 -- "Model Router" --> v2
+    v1 -- "Quality routing" --> v2q
+    v1 -- "Agent Optimizer" --> v3
+    v3 -- "Model Router" --> v3r
+    v3 -- "trace review: tool bugs" --> v3t
+    v3t -- "fine-tuning" --> v3s
+    classDef up fill:#d4edda,stroke:#2e7d32,color:#1b5e20
+    classDef down fill:#f8d7da,stroke:#c62828,color:#7f1d1d
+    classDef side fill:#fff3cd,stroke:#b8860b,color:#5c4400
+    classDef start fill:#e3f2fd,stroke:#1565c0,color:#0d3c78
+    class v1 start
+    class v2,v2q,v3r,v3s down
+    class v3 side
+    class v3t up
+```
+
+**What each step taught us:**
+
+| Step | What happened | What it taught us |
+|---|---|---|
+| **v1** | Insights found 6 patterns in 108 traces; the top one, "nothing blocked treated as approval," ran through 45. | Where we stand, and where to look. |
+| **v2** ▼ | Model Router sent 77% of calls to a small model: about 65% cheaper, same quality on easy questions. | Cheap is safe for easy requests, not hard ones. |
+| **v2-quality** ▼ | Every call went to the most expensive model: twice v1's cost, the lowest score. | More expensive isn't better. The weakness followed us across three models, so it wasn't the model. |
+| **v3** ↔ | The optimizer gained +0.064 on practice questions but only +0.01 on new ones, and policy checks slipped. | Never grade on what you practiced on. |
+| **v3-router** ▼ | Below both v3 and v2. In one trace, the tool returned the right hotel twice and the model said it failed. | Good steps don't automatically stack. Change the model, and you climb again. |
+| **v3-tools** ▲ | Reading the teacher's traces showed four tool and data bugs. We fixed only the tools. | The first step up. Traces found what no score pointed at. |
+| **student** ▼ | It kept its teacher's tool habits but lost on every dimension after learning from 36 examples. | Habits are easy to teach; judgment takes far more examples. |
+
+**Talk about it:**
+
+- "This is what hill climbing really looks like: down, down, sideways, down, up, down. If you only remember one picture from today, make it this one."
+- "Look at the flat line. The live version never got worse, because every step was measured before anyone switched it on. Walking down cost us an afternoon, not our users."
+- "Every step down pointed to the next one. The models ruled out the model. The optimizer fixed the instructions it could. The traces found our tools. The student showed us how much a small model needs to learn."
+
+---
 
 ### What we did
 
@@ -28,73 +118,26 @@ Your numbers and wording will differ. Agents, Insights, and judges vary from run
 | | 11b | v3's instructions on Model Router = v3-router | **0.54, 65% pass.** Hard 0.43, the lowest of any version; most tokens per answer (8,371) | ✅ ▼ |
 | | 11c | Fine-tuning from v3 (v3-student) | **Stopped at review:** only about 25 of the 30 training answers needed passed. Most failures traced back to four gaps in our tools and data | ✅ ⏸️ |
 | | 11d | Fix the tools = v3-tools | **0.66 mean, 82% pass, hard 0.70.** First version to beat v1; policy decisions held. **Now live** | ✅ ▲ |
-| | 11e | Fine-tuning from v3-tools (v3-tools-student) | Review passed (36 training, 6 validation; 41 with tool calls). Training job submitted | ⏳ |
+| | 11e | Fine-tuning from v3-tools = v3-tools-student | **0.54 mean, 60% pass, hard 0.56.** Below its teacher on every dimension; 36 examples weren't enough | ✅ ▼ |
 | | 11f | 🔍 Insights again, on v3-tools | 36 traces, 5 new findings. **2 of v1's 6 gone**, 2 shrank, 1 sharper, 1 new pattern. Top finding: 42% → 25% of traces | ✅ |
+
+---
 
 ### Final scorecard
 
 Same 24 testing questions, same scorecard, same judge, three rounds for every version.
 
-| | v1 | v2 | v2-quality | v3 | v3-router | **v3-tools** |
-|---|---:|---:|---:|---:|---:|---:|
-| Mean | 0.63 | 0.57 | 0.50 | 0.64 | 0.54 | **0.66** |
-| Pass rate | **82%** | 65% | 54% | 75% | 65% | **82%** |
-| Hard | 0.63 | 0.45 | 0.46 | 0.58 | 0.43 | **0.70** |
-| P95 | 18.9 s | 25.0 s | 49.5 s | **14.4 s** | 29.3 s | 15.1 s |
-| Cost per answer | ≈ $0.019 | **≈ $0.007** | ≈ $0.040 | ≈ +21% vs. v1 at list price; may be lower with caching | not measured; 8,371 tokens per answer | not measured; 7,288 tokens per answer on `gpt-5.4` (+52% vs. v1) |
+| | v1 | v2 | v2-quality | v3 | v3-router | **v3-tools** | v3-tools-student |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Mean | 0.63 | 0.57 | 0.50 | 0.64 | 0.54 | **0.66** | 0.54 |
+| Pass rate | **82%** | 65% | 54% | 75% | 65% | **82%** | 60% |
+| Hard | 0.63 | 0.45 | 0.46 | 0.58 | 0.43 | **0.70** | 0.56 |
+| P95 | 18.9 s | 25.0 s | 49.5 s | 14.4 s | 29.3 s | 15.1 s | **13.9 s**\* |
+| Cost per answer | ≈ $0.019 | **≈ $0.007** | ≈ $0.040 | ≈ +21% vs. v1 at list price; may be lower with caching | not measured; 8,371 tokens per answer | not measured; 7,288 tokens per answer on `gpt-5.4` (+52% vs. v1) | not measured; 6,482 tokens per answer on a fine-tuned `gpt-4.1-mini`, a much cheaper model |
 
-### The climb, step by step
+\*The student ran on a Developer-tier deployment, which has no speed guarantee. Compare it on quality, not speed.
 
-Every step we tried, in the order we tried it. The **solid line** is each version's mean score on the testing questions. The **flat line** is the best version so far, the one that would be live. It never goes down: a step down costs us a few hours, not our users.
-
-```mermaid
-xychart-beta
-    title "Hill climbing: mean score on the 24 testing questions"
-    x-axis ["v1 start", "v2 cheap router", "v2-quality pricey router", "v3 optimizer", "v3-router stacked", "v3-tools fixed tools"]
-    y-axis "Mean score (0-1)" 0.45 --> 0.70
-    line [0.63, 0.57, 0.50, 0.64, 0.54, 0.66]
-    line [0.63, 0.63, 0.63, 0.64, 0.64, 0.66]
-```
-
-| Step | Mean | Hard | What happened | What it taught us |
-|---|---:|---:|---|---|
-| **v1**, start | 0.63 | 0.63 | `gpt-5.4` with the original instructions. Insights found 6 patterns; the top one, "nothing blocked treated as approval", ran through 45 traces. | Where we stand, and where to look. |
-| **v2**, cheaper model ▼ | 0.57 | 0.45 | Model Router (Balanced) sent 77% of calls to a small model. About 65% cheaper, same quality on easy questions. | Cheap is safe for easy requests, not hard ones. |
-| **v2-quality**, pricier model ▼ | 0.50 | 0.46 | Quality routing sent every call to the most expensive model. Twice v1's cost, the lowest score. | More expensive isn't better. The weakness followed us across three models, so it wasn't the model. |
-| **v3**, new instructions ↔ | 0.64 | 0.58 | Agent Optimizer rewrote the instructions. +0.064 on practice questions, +0.01 on new ones; faster, better evidence, weaker policy checks. | Never grade on what you practiced on. Instructions helped, but not enough. |
-| **v3-router**, combine two levers ▼ | 0.54 | 0.43 | v3's instructions on Model Router. Below both v3 and v2. In one trace the tool returned the right hotel twice and the model said it failed. | Good steps don't automatically stack. Change the model, and you climb again. |
-| **v3-tools**, fix the tools ▲ | **0.66** | **0.70** | Reviewing v3's answers for fine-tuning showed it working around four tool and data bugs. We fixed only the tools. | The first step up. Traces found what no score pointed at. |
-
-The same climb as a map: which version each step started from.
-
-```mermaid
-flowchart LR
-    v1["v1 · 0.63<br/>start"]
-    v2["v2 · 0.57<br/>cheaper model ▼"]
-    v2q["v2-quality · 0.50<br/>pricier model ▼"]
-    v3["v3 · 0.64<br/>optimized instructions ↔"]
-    v3r["v3-router · 0.54<br/>instructions + router ▼"]
-    v3t["v3-tools · 0.66<br/>fixed tools ▲ live"]
-    v1 -- "Model Router" --> v2
-    v1 -- "Quality routing" --> v2q
-    v1 -- "Agent Optimizer" --> v3
-    v3 -- "Model Router" --> v3r
-    v3 -- "trace review: tool bugs" --> v3t
-    classDef up fill:#d4edda,stroke:#2e7d32,color:#1b5e20
-    classDef down fill:#f8d7da,stroke:#c62828,color:#7f1d1d
-    classDef side fill:#fff3cd,stroke:#b8860b,color:#5c4400
-    classDef start fill:#e3f2fd,stroke:#1565c0,color:#0d3c78
-    class v1 start
-    class v2,v2q,v3r down
-    class v3 side
-    class v3t up
-```
-
-**Talk about it:**
-
-- "This is what hill climbing really looks like. Down, down, sideways, down, then up. If you only remember one picture from today, make it this one."
-- "Look at the flat line. The live version never got worse, because every step was measured before anyone switched it on. Walking down cost us an afternoon, not our users."
-- "Each step down pointed to the next step. The models ruled out the model. The optimizer fixed the instructions it could. The traces found our tools. Then we went up."
+---
 
 ### Key insights for hill climbing
 
@@ -111,11 +154,20 @@ flowchart LR
 11. **Good steps don't automatically stack.** v3's instructions were tuned on `gpt-5.4`. On Model Router they scored *below* both v3 and v2. Every time you change the model, climb again.
 12. **Traces show you what scores can't.** In v3-router, the hotel search returned the right hotel twice, and the agent said the tool had failed. In the fine-tuning review, the teacher kept working around our own tool bugs. The scorecard said *how much*; the traces said *why*.
 13. **Review what you teach.** Fine-tuning copies the teacher's habits, workarounds included. The review step stopped us from training a student to search for flights to `PAR` (our data only knew `CDG`) and to give up on simple totals.
-14. **Teach the tool calls, not just the answers, and in the format the service expects.** Our first training files kept only questions and final answers; a student trained on them would learn to *sound* checked without checking. Adding the tool calls then failed Azure's preprocessing twice, with "invalid schema" on every line, until we matched the Foundry fine-tuning repo's trace-to-SFT format. Check the format on a small job before waiting in the queue with the full one.
+14. **Teach the tool calls, not just the answers, and in the format the service expects.** Our first training files kept only questions and final answers; a student trained on them would learn to *sound* checked without checking. Adding the tool calls then failed Azure's preprocessing four times with "invalid schema." Matching the Foundry fine-tuning repo's working sample, rule by rule, fixed it on the fifth. Check the format on a small job before waiting in the queue with the full one.
+15. **Habits transfer fast; judgment needs volume.** The student copied its teacher's style after 36 examples (tool first, every field shown) but scored lower on every dimension, including both policy checks. A training loss of 0.09 meant it learned those 36 answers, not the skill. Plan for hundreds of reviewed examples before expecting a small model to keep up.
 
-**One-line takeaway:** *"Five steps down or sideways, then one clearly up, and every step told us where to climb next: first the instructions, then the tools."*
+#### Why the climb was worth it
 
----
+Only one of six steps went up. That's not a poor result; it's the method working:
+
+- **Nothing bad went live.** Five versions scored lower than the live one, and none of them reached users. The live line on the chart only ever went up.
+- **Every step down was cheap and specific.** Each one cost hours, not an outage, and told us exactly where not to go: not a pricier model, not routing tuned instructions, not a student with too few examples.
+- **The one step up came from evidence, not a guess.** No score said "fix the tools." Insights findings, the scorecard's weakest dimension, and reading the teacher's traces all pointed there. Fixing only the tools lifted hard questions from 0.58 to 0.70.
+- **The four Foundry features each did one job.** 🔍 Insights found the patterns, 📏 Rubric Evaluator measured every step the same way, 🔀 Model Router showed where cheap is safe and where it isn't, and ⚙️ Agent Optimizer tried instruction changes at scale. A person read the traces and made every decision.
+- **We know the next step.** Add the "no decision isn't approval" rule the optimizer missed, and teach the student with far more examples. Then climb again.
+
+**One-line takeaway:** *"Six steps, one clearly up, and every step told us where to climb next: first the instructions, then the tools, then how much a small model needs to learn."*
 
 ---
 
@@ -124,6 +176,8 @@ flowchart LR
 ### Step 1. Build everything
 
 `bash infra/02-setup.sh` completed all 12 stages on the first try in a fresh environment. It deployed all five models (`gpt-5.4`, `gpt-5.4-mini`, `gpt-4.1-mini`, `model-router`, `insights-judge`), Hosted Agent v1, and the portal.
+
+---
 
 ### Step 2. Check that everything is healthy
 
@@ -134,6 +188,8 @@ BRK330_VERSION_V1=1
 BRK330_MODEL_V1="gpt-5.4"
 BRK330_CONFIG_V1="baseline"
 ```
+
+---
 
 ### During the session: the four portal scenarios
 
@@ -195,6 +251,8 @@ BRK330_CONFIG_V1="baseline"
 - "Same question, three times. We want to know what the agent *usually* does, not what it did once."
 - "Every hard question costs almost three times as much as an easy one. Does every question really need the frontier model? Hold that thought for Model Router."
 - "Even an easy question tripped it up: 'flights *between* Seattle and Boston' got one direction only."
+
+---
 
 ### Step 4. Let Insights read the traces
 
@@ -294,6 +352,8 @@ More detail is in [troubleshooting](../docs/troubleshooting.md#generated-rubric-
 - "A receipt question isn't judged on bookings. Each answer is scored only on what applies to it, which keeps the comparison fair across easy and hard questions."
 - If someone asks about the warning: "Foundry warns it couldn't read the agent's instructions, because hosted agents keep them in code. We handed them over directly, and you can see the result: every dimension is about Caldova's policy, not generic helpfulness."
 
+---
+
 ### Step 6. Score v1
 
 > 📏 **Spotlight: Rubric Evaluator** (now grading)
@@ -378,6 +438,8 @@ So a step that **adds** tokens can still **save** money, and a step that cuts to
 - "Look at P95, not just P50. A version that's fast on average but slow one time in twenty still frustrates people."
 - "Tokens tell you how hard the model worked, not what it cost. When Model Router sends an easy question to a cheaper model, we might spend *more* tokens and *less* money. That's why we track them separately."
 
+---
+
 ### Step 7. Build and score v2 with Model Router
 
 > 🔀 **Spotlight: Model Router**
@@ -454,6 +516,8 @@ Foundry → **Models → model-router → Monitor** shows the routing mix and co
 #### Next step: v2-quality
 
 The obvious next step is **one change**: the same Model Router, switched to **Quality** routing mode, which picks the strongest model for each prompt and ignores cost. See step 7b below.
+
+---
 
 ### Step 7b. Try Model Router in Quality mode
 
@@ -589,6 +653,8 @@ Model Router didn't beat v1 overall, but it delivered real value, and its bigges
 - "It didn't fix our hard cases, and it couldn't. The weakness is in our instructions, not the model, and the router helped us prove that fast."
 - "So the order matters: fix the instructions first, then let the router save money. Let the evidence tell you which lever to pull next."
 
+---
+
 ### Step 8. Build and score v2-alt, the fine-tuned smaller model
 
 **Skipped in Act 3, on purpose.** After two model steps went down, the evidence pointed at the **instructions**, not the model: booking evidence scored about 2/5 on every model we tried. A student copies its teacher's reviewed answers, and few of v1's hard answers would pass review ("right policy decision", "totals add up"). A v1-taught student would mostly learn the easy cases, where Model Router already saves money. An earlier run of this session supports that: students taught from v1-style answers scored well below the baseline.
@@ -598,6 +664,8 @@ Model Router didn't beat v1 overall, but it delivered real value, and its bigges
 **Talk about it:**
 
 - "We could fine-tune now, but a student is only as good as its teacher. Our teacher's weakness is in its instructions, so we fix those first, then teach."
+
+---
 
 ### Step 9. Compare
 
@@ -611,12 +679,16 @@ Model Router didn't beat v1 overall, but it delivered real value, and its bigges
 | v3 | Optimizer's instructions (`gpt-5.4`) | **0.64** | 75% | 0.58 | clarification (1.9) | **9.0 / 14.4 s** | 6,612 | Sideways. Faster and better evidence, weaker policy checking. |
 | v3-router | v3's instructions on Model Router | 0.54 | 65% | 0.43 | booking evidence (1.9) | 14.1 / 29.3 s | 8,371 | Down. Below both v3 and v2. |
 | **v3-tools** | v3 with fixed tools and data | **0.66** | **82%** | **0.70** | clarification (2.4) | **8.6** / 15.1 s | 7,288 | **Up. First version to beat v1.** |
+| v3-tools-student | v3-tools on a fine-tuned `gpt-4.1-mini` | 0.54 | 60% | 0.56 | booking evidence (2.1) | 6.9 / 13.9 s\* | 6,482 | Down from its teacher. Cheaper, but 36 examples weren't enough. |
+
+\*Developer-tier deployment: no speed guarantee.
 
 **The climb, as it actually happened:**
 
 ```text
                                    v3-tools  0.66  (UP: fixed tools; best on hard questions)
-                                  /
+                                  /       \
+                                 /         v3-tools-student  0.54  (down: too few examples)
                        v3  0.64  (sideways: faster, better evidence, weaker policy checks)
                       /  \
                      /    v3-router  0.54  (down: the two levers didn't stack)
@@ -625,7 +697,7 @@ Model Router didn't beat v1 overall, but it delivered real value, and its bigges
                        v2-quality  0.50  (down: most expensive, slowest)
 ```
 
-Five steps tried, one clearly up. v3-router and v3-tools come from Act 4; see steps 11b and 11d.
+Six steps tried, one clearly up. v3-router, v3-tools, and the student come from Act 4; see steps 11b, 11d, and 11e.
 
 ---
 
@@ -990,6 +1062,8 @@ If v3 beats v1's 0.63 mean with the policy dimensions holding, it's the first st
 - "It got faster and better at showing evidence, but slightly worse at checking policy before recommending. For Caldova, the policy check matters more, so v1 stays live."
 - "This is where a person adds value: the optimizer found the formatting wins, and we can see exactly which two or three rules it's still missing."
 
+---
+
 ### Step 11b. Put the optimized instructions on Model Router (v3-router)
 
 > 🔀 **Spotlight: Model Router**, revisited
@@ -1050,6 +1124,8 @@ Two `router` runs overlapped by accident. The second one deployed the same code 
 - "Better instructions plus a cheaper router should have been the best of both. It was the worst of both. Good steps don't automatically stack."
 - "Look at this trace: the tool returned the right hotel twice, and the agent said the tool failed. The scorecard showed quality dropped. The trace showed why."
 
+---
+
 ### Round 2: the teacher review found our tool bugs
 
 > **Fine-tuning, from v3.** The plan: teach `gpt-4.1-mini` from v3's reviewed answers (`--teacher-label v3`), aiming for v3's quality at a fraction of the cost.
@@ -1094,6 +1170,8 @@ With those answers rejected, only about **25 of the 30 training answers** needed
 - "Fine-tuning copies your teacher's habits, including its workarounds for your bugs. The review step is where you catch that."
 - "The agent wasn't wrong to say 'no Paris flights.' Our data spelled Paris two different ways. No instruction can fix that."
 - "Insights found the behavior, the scorecard measured it, the optimizer tuned the instructions, and reviewing the teacher's answers found the real limit: our tools."
+
+---
 
 #### Step 11d. Fix the tools (v3-tools)
 
@@ -1153,6 +1231,8 @@ Four fixes, each with a test (`.venv/bin/python -m pytest src/agent/tests -q`, 1
 - "Nobody's scorecard said 'fix the tools.' Reading the traces did. That's why we look at traces, not just scores."
 - "This is the first step up after five tries. Every step down told us where to look next, and this one is real: same questions, same scorecard, three rounds."
 
+---
+
 #### Step 11e. Fine-tune from v3-tools (v3-tools-student)
 
 With better tools, the same teacher run tells a different story.
@@ -1188,12 +1268,55 @@ With better tools, the same teacher run tells a different story.
 
 **The first job failed** after about 15 minutes in preprocessing: *"contains invalid schema"* on all 36 training lines. Every line, including the one with no tool calls, carried the same `tools` list, so the problem was the tool definitions. We had copied them straight from the agent's code, and they included extras the validator rejects (`title`, `default: null`, and `anyOf` with `null` for optional fields). Tool-call messages also carried `"content": null`. `curate` now writes plain schemas and leaves `content` out of tool-call messages, matching the [documented format](https://learn.microsoft.com/azure/foundry/openai/how-to/fine-tuning-functions). `submit` now starts a new job when the saved one failed. The resubmitted job **failed the same way.** The fix came from the Foundry team's [fine-tuning repo](https://github.com/microsoft-foundry/fine-tuning): its `transform_traces_jsonl.py` script, made for exactly this traces-to-SFT case, and its working tool-calling sample (ZavaRetailAgent). Compared with those, every one of our lines lacked the top-level `"parallel_tool_calls": true`, and two tool parameters (`submit_booking.itinerary` and `compliance_summary`) were free-form objects with no `properties`. `curate` now adds both. That third job **failed too.** A node-by-node comparison with the working sample finally showed the difference: **every object schema there has a `required` list, even an empty one.** Four of ours had none (two tools whose parameters are all optional, plus the two free-form objects). `curate` now adds `required: []` wherever it's missing. Job 4 got through on 34 of 36 lines; the last two (TR-08 and TR-11) had a short text message ("I'll check the options…") recorded **between** the tool calls and their results. Tool results must follow the call immediately, so `curate` now drops text sent while calls are still waiting for results. **Job 5 passed preprocessing on both files.** Five submissions to get the format right, each one narrowing the problem: every line, then every line, then every line, then 2 lines, then none.
 
+**Training succeeded.** The job waited about an hour for GPUs, then trained for about 16 minutes: 108 steps (36 examples × 3 epochs), training loss **0.88 → 0.09**, 329,000 training tokens billed, and "Model Evaluation Passed." A loss that low on 36 examples means the student learned them closely; the testing questions will show whether it learned the *skill* or just the examples.
+
 **Talk about it:**
 
 - "Same 48 questions, same review rules. With the old tools, the teacher couldn't pass review. With fixed tools, it passed with room to spare. Fix what the traces show you, then teach."
 - "Every training example includes the tool calls. We're teaching the student to *check*, not just to sound like it checked."
 
-_Training in progress._
+**Deployed and scored.** `bash infra/09-fine-tune.sh deploy` put the student on a Developer-tier deployment (`contoso-student-v3-tools`), and `agent` recorded it as **v3-tools-student, version 7**. Its first answer looked like its teacher's: it called `check_travel_policy` first, listed every field the tool returned, and said plainly that no rule ID came back.
+
+Three rounds on the testing questions, then `bash infra/07-score.sh compare`:
+
+| | v3-tools (teacher) | **v3-tools-student** | Change |
+|---|---:|---:|---|
+| Mean | **0.66** | 0.54 | ▼ −0.12 |
+| Pass rate | **82%** | 60% | ▼ 22 points |
+| Easy / Medium / Hard | 0.63 / 0.66 / **0.70** | 0.56 / 0.51 / 0.56 | down at every level |
+| Weakest area | clarification (2.4) | booking evidence (2.1) | |
+| P50 / P95 | 8.6 / 15.1 s | 6.9 / 13.9 s\* | faster, but see below |
+| Tokens per answer | 7,288 | 6,482 | on a much cheaper model |
+
+| Dimension (1–5) | v3-tools | v3-tools-student | Change |
+|---|---:|---:|---:|
+| `receipt_classification_and_conversion` | 4.40 | 3.87 | −0.53 |
+| `structured_booking_evidence` | 2.78 | 2.12 | −0.66 |
+| `policy_check_before_recommendation` | 3.82 | 3.24 | −0.58 |
+| `general_quality` | 3.58 | 3.06 | −0.52 |
+| `policy_gated_outcome` | 3.55 | 3.05 | −0.50 |
+| `tool_usage_matches_request_type` | 4.14 | 3.67 | −0.47 |
+| `evidence_preservation` | 3.68 | 3.38 | −0.30 |
+| `missing_input_clarification` | 2.38 | 2.22 | −0.16 |
+
+\*Developer tier has no speed guarantee, so don't read much into the student's latency.
+
+**What it means:**
+
+- **A step down from its teacher, on every dimension.** Both policy dimensions dropped, so by our rule it isn't a candidate to go live.
+- **It learned the habits, not the judgment.** The smoke test showed the tool-first, evidence-first style. The scores show it doesn't yet decide as well. A training loss of 0.09 on 36 examples says it memorized those examples rather than the skill.
+- **36 examples is a minimum, not a target.** Azure needs at least 10; the docs recommend hundreds. Our review rules asked for 30 to keep prep short.
+- **It still beats Model Router on hard questions:** 0.56, against 0.45 (v2) and 0.43 (v3-router). For a cheap model, it holds up better on hard requests than routing does.
+- **The next climb is clear:** more training questions, more answers per question, then teach again from v3-tools.
+
+**Verdict: down. v3-tools stays live.**
+
+**Talk about it:**
+
+- "The student picked up its teacher's habits: tools first, evidence shown. It didn't pick up the judgment. Thirty-six examples teach style; teaching decisions takes hundreds."
+- "It's a cheaper model that does better than Model Router on hard questions. It's not ready to replace v3-tools. That's what the scorecard is for."
+
+---
 
 #### Step 11f. Insights again: which problems went away?
 
@@ -1243,7 +1366,7 @@ Use this as the close for this run. It follows [the README's punchline](README.m
 
 - **Krystal** gets a version that keeps the policy decisions she depends on and handles hard requests better than v1: v3-tools, now live.
 - **Andre** has defensible numbers: Model Router can cut cost by about two-thirds on simple requests, premium routing doubled cost for worse results, and the better version costs about half again as many tokens. Every claim comes from the same scorecard.
-- **Lydia** has a process that caught four would-be regressions before they reached users, stopped a student from learning our bugs, and found the fix that finally went up.
+- **Lydia** has a process that caught five would-be regressions before they reached users, stopped a student from learning our bugs, and found the fix that finally went up.
 
 **The punchline:**
 
@@ -1251,14 +1374,14 @@ Use this as the close for this run. It follows [the README's punchline](README.m
 
 **What to do next, after the session:**
 
-- **Fine-tune from v3-tools** (`bash infra/09-fine-tune.sh generate --teacher-label v3-tools`) to bring that quality to a cheaper model.
+- **Teach a cheaper model with more examples.** v3-tools-student learned from 36; add training questions and repeats (hundreds of reviewed answers), then fine-tune from v3-tools again.
 - **Run Insights again** on the next version to see which findings go away. On v3-tools (step 11f), two of v1's six were gone and the top one fell from 42% to 25% of traces.
 - **Add the missing rules by hand:** "no decision isn't approval", "pass the policy result into the booking", and "respect stated time windows". Then score that version the same way.
 - **If you want the router's savings,** put v3-tools on Model Router, or run the optimizer with Model Router as the target model, so the instructions are tuned for the model that will run them.
 
 **Talk about it:**
 
-- "Five steps down or sideways, then one clearly up. The scorecard stopped four regressions from going live, the review stopped a bad student, and the traces pointed at the fix."
+- "Six steps, one clearly up. The scorecard stopped five regressions from going live, the review stopped a bad student, and the traces pointed at the fix."
 - "Each Foundry feature did one job: Insights found the patterns, Rubric Evaluator measured them, Model Router showed where cheap is safe, and Agent Optimizer tried fixes at scale. Traces showed why. A person decided at every step."
 
 ---
