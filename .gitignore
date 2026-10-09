@@ -443,3 +443,14 @@ FodyWeavers.xsd
 
 # Generated into the Hosted Agent package by the azd prepackage hook
 src/agent/fixtures/
+
+# Local Foundry cache and per-version test configs written by the numbered scripts
+src/agent/.foundry/
+src/agent/.eval-*.yaml
+src/agent/.eval-*.jsonl
+src/agent/.eval-practice/
+# Optimizer candidates and snapshots are named after the job; recreate them with infra/10-optimize.sh apply
+src/agent/.agent_configs/cand_opt_*/
+src/agent/.agent_configs/baseline_opt_*/
+src/agent/.agent_configs/cand_opt_*-router/
+src/agent/.agent_configs/cand_opt_*-student/

@@ -24,8 +24,8 @@ The deployment follows [Use Insights in Foundry (preview)](https://learn.microso
 | Interactive presenter | **Monitoring Reader** on the connected Application Insights resource | `infra/supplemental.bicep` |
 | Foundry project managed identity | **Foundry User** on the parent Foundry account | `infra/supplemental.bicep` |
 | Foundry project managed identity | **Monitoring Reader** on the connected Application Insights resource | `infra/supplemental.bicep` |
-| Judge model | GPT-5 or newer deployment that the Insights backend supports | Manually deploy `insights-judge` (`gpt-5.6-sol`, GlobalStandard capacity 100) and select it under Insights **Configuration** |
-| Telemetry | Recent representative traces for the exact agent | Replay HERO, BLOCK, EVIDENCE, and ACCESS |
+| Judge model | GPT-5 or newer deployment that the Insights backend supports | `azure.yaml` deploys `insights-judge` (`gpt-5.6-sol`, GlobalStandard capacity 500) during `infra/02-setup.sh`; `infra/05-insights.sh` selects it |
+| Telemetry | Recent representative traces for the exact agent | `infra/04-run-questions.sh` (exploring set, 3 repeats) |
 | Project connection | Shared `ApplicationInsights` connection targeting the session component | `infra/supplemental.bicep` |
 
 The presenter might also inherit **Foundry User** from a broader scope. That does not replace the documented **Foundry Project Manager** requirement for Hosted Agent Insights.
@@ -43,12 +43,12 @@ If `AppGenAIContent` is configured as a protected table, every identity that rea
 2. Validate the deployment and telemetry:
 
    ```bash
-   bash infra/validate-deployment.sh
+   bash infra/03-check.sh
    ```
 
-3. Replay all four baseline cases to generate fresh successful, blocked, receipt, and accessibility traces.
-4. In Foundry, open `contoso-travel` > **Insights**.
-5. Under **Configuration**, select `insights-judge` (`gpt-5.6-sol`) as the judge model.
+3. Generate fresh traces with `bash infra/04-run-questions.sh`.
+4. Run `bash infra/05-insights.sh`, or in Foundry open `contoso-travel` > **Insights**.
+5. In the portal, under **Configuration**, confirm `insights-judge` (`gpt-5.6-sol`) is the judge model.
 6. Refresh the page after RBAC propagation, then select **Run scan now**.
 
 If the scan still fails after every check passes, capture the subscription and project IDs, agent name/version, UTC failure time, screenshot, and request ID when available. Agent Insights is a preview service, so the remaining failure can be service capacity, regional enablement, or another backend dependency. Do not repeatedly reset or recreate a monitor while a run is active.
@@ -61,7 +61,32 @@ If the scan still fails after every check passes, capture the subscription and p
 - The scan requires a configured GPT-5-or-newer judge deployment. Mini and nano variants are supported, but a larger model is recommended for insight quality.
 - A successful empty Insights retrieval means no findings were generated. It is different from a scan dependency failure.
 - In the validated environment, runs using `gpt-5.4` failed immediately with `ServiceUnavailable`; switching the monitor to `insights-judge` backed by `gpt-5.6-sol` succeeded. A model can satisfy the broad GPT-5-or-newer documentation and still be unavailable to the preview Insights backend.
-- Judge deployment remains a manual demo prerequisite so attendees explicitly see preview model compatibility and quota. It can be automated later after the supported model contract stabilizes.
+- The judge is now deployed by setup so nobody loses time deploying it by hand during the session. If a region lacks `gpt-5.6-sol`, preflight stops before any resources are created.
+
+<br/>
+
+## Insights run fails with TooManyRequests
+
+### Symptom
+
+> The analysis model remained rate-limited after automatic retries. Try again later.
+
+### Cause and fix
+
+Insights reads every trace in the lookback window with the judge model. About 100 tool-heavy traces overwhelmed `insights-judge` at capacity 200 (200,000 tokens per minute). Setup now deploys it at 500, and preflight requires that much `gpt-5.6-sol` quota.
+
+For an environment created before this change, raise the existing deployment in place (same model and version), then rerun `bash infra/05-insights.sh`:
+
+```bash
+sub=$(azd env get-value AZURE_SUBSCRIPTION_ID)
+rg=$(azd env get-value AZURE_RESOURCE_GROUP)
+acct=$(azd env get-value AZURE_AI_ACCOUNT_NAME)
+az rest --method put \
+  --url "https://management.azure.com/subscriptions/$sub/resourceGroups/$rg/providers/Microsoft.CognitiveServices/accounts/$acct/deployments/insights-judge?api-version=2025-06-01" \
+  --body '{"sku":{"name":"GlobalStandard","capacity":500},"properties":{"model":{"format":"OpenAI","name":"gpt-5.6-sol","version":"2026-07-09"}}}'
+```
+
+If quota is short, use a smaller window instead, for example `--lookback-hours 1` right after a `--repeats 1` run.
 
 <br/>
 
@@ -77,7 +102,7 @@ Azure CLI `2.45.0` in this container runs on `/usr/bin/python3`, which initially
 
 ### Fix and automation
 
-`.devcontainer/post-create.sh` installs Debian `python3-pip` only when `/usr/bin/python3 -m pip` is unavailable, then installs `application-insights` version `0.1.19` idempotently.
+`.devcontainer/post-create.sh` refreshes only the signed Debian package sources and installs `python3-pip` when `/usr/bin/python3 -m pip` is unavailable, then installs `application-insights` version `0.1.19` idempotently. Limiting the package refresh prevents an unrelated third-party repository from blocking setup.
 
 The user-level extension is located at:
 
@@ -92,7 +117,7 @@ az extension show --name application-insights \
   --query '{name:name,version:version,path:path}' -o json
 ```
 
-This extension enables the read-only telemetry query in `infra/validate-deployment.sh`. Foundry Agent Insights does not depend on the local CLI extension.
+This extension enables the read-only telemetry query in `infra/03-check.sh`. Foundry Agent Insights does not depend on the local CLI extension.
 
 <br/>
 
@@ -108,7 +133,7 @@ The evaluator generation job is created, but the Python SDK poller fails on a GE
 
 In `azure-ai-projects 2.6.1`, the evaluator-generation initial request receives the preview header through `allow_preview=True`, but the generic long-running-operation poller can omit it from status GET requests. The server-side job can still succeed and create the evaluator.
 
-`src/scripts/setup_lightweight_evaluation.py` starts generation without SDK polling, then calls `get_generation_job` with the explicit preview header until a terminal state. Rerunning `--apply` first reuses an existing evaluator version and does not create a duplicate.
+`src/scripts/build_scorecard.py` starts generation without SDK polling, then calls `get_generation_job` with the explicit preview header until a terminal state. Rerunning `infra/06-scorecard.sh` first reuses an existing scorecard and does not create a duplicate.
 
 <br/>
 
@@ -124,7 +149,7 @@ The evaluator details show:
 
 Foundry can retrieve full instructions from prompt agents, but a Hosted Agent's instructions are packaged inside its deployed code/configuration. The Agent generation source therefore contributes description and tool metadata but cannot expose the complete instruction text.
 
-This repository supplies the full baseline instructions and Caldova policy in the explicit Prompt source, plus the frozen expected-behavior dataset. The generated v1 dimensions are domain-specific and cover the observed Insights findings, so the warning does not invalidate the evaluator. Review and pin the returned definition rather than generating repeatedly to remove a cosmetic warning.
+This repository supplies the full baseline instructions, Caldova policy, scorecard guidance, and saved Insights findings in the Prompt source, alongside v1's exploring traces and the exploring questions. Review and keep the returned scorecard rather than generating repeatedly to remove a cosmetic warning.
 
 Do not clone the evaluator solely to hide the warning. Create a new evaluator version only when a reviewer changes dimensions, descriptions, weights, applicability, or threshold.
 
@@ -140,7 +165,7 @@ Multiple training prompts report the same `Session` and `Conversation` identifie
 
 `azd ai agent invoke` persists sessions per agent by default. Reusing one conversation contaminates otherwise independent SFT examples with earlier turns.
 
-The v3 generation phase invokes retained v1 with both `--new-session` and `--new-conversation`. Confirm the first two outputs have different session, conversation, trace, and response IDs before allowing the full run to continue.
+`src/scripts/run_questions.py` (used by steps 04 and 09) invokes the pinned version with both `--new-session` and `--new-conversation`. Spot-check the first two saved answers for different conversation IDs before letting a long run continue.
 
 <br/>
 
@@ -152,11 +177,11 @@ The v3 generation phase invokes retained v1 with both `--new-session` and `--new
 
 ### Cause and fix
 
-The default endpoint metadata belongs to active v2 even though immutable v1 remains invocable. Version-specific invocation must also specify `--protocol responses`. The script combines `--version 1 --protocol responses --new-session --new-conversation`, so Playground/default traffic stays on v2 while isolated teacher traces run against v1.
+The default endpoint metadata belongs to the newest version even though v1 remains invocable. Version-specific invocation must also specify `--protocol responses`. `run_questions.py` always passes `--version N --protocol responses --new-session --new-conversation`, so the portal stays on its current version while questions run against the pinned one.
 
 <br/>
 
-## Teacher trace generation hits token rate limit
+## Question runs hit a token rate limit
 
 ### Symptom
 
@@ -164,7 +189,7 @@ The default endpoint metadata belongs to active v2 even though immutable v1 rema
 
 ### Cause and fix
 
-The original baseline deployment used capacity 10, which is too small for tool-heavy teacher traces. `teacher-capacity.bicep` and the v3 script raise or reuse `gpt-5.4` capacity 200 after verifying quota plus a 40-unit reserve. Rerunning `generate` writes a new harvest start timestamp, so failed partial traces are excluded from the next bounded harvest.
+Tool-heavy answers use many tokens, and early builds deployed `gpt-5.4` at capacity 10. Setup now deploys `gpt-5.4`, `gpt-5.4-mini`, and `model-router` at capacity 300, and preflight refuses to start without that quota. If you still see limits, raise `--pause` in `run_questions.py` or rerun the step; each run writes a fresh time window, so partial runs are not mixed in.
 
 <br/>
 
@@ -191,7 +216,7 @@ After correcting the training type, `gpt-5.4-mini` returns:
 
 The live catalog's `globalFineTune=true` capability does not imply that supervised fine-tuning is supported. This trace corpus is reviewed input/output data for SFT, not a calibrated reinforcement dataset and grader.
 
-For the December 2026 delivery window, the approved student base is `gpt-4.1-mini` version `2025-04-14`. It supports supervised and global fine-tuning, Responses, and Agents v2. Its live catalog retirement date for both fine-tuning and inference is April 14, 2027. The script creates or reuses a capacity-100 base deployment, checks the 500-unit fine-tuning quota, and submits the existing 20/4 supervised corpus.
+For the December 2026 delivery window, the approved student base is `gpt-4.1-mini` version `2025-04-14`. It supports supervised and global fine-tuning, Responses, and Agents v2. Its live catalog retirement date for both fine-tuning and inference is April 14, 2027. Setup deploys a capacity-100 base, preflight checks the `globalFineTune` capability, and step 09 checks the 500-unit fine-tuning quota before submitting at least 30 training and 6 validation reviewed answers.
 
 If job creation fails, no job ID is persisted. Rerun `curate` after any model-contract change so provenance records the correct student base, then rerun `submit`. Earlier uploaded files may remain in Foundry, but the script never deletes them or mistakes them for a completed training job.
 
@@ -203,7 +228,7 @@ The extension can emit environment warnings, animated spinner control codes, and
 
 The deploy phase now preserves the complete output as `job-status.raw.log`, extracts content beginning at the first JSON object into `job-status.json`, validates it with `jq -e`, and only then reads the job status. This parser error occurs before model deployment and is safe to retry.
 
-The extension can also warn that the environment is already configured and that explicit subscription/project flags are ignored. This is expected when `azure.ai.finetune` was initialized earlier for the same `brk330-812406` project. Verify the endpoint in the warning, then continue; do not reinitialize or submit another job solely to remove the warning.
+The extension can also warn that the environment is already configured and that explicit subscription/project flags are ignored. This is expected when `azure.ai.finetune` was initialized earlier for the same project. Verify the endpoint in the warning, then continue; do not reinitialize or submit another job solely to remove the warning.
 
 <br/>
 
@@ -211,13 +236,13 @@ The extension can also warn that the environment is already configured and that 
 
 ### Symptom
 
-The endpoint is routed to retained v2, but optimizer status reports `agent_version: "4"` and a baseline score that matches v4 rather than Model Router v2.
+The endpoint is routed to the version you meant to optimize, but optimizer status reports a different `agent_version` and a baseline score that matches the newest version instead.
 
 ### Cause and fix
 
-Endpoint rerouting changes traffic selection but does not rewrite azd's `AGENT_CONTOSO_TRAVEL_VERSION`, which still records the latest deployed immutable version. Optimizer resolves that azd value during submission even when `eval-model-router-v2.yaml` names v2.
+Endpoint rerouting changes traffic selection but does not rewrite azd's `AGENT_CONTOSO_TRAVEL_VERSION`, which still records the latest deployed version. The optimizer reads that azd value during submission even when its config names another version.
 
-Cancel the incorrect non-terminal operation and remove only its ignored local operation-ID file. `infra/optimize-v5.sh` now temporarily pins the azd version to `2` during submission, then restores the prior azd value and the tracked v1 baseline metadata. Verify optimizer status reports `agent_version: "2"` before reviewing candidates.
+`infra/10-optimize.sh submit --from-label <label>` temporarily pins the azd value to that label's version, then restores it and the config's metadata file. Step 07 does the same while scoring. Cancel any job that reports the wrong `agent_version`, delete only its ignored `operation-id.txt`, and submit again.
 
 <br/>
 
@@ -245,18 +270,17 @@ The Foundry project ARM resource is complete before its data-plane endpoint has 
 
 ### Fix and recovery
 
-`infra/setup.sh` now waits for `AIProjectClient.agents.list()` to succeed before deploying the initial agent. It retries only transient `404`, `409`, `429`, and `5xx` responses for up to 150 seconds.
+`infra/02-setup.sh` now waits for `AIProjectClient.agents.list()` to succeed before deploying the initial agent. It retries only transient `404`, `409`, `429`, and `5xx` responses for up to 150 seconds.
 
 Resume the same generated environment by passing its suffix; do not create another environment and do not run the individual deployment commands manually:
 
 ```bash
-bash infra/setup.sh \
-   --suffix 340368
+bash infra/02-setup.sh --suffix NNNNNN
 ```
 
-The command reuses `BRK330_SUBSCRIPTION` and `BRK330_LOCATION` from the learner's authenticated setup terminal. Export them again first if recovery starts in a new terminal.
+The command reuses `BRK330_SUBSCRIPTION` and `BRK330_LOCATION` if set. Export them again first if recovery starts in a new terminal.
 
-Provisioning and supplemental deployment are idempotent. The fixed script selects the existing `brk330-340368` environment, verifies data-plane readiness, and continues the supported deployment sequence.
+Provisioning and supplemental deployment are idempotent. The script selects the existing `brk330-NNNNNN` environment, verifies data-plane readiness, and continues the supported deployment sequence.
 
 <br/>
 
@@ -276,7 +300,7 @@ The first supplemental deployment fails before Hosted Agent v1 exists:
 
 `infra/deploy-supplemental.sh` now reads the complete azd environment map and returns an empty principal ID when the Hosted Agent identity has not been created. Bicep skips agent-specific monitoring roles on the first pass. After v1 deploys, the second idempotent supplemental pass receives the real GUID and creates those assignments.
 
-Resume the same environment through `infra/setup.sh --suffix NNNNNN`; do not run the failed Bicep deployment manually.
+Resume the same environment through `infra/02-setup.sh --suffix NNNNNN`; do not run the failed Bicep deployment manually.
 
 <br/>
 
@@ -300,7 +324,7 @@ The public `mcr.microsoft.com/k8se/quickstart:latest` placeholder listens on por
 
 Supplemental Bicep now selects port 80 for the public placeholder and port 8080 for the real portal image. After `azd deploy web`, setup runs one final idempotent supplemental pass to preserve the deployed image and enforce the final registry, identity, ingress, and RBAC configuration.
 
-Let an already-running ARM deployment finish or fail; do not overlap another deployment. Then resume the same environment through `infra/setup.sh --suffix NNNNNN`.
+Let an already-running ARM deployment finish or fail; do not overlap another deployment. Then resume the same environment through `infra/02-setup.sh --suffix NNNNNN`.
 
 ### Preserve agent version on resume
 

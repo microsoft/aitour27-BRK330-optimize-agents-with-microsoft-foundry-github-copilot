@@ -9,16 +9,16 @@
 | Delivery deck | Avail 10.12.26  | Required before final publication |
 | Session recording | Coming soon | Add the reviewed hosted recording URL after production |
 | Attendee landing page | [README](../README.md) | Public starting point |
-| Attendee instructions | [Instructions](../instructions/README.md) | Complete cloud rebuild, optimization, validation, and cleanup path |
+| Attendee instructions | [Instructions](../instructions/README.md) | Step-by-step guide for the four acts, from setup to cleanup |
 
 ## Choose a delivery path
 
 | Path | Best for | Start here |
 |---|---|---|
 | **A — Reviewed recordings** | Predictable delivery with no cloud wait time. Available after recordings are published. | Open the deck, review each recording, and rehearse the transitions. |
-| **B — Live reproduction** | Experienced presenters with Azure access and rehearsal time. | Follow the [`instructions/`](../instructions/README.md), then use the numbered [`infra/`](../infra/README.md) steps. |
+| **B — Live reproduction** | Experienced presenters with Azure access and rehearsal time. | Follow [`instructions/README.md`](../instructions/README.md), which walks through the numbered [`infra/`](../infra/README.md) steps. |
 
-Until Path A is published, use the sanitized screenshots and measured scorecard to rehearse the story. Do not invent a live result to match a slide.
+Until Path A is published, rehearse with your own measured results. Do not invent a live result to match a slide.
 
 ## Delivery checklist
 
@@ -35,54 +35,52 @@ Complete the checklist above, then rehearse the run of show. The times below tot
 
 | Segment | Time | Purpose |
 |---|---:|---|
-| Opening and challenge | 5 min | Establish why agent quality, latency, and cost must be measured separately. |
-| Make it work | 10 min | Run the travel concierge and use Insights to turn production-like traces into actionable findings. |
-| Make it better | 12 min | Use a multi-dimensional rubric evaluator, then change only the model strategy with Model Router. |
-| Fine-tuning lesson | 3 min | Reference retained v3/v4 regressions to show why good data and human oversight matter. |
-| Make it scale | 10 min | Run Agent Optimizer, inspect its prompt-only candidate, and stop at the administrative promotion boundary. |
-| Playbook and close | 5 min | Reinforce one-lever experiments and human promote/reject/revise decisions. |
+| Opening and challenge | 5 min | Why quality, speed, and cost have to be measured separately. |
+| Make it work | 7 min | Build and deploy v1 with GitHub Copilot and Foundry skills; run the four portal scenarios. |
+| Understand where it struggles | 6 min | Show traces from repeated questions and the Insights findings. |
+| Make it better | 14 min | Show the scorecard drafted from traces, v1's score on testing questions, then v2 (Model Router) and v2-alt (fine-tuned) side by side. |
+| Make it scale | 9 min | Run Agent Optimizer from the chosen version, review candidates, retest v3, decide. |
+| Playbook and close | 4 min | One change at a time, the same test every time, a person decides. |
 
 ## Presenter notes
 
 - Use the root README as the attendee entry point.
 - Keep the session centered on the cost and quality challenge, the travel
-  concierge, the hill-climbing loop, and the repeatable optimization playbook.
-- Freeze the evidence and evaluator within an experiment, change exactly one
-  lever, then report quality, policy, latency, tokens, and cost separately.
-- Fine-tuning is a short measured lesson, not a live training demo.
-- Stop Agent Optimizer after candidate prompt review. Promotion is an optional
-  post-session code reference and remains human-controlled.
+  concierge, and the four acts: make it work, understand where it struggles,
+  make it better, make it scale.
+- Use the same test for every version: the same 24 testing questions, the same
+  scorecard, the same judge. Change one thing per version, then report quality,
+  speed, and tokens separately.
+- Fine-tuning (v2-alt) runs before the session. Show the result, not the job.
+- The optimizer practices on practice questions only. Its scores are hints; the
+  real comparison is step 07 on the testing questions.
+- Nothing goes live until a person runs `bash infra/11-promote.sh go-live`. Keeping v1 is a
+  valid outcome.
 - Add the public central delivery deck URL when it becomes available.
 
 ## Demo reproducibility
 
-**Implementation status:** Core implementation, screenshots, and public evidence review are complete. Deck and recording publication are deferred.
+**Implementation status:** The refreshed flow (three question sets, trace-based scorecard, v2 and v2-alt, optimizer from the chosen version) is ready for its first full run in `eastus2`. Screenshots, deck, and recordings will be refreshed from that run.
 
-The canonical live path uses the scripts and measured artifacts linked from the
-attendee instructions. The three edited demo targets remain 4 minutes for
-Insights, 6 minutes for evaluation and Model Router, and 5 minutes for Agent
+The three edited demo targets remain 4 minutes for make it work and Insights,
+6 minutes for the scorecard and the two levers, and 5 minutes for Agent
 Optimizer. Cut cloud wait time; never fabricate results or force a winner.
 
-For a demo reset, reroute to retained v2, start a new conversation, and verify the runtime banner:
+For a demo reset, switch the portal back to the version you want and start a new conversation:
 
 ```bash
-azd env select "$BRK330_ENVIRONMENT"
-project_endpoint="$(azd env get-value FOUNDRY_PROJECT_ENDPOINT)"
-.venv/bin/python infra/switch-agent-version.py \
-  --version 2 \
-  --project-endpoint "$project_endpoint" \
-  --apply
+bash infra/11-promote.sh go-live --label v1
 ```
 
-For a clean rebuild, export `BRK330_SUBSCRIPTION` and `BRK330_LOCATION`, run numbered infrastructure [Step 10](../infra/README.md) only with both confirmations, then run [Step 03](../infra/README.md). Set `BRK330_ENVIRONMENT` to the new environment name printed by setup.
+For a clean rebuild, run [step 12](../infra/README.md) (it asks twice), then [step 02](../infra/README.md). Review the proposed subscription and `eastus2` before confirming.
 
-After recordings are published, use the reviewed recording when preview access, quota, or cloud latency prevents a live segment. Until then, use the committed sanitized screenshots and [measured scorecard](../data/evaluation/lightweight-v1/comparison-scorecard.md). Preserve v1-v4 and optimizer provenance; do not delete or recreate versions on stage.
+After recordings are published, use the reviewed recording when preview access, quota, or cloud latency prevents a live segment. Do not delete or recreate versions on stage.
 
 ## Setup notes
 
-- Run numbered infrastructure [Step 02](../infra/README.md) in the learner-selected subscription and region.
-- Keep Model Router v2 as the Agent Optimizer baseline.
-- Open a new session after endpoint routing changes.
+- Run steps 01 to 09 the day before. They create v1, v2, v2-alt, traces, Insights findings, the scorecard, and scores.
+- Submit the optimizer (step 10) before the session so candidates are ready to review on stage.
+- Start a new portal conversation after switching versions.
 - Complete the readiness checklist before recording and publication.
 
 ## Support

@@ -1,16 +1,15 @@
 # Local utilities
 
-> **Need to prepare or inspect one artifact without running the full demo?** These small utilities handle focused jobs such as validating fixtures, running Insights, exporting evaluation results, and cleaning files for publication.
+> **What do the numbered scripts call under the hood?** You rarely run these directly. Each one prints `--help`.
 
-| Ref | Script | What it does | What it changes |
-|---:|---|---|---|
-| S01 | [`generate_receipts.py`](generate_receipts.py) | Builds deterministic synthetic receipt images from canonical fixture values. | Rewrites `data/fixtures/receipts/REC-*.png`. |
-| S02 | [`validate_fixtures.py`](validate_fixtures.py) | Checks fixture JSON, dates, IDs, references, policy rules, totals, conversions, and images. | Nothing; this is read-only. |
-| S03 | [`run_agent_insights.py`](run_agent_insights.py) | Shows retained Insights history or starts one on-demand analysis with `--run`. | Inspection is read-only; `--run` starts a billable cloud analysis. |
-| S04 | [`setup_lightweight_evaluation.py`](setup_lightweight_evaluation.py) | Checks the evaluation dataset and rubric, then optionally registers them with Foundry. | Default mode is local-only; `--apply` uploads dataset v2 and starts a billable rubric-generation job. |
-| S05 | [`export_evaluation_run.py`](export_evaluation_run.py) | Downloads one reviewed evaluation run and its row-level evidence. | Writes raw environment-specific JSON that must remain private until reviewed. |
-| S06 | [`sanitize_evaluation_artifacts.py`](sanitize_evaluation_artifacts.py) | Removes creator, resource, response, session, and trace identifiers from selected exports. | Rewrites only the JSON files explicitly passed with `--apply`. |
+| Script | What it does | What it changes |
+|---|---|---|
+| [`questions.py`](questions.py) | Checks the three question sets: sizes, levels, practice rows, no shared questions, test-only scenarios, and portal prompts. | Nothing. |
+| [`run_questions.py`](run_questions.py) | Asks one agent version a question set (step 04 and step 09). | Billable calls; saves answers and timings under `.azure/<environment>/questions/`. |
+| [`run_agent_insights.py`](run_agent_insights.py) | Shows Insights history, or starts a run with `--run`; `--save` writes findings without IDs (step 05). | `--run` starts a billable analysis. |
+| [`build_scorecard.py`](build_scorecard.py) | Local check by default. `--apply` uploads the question sets and drafts the scorecard from traces (step 06). | `--apply` creates datasets and an evaluator. |
+| [`compare_scores.py`](compare_scores.py) | Builds the comparison table from recorded scoring runs (step 07 `compare`). | Nothing in Azure; writes a private summary. |
+| [`validate_fixtures.py`](validate_fixtures.py) | Checks fixture IDs, dates, references, policy rules, totals, and images. | Nothing. |
+| [`generate_receipts.py`](generate_receipts.py) | Rebuilds the synthetic receipt images from fixture values. | Rewrites `data/fixtures/receipts/REC-*.png`. |
 
-> **Publishing evaluation evidence?** Run S05 to export it, inspect the raw files privately, then run S06 before publication. Never publish an untouched S05 export.
-
-Run these tools from the repository root only when the main [`instructions/`](../../instructions/README.md) point to them. The `S01` through `S06` labels are handles, not a required sequence. Use `--help` before running an automation command. Receipt generation requires Pillow from the root [`requirements.txt`](../../requirements.txt).
+Run them from the repository root with `.venv/bin/python`.

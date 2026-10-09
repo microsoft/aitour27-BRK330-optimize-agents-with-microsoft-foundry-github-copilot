@@ -148,6 +148,61 @@ def test_final_itinerary_approval_overrides_rejected_candidate() -> None:
     assert result["policy"]["cited_rule_ids"] == ["CT-20"]
 
 
+def _policy_check(call_id: str, output: str) -> list[dict]:
+    return [
+        {"type": "function_call", "call_id": call_id, "name": "check_travel_policy", "arguments": "{}"},
+        {"type": "function_call_output", "call_id": call_id, "output": output},
+    ]
+
+
+def test_booking_without_policy_evidence_is_not_booked() -> None:
+    passed = '{"hard_gate_blocked":false,"blocked_decisions":[],"cited_rule_ids":[],"errors":[]}'
+    result = summarize_response(
+        {
+            "output": _policy_check("p", passed)
+            + [
+                {"type": "function_call", "call_id": "b", "name": "submit_booking", "arguments": '{"itinerary":{},"dry_run":true}'},
+                {"type": "function_call_output", "call_id": "b", "output": '{"status":"blocked","reason":"Explicit policy compliance evidence is required before a booking dry-run."}'},
+            ]
+        }
+    )
+
+    assert result["outcome"]["code"] == "not_booked"
+    assert result["policy"]["approved"] is False
+    assert result["policy"]["booking_status"] == "blocked"
+
+
+def test_empty_search_marks_request_partly_done() -> None:
+    passed = '{"hard_gate_blocked":false,"blocked_decisions":[],"cited_rule_ids":[],"errors":[]}'
+    result = summarize_response(
+        {
+            "output": [
+                {"type": "function_call", "call_id": "s", "name": "search_flights", "arguments": '{"origin":"SEA","destination":"YUL","depart_after_hhmm":"0800"}'},
+                {"type": "function_call_output", "call_id": "s", "output": "[]"},
+            ]
+            + _policy_check("p", passed)
+        }
+    )
+
+    assert result["outcome"]["code"] == "partial"
+    assert result["policy"]["empty_searches"] == ["search_flights"]
+
+
+def test_receipt_with_excluded_lines_is_partly_reimbursable() -> None:
+    result = summarize_response(
+        {
+            "output": [
+                {"type": "function_call", "call_id": "r", "name": "extract_receipt", "arguments": '{"receipt_id":"REC-003"}'},
+                {"type": "function_call_output", "call_id": "r", "output": '{"receipt_id":"REC-003","policy_flagged_lines":[{"line":"Minibar","rule_id":"CT-20","reason":"Minibar excluded"}]}'},
+            ]
+        }
+    )
+
+    assert result["outcome"]["code"] == "partly_reimbursable"
+    assert result["policy"]["hard_gate_blocked"] is False
+    assert result["policy"]["cited_rule_ids"] == ["CT-20"]
+
+
 def test_repeated_policy_decisions_are_deduplicated() -> None:
     result = summarize_response(
         {

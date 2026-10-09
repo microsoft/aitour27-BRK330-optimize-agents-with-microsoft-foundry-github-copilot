@@ -10,7 +10,41 @@ if str(AGENT_ROOT) not in sys.path:
 from tools.itinerary import prepare_itinerary, submit_booking
 from tools.policy import check_travel_policy
 from tools.receipts import extract_receipt
-from tools.search import search_car_rentals, search_flights, search_hotels
+from tools.search import lookup_fixtures, search_car_rentals, search_flights, search_hotels
+
+
+def test_searches_accept_city_codes_airport_codes_and_names() -> None:
+    paris = ["FL-001", "FL-002", "FL-003", "FL-017"]
+    assert [item["id"] for item in search_flights("SEA", "PAR")] == paris
+    assert [item["id"] for item in search_flights("Seattle", "Paris")] == paris
+    assert [item["id"] for item in search_flights("SEA", "LHR")] == [
+        item["id"] for item in search_flights("SEA", "LON")
+    ]
+    assert [item["id"] for item in search_hotels("CDG")] == [
+        item["id"] for item in search_hotels("PAR")
+    ]
+    assert search_flights("SEA", "*") == []
+
+
+def test_step_free_filter_never_implies_wheelchair_access() -> None:
+    assert [item["id"] for item in search_hotels("BER", step_free=True)] == ["HT-005"]
+    assert [item["id"] for item in search_hotels("TYO", step_free=True)] == ["HT-020"]
+    assert search_hotels("TYO", wheelchair=True) == []
+
+
+def test_lookup_fixtures_returns_prices_and_hotel_totals() -> None:
+    flight, hotel, car, unknown = lookup_fixtures(["FL-004", "ht-006", "CR-004", "XX-1"])
+    assert flight["id"] == "FL-004" and "price" in flight
+    assert hotel["nightly_total"] == hotel["nightly_rate"] + hotel["taxes_fees_nightly"]
+    assert car["id"] == "CR-004"
+    assert unknown == {"id": "XX-1", "error": "Unknown fixture id"}
+
+
+def test_hotel_caps_come_from_policy_not_fixture_flags() -> None:
+    assert all("over_cap" not in hotel for hotel in search_hotels(""))
+    result = check_travel_policy(employee_id="EMP-001", hotel_id="HT-014")
+    assert result["hard_gate_blocked"] is True
+    assert "CT-03" in result["cited_rule_ids"]
 
 
 def test_inventory_filters_are_deterministic() -> None:

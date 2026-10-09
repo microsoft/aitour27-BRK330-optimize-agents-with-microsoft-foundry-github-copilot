@@ -20,8 +20,8 @@ def _serialize(value: Any) -> str:
 
 @tool(approval_mode="never_require")
 def search_flights(
-    origin: Annotated[str, Field(description="Origin code, for example SEA")],
-    destination: Annotated[str, Field(description="Destination code, for example CDG")],
+    origin: Annotated[str, Field(description="Origin city or airport code, for example SEA")],
+    destination: Annotated[str, Field(description="Destination city or airport code, for example PAR or CDG")],
     cabin: Annotated[
         str | None, Field(description="economy, premium_economy, or business")
     ] = None,
@@ -53,6 +53,9 @@ def search_hotels(
     max_nightly_total: Annotated[
         float | None, Field(description="Maximum nightly rate including taxes and fees")
     ] = None,
+    step_free: Annotated[
+        bool, Field(description="Require step-free access (not the same as wheelchair accessible)")
+    ] = False,
 ) -> str:
     """Search deterministic hotel inventory and accessibility attributes."""
     return _serialize(
@@ -62,6 +65,7 @@ def search_hotels(
             quiet=quiet,
             late_checkin=late_checkin,
             max_nightly_total=max_nightly_total,
+            step_free=step_free,
         )
     )
 
@@ -84,6 +88,16 @@ def search_car_rentals(
             hand_controls=hand_controls,
         )
     )
+
+
+@tool(approval_mode="never_require")
+def lookup_fixtures(
+    fixture_ids: Annotated[
+        list[str], Field(description="Flight, hotel, or car fixture ids, for example FL-004 or HT-006")
+    ],
+) -> str:
+    """Look up prices and attributes for known fixture ids without searching."""
+    return _serialize(search_tools.lookup_fixtures(fixture_ids))
 
 
 @tool(approval_mode="never_require")
@@ -173,6 +187,7 @@ ALL_TOOLS = [
     search_flights,
     search_hotels,
     search_car_rentals,
+    lookup_fixtures,
     check_travel_policy,
     extract_receipt,
     prepare_itinerary,

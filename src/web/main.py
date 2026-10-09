@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import time
@@ -15,6 +14,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+try:
+    from .evidence import summarize_response
+except ImportError:
+    from evidence import summarize_response
 
 logger = logging.getLogger("contoso-travel-web")
 HERE = Path(__file__).resolve().parent
@@ -167,124 +171,6 @@ def _as_dict(response: Any) -> dict[str, Any]:
     if hasattr(response, "model_dump"):
         return response.model_dump(mode="json")
     raise TypeError(f"Unsupported response type: {type(response).__name__}")
-
-
-def summarize_response(payload: dict[str, Any]) -> dict[str, Any]:
-    """Extract assistant text, tool evidence, citations, and usage."""
-    text_parts: list[str] = []
-    tool_timeline: list[dict[str, Any]] = []
-    cited_rules: set[str] = set()
-    blocked_decisions: list[dict[str, Any]] = []
-    blocked = False
-    policy_checked = False
-    policy_errors: list[str] = []
-    final_compliance: dict[str, Any] | None = None
-    receipt_checked = False
-    receipt_approved = True
-    receipt_blocked_decisions: list[dict[str, Any]] = []
-    receipt_cited_rules: set[str] = set()
-
-    for item in payload.get("output", []) or []:
-        item_type = item.get("type")
-        if item_type == "message":
-            for content in item.get("content", []) or []:
-                if content.get("type") in {"output_text", "text"}:
-                    text_parts.append(content.get("text", ""))
-        elif item_type == "function_call":
-            arguments = item.get("arguments", {})
-            if isinstance(arguments, str):
-                try:
-                    arguments = json.loads(arguments or "{}")
-                except json.JSONDecodeError:
-                    arguments = {"raw": arguments}
-            if item.get("name") == "submit_booking" and isinstance(arguments, dict):
-                compliance = arguments.get("compliance_summary")
-                if isinstance(compliance, dict):
-                    final_compliance = compliance
-            tool_timeline.append(
-                {"call_id": item.get("call_id"), "tool": item.get("name", "unknown"), "arguments": arguments, "result": None}
-            )
-        elif item_type == "function_call_output":
-            output = item.get("output", {})
-            if isinstance(output, str):
-                try:
-                    output = json.loads(output or "{}")
-                except json.JSONDecodeError:
-                    output = {"raw": output}
-            call_id = item.get("call_id")
-            target = next(
-                (step for step in reversed(tool_timeline) if step["call_id"] == call_id),
-                tool_timeline[-1] if tool_timeline else None,
-            )
-            if target is not None:
-                target["result"] = output
-            if isinstance(output, dict):
-                cited_rules.update(output.get("cited_rule_ids", []) or [])
-                blocked = blocked or bool(output.get("hard_gate_blocked"))
-                blocked_decisions.extend(output.get("blocked_decisions", []) or [])
-                if target is not None and target["tool"] == "check_travel_policy":
-                    policy_checked = True
-                    policy_errors.extend(output.get("errors", []) or [])
-                if target is not None and target["tool"] == "extract_receipt":
-                    receipt_checked = True
-                    if output.get("error"):
-                        receipt_approved = False
-                        policy_errors.append(str(output["error"]))
-                    policy_notes = output.get("policy_notes") or {}
-                    receipt_approved = receipt_approved and bool(
-                        policy_notes.get("reimbursable_category")
-                    )
-                    receipt_blocked_decisions.extend(
-                        output.get("policy_flagged_lines", []) or []
-                    )
-                    for key in ("matched_rule", "conversion_rule"):
-                        if policy_notes.get(key):
-                            receipt_cited_rules.add(str(policy_notes[key]))
-
-    if final_compliance is not None:
-        blocked = bool(final_compliance.get("hard_gate_blocked"))
-        blocked_decisions = list(final_compliance.get("blocked_decisions", []) or [])
-        cited_rules = set(final_compliance.get("cited_rule_ids", []) or [])
-        policy_errors = list(final_compliance.get("errors", []) or [])
-        policy_checked = True
-
-    blocked = blocked or bool(receipt_blocked_decisions)
-    blocked_decisions.extend(receipt_blocked_decisions)
-    cited_rules.update(receipt_cited_rules)
-
-    blocked_decisions = list(
-        {
-            (decision.get("rule_id"), decision.get("reason")): decision
-            for decision in blocked_decisions
-        }.values()
-    )
-
-    checked = policy_checked or receipt_checked
-    approved = (
-        checked
-        and not blocked
-        and not policy_errors
-        and (not receipt_checked or receipt_approved)
-    )
-    decision_type = "travel" if policy_checked else "reimbursement" if receipt_checked else "unconfirmed"
-
-    return {
-        "assistant": "\n".join(text_parts),
-        "tool_timeline": tool_timeline,
-        "policy": {
-            "hard_gate_blocked": blocked,
-            "cited_rule_ids": sorted(cited_rules),
-            "blocked_decisions": blocked_decisions,
-            "checked": checked,
-            "approved": approved,
-            "decision_type": decision_type,
-            "errors": policy_errors,
-            "evidence_gap": not blocked and not cited_rules,
-        },
-        "usage": payload.get("usage") or {},
-        "response_id": payload.get("id"),
-        "model": payload.get("model"),
-    }
 
 
 @app.get("/", response_class=HTMLResponse)

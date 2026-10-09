@@ -32,7 +32,7 @@ The agent:
 3. Runs validation checks (Markdown links, publication readiness, Markdown lint)
 4. If any checks fail, reports the failure and proposes fixes. You accept and the agent applies them, then re-runs.
 5. Once checks pass, removes the template-only tooling from the repo:
-   - `.github/agents/`
+   - `.github/agents/aitour-repo.agent.md` (keep `hill-climb-helper.agent.md`, the learner's lab guide)
    - `.github/tests/`
    - `.github/copilot-instructions.md`
    - `.github/AGENT-WORKFLOW.md`
