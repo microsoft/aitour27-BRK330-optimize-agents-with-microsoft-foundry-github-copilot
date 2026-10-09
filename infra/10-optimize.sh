@@ -75,8 +75,13 @@ settings["agent"].update(
 rows = [json.loads(line) for line in Path("data/questions/exploring.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
 practice = [row for row in rows if row.get("practice")]
 assert len(practice) == 12, f"expected 12 practice rows, found {len(practice)}"
-Path("src/agent/.eval-practice.jsonl").write_text("".join(json.dumps(row) + "\n" for row in practice), encoding="utf-8")
-settings["dataset"] = {"local_uri": ".eval-practice.jsonl", "name": "brk330-practice", "version": "1"}
+# eval update only uploads a folder of JSONL files, not a single file.
+practice_dir = Path("src/agent/.eval-practice")
+practice_dir.mkdir(exist_ok=True)
+for stale in practice_dir.glob("*.jsonl"):
+    stale.unlink()
+(practice_dir / "practice.jsonl").write_text("".join(json.dumps(row) + "\n" for row in practice), encoding="utf-8")
+settings["dataset"] = {"local_uri": ".eval-practice", "name": "brk330-practice", "version": "1"}
 settings["options"]["max_samples"] = 12
 Path(output).write_text(yaml.safe_dump(settings, sort_keys=False), encoding="utf-8")
 PY
@@ -91,6 +96,11 @@ PY
     trap restore_local_state EXIT
     azd env set AGENT_CONTOSO_TRAVEL_VERSION "$version" >/dev/null
     printf 'Starting the optimizer from %s (contoso-travel version %s)...\n' "$from_label" "$version"
+    # optimize does not upload local_uri datasets, so register the practice set first.
+    upload_log="$state_dir/dataset-upload.log"
+    (cd src/agent && azd ai agent eval update --agent contoso-travel --config "$config" --dataset-only --no-prompt) 2>&1 | tee "$upload_log"
+    # eval update exits 0 even when the upload fails.
+    ! grep -q 'Failed to update' "$upload_log" || fail 8 "Could not upload the practice questions; read $upload_log."
     (cd src/agent && azd ai agent optimize --agent contoso-travel --config "$config" --no-wait --no-prompt) | tee "$log"
     operation_id="$(grep -Eo 'opt_[A-Za-z0-9_-]+' "$log" | tail -1 || true)"
     [[ -n "$operation_id" ]] || fail 8 "No optimizer job ID returned; read $log."

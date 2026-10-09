@@ -74,7 +74,10 @@ trap restore_recorded_version EXIT
 azd env set AGENT_CONTOSO_TRAVEL_VERSION "$version" >/dev/null
 
 stamp="$(date -u '+%Y%m%dT%H%M%SZ')"
-previous_rounds="$(jq -s --arg lbl "$label" '[.[] | select(.label == $lbl)] | length' "$scores_dir/runs.jsonl" 2>/dev/null || echo 0)"
+previous_rounds=0
+if [[ -s "$scores_dir/runs.jsonl" ]]; then
+  previous_rounds="$(jq -s --arg lbl "$label" '[.[] | select(.label == $lbl)] | length' "$scores_dir/runs.jsonl")"
+fi
 for (( round = 1; round <= repeats; round++ )); do
   number=$((previous_rounds + round))
   name="brk330-$label-$stamp-r$number"
